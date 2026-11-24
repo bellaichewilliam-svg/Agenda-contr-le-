@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HOP! · maquette identité (v5)</title>
+<meta name="theme-color" content="#0F1F3D">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Karantina:wght@700&family=Heebo:wght@500;600;700;800;900&family=Caveat:wght@700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* Identité HOP! v5 (proposition au patron, 24/11) : « l'affiche de quartier ».
+   - Titres en Karantina (affiche condensée, la même police en français et en hébreu = une seule voix), texte en Heebo.
+   - Le saut de Hoppy comme signature : pointillés en arc qui relient les choses, tout arrive en sautant.
+   - Les objets des courses deviennent l'interface : ticket de caisse (liste, comparateur), étiquette prix en étoile, tampon « LIVRÉ ».
+   - Bleu nuit (marque), crème papier, un seul orange pour l'action ; une couleur franche par rubrique. Aucun commerce mis en avant. */
+:root { --navy: #0F1F3D; --navy2: #182C52; --paper: #F4ECDD; --or: #FF6A13; --ink: #0F1F3D; }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { overflow-x: clip; } body { font-family: Heebo, system-ui, sans-serif; background: var(--navy); color: #fff; overflow-x: clip; }
+img { display: block; user-select: none; -webkit-user-drag: none; }
+.ltr { direction: ltr; unicode-bidi: isolate; }
+.K { font-family: Karantina, Heebo, sans-serif; font-weight: 700; line-height: .82; letter-spacing: -.01em; text-transform: uppercase; }
+.S { font-family: Caveat, cursive; font-weight: 700; } html[dir=rtl] .S { font-family: Heebo; font-weight: 800; }
+.grain::after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .28; mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .28 0 0 0 0 .2 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E"); }
+/* arrivée en saut (au défilement) */
+.hop { opacity: 0; transform: translateY(40px) scale(.92); transition: transform .7s cubic-bezier(.2, 1.6, .4, 1), opacity .4s; }
+.hop.in { opacity: 1; transform: none; }
+
+/* ===== Barre du haut ===== */
+.top { position: sticky; top: 0; z-index: 40; display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--navy); border-bottom: 1px solid rgba(255,255,255,.08); }
+.logo { font-family: Heebo; font-weight: 900; font-size: 30px; letter-spacing: -.04em; line-height: 1; }
+.logo i { display: inline-block; font-style: normal; color: var(--or); transform-origin: 50% 100%; animation: bang 2.6s cubic-bezier(.3, 1.8, .4, 1) infinite; }
+@keyframes bang { 0%, 70%, 100% { transform: none; } 78% { transform: translateY(-7px) rotate(10deg); } 86% { transform: translateY(0) scaleY(.85); } }
+.addr { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 22px; background: rgba(255,255,255,.09); font-size: 13px; font-weight: 700; }
+.addr span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .addr small { display: block; font-size: 10px; color: #9FB3D9; font-weight: 700; letter-spacing: .04em; }
+.addr .pin { width: 9px; height: 9px; border-radius: 5px; background: var(--or); box-shadow: 0 0 0 4px rgba(255,106,19,.25); flex: none; }
+.round { width: 40px; height: 40px; border-radius: 20px; background: var(--paper); color: var(--navy); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px; text-decoration: none; flex: none; }
+
+/* ===== 1. L'affiche ===== */
+.hero { position: relative; padding: 22px 0 0; overflow: hidden; background: var(--navy); }
+.giant { position: relative; z-index: 1; text-align: center; font-size: 120px; color: var(--paper); white-space: nowrap; }
+.stage { position: relative; height: 320px; margin-top: -34px; }
+.hoppyJump { position: absolute; z-index: 3; left: 50%; top: 0; height: 320px; transform: translateX(-50%); filter: drop-shadow(0 30px 26px rgba(0,0,0,.5)); animation: jump 3.2s cubic-bezier(.45, 0, .35, 1) infinite; }
+@keyframes jump { 0%, 100% { transform: translate(-50%, 0) rotate(-2deg); } 45% { transform: translate(-50%, -22px) rotate(3deg); } 60% { transform: translate(-50%, -18px) rotate(2deg); } }
+.arc { position: absolute; z-index: 2; left: -10px; top: 20px; width: 410px; height: 260px; }
+.arc path { fill: none; stroke: var(--or); stroke-width: 3; stroke-dasharray: 2 11; stroke-linecap: round; animation: dash 1.4s linear infinite; }
+@keyframes dash { to { stroke-dashoffset: -26; } }
+.prop { position: absolute; z-index: 4; filter: drop-shadow(0 12px 12px rgba(0,0,0,.45)); animation: drift 5s ease-in-out infinite; }
+@keyframes drift { 0%, 100% { transform: translateY(0) rotate(var(--r)); } 50% { transform: translateY(-9px) rotate(calc(var(--r) + 7deg)); } }
+.tagline { position: relative; z-index: 5; padding: 0 20px; margin-top: 4px; }
+.tagline h1 { font-size: 64px; color: #fff; } .tagline h1 b { color: var(--or); font-weight: 700; }
+.tagline .note { display: flex; align-items: flex-end; gap: 6px; margin-top: 8px; font-size: 26px; color: #CFE0FF; }
+html[dir=rtl] .tagline .note { font-size: 17px; }
+.tagline .note svg { flex: none; margin-bottom: 6px; } html[dir=rtl] .tagline .note svg { transform: scaleX(-1); }
+.star { position: absolute; z-index: 6; inset-inline-end: 6px; top: 150px; width: 112px; height: 112px; animation: spin 14s linear infinite; }
+.star div { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: #fff; animation: spin 14s linear infinite reverse; }
+.star small { font-size: 12px; font-weight: 800; } .star b { font-family: Karantina; font-size: 46px; line-height: .8; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.search { position: relative; z-index: 6; display: flex; align-items: center; gap: 10px; margin: 18px 16px 0; padding: 8px 8px 8px 18px; border-radius: 34px; background: var(--paper); color: #6B6152; font-weight: 600; font-size: 15px; }
+html[dir=rtl] .search { padding: 8px 18px 8px 8px; }
+.search b { margin-inline-start: auto; display: flex; align-items: center; gap: 6px; padding: 12px 16px; border-radius: 26px; background: var(--or); color: #fff; font-weight: 800; font-size: 14px; }
+.zig { display: block; width: 100%; height: 18px; margin-top: 34px; }
+
+/* ===== 2. Le ticket qui défile ===== */
+.ticket { background: var(--paper); color: var(--ink); padding: 4px 0 14px; position: relative; }
+.ticket .row { display: flex; gap: 26px; width: max-content; font-family: 'IBM Plex Mono', Heebo, monospace; font-weight: 600; font-size: 15px; animation: slide 30s linear infinite; padding: 6px 0; border-bottom: 1.5px dashed rgba(15,31,61,.25); }
+.ticket .row span b { color: var(--or); }
+@keyframes slide { to { transform: translateX(-50%); } } html[dir=rtl] .ticket .row { animation-name: slideR; } @keyframes slideR { to { transform: translateX(50%); } }
+
+/* ===== 3. Les rubriques en affiches ===== */
+.kinds { background: var(--paper); color: var(--ink); padding: 26px 0 40px; position: relative; }
+.h2 { padding: 0 18px; font-size: 62px; } .h2 em { display: block; font-family: Caveat; font-style: normal; text-transform: none; font-size: 30px; color: var(--or); letter-spacing: 0; line-height: 1; margin-top: 4px; }
+html[dir=rtl] .h2 em { font-family: Heebo; font-weight: 800; font-size: 20px; }
+.posters { display: flex; gap: 12px; overflow-x: auto; padding: 18px 18px 10px; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.posters::-webkit-scrollbar { display: none; }
+.poster { position: relative; flex: none; width: 230px; height: 300px; border-radius: 26px; overflow: hidden; scroll-snap-align: start; padding: 16px; color: var(--ink); }
+.poster .n { font-family: 'IBM Plex Mono'; font-size: 12px; font-weight: 600; opacity: .6; }
+.poster .w { position: absolute; left: 0; right: 0; bottom: 56px; text-align: center; z-index: 1; white-space: nowrap; }
+.poster img { position: absolute; z-index: 2; left: 50%; top: 34px; height: 170px; transform: translateX(-50%) rotate(var(--r)); filter: drop-shadow(0 16px 14px rgba(0,0,0,.28)); }
+.poster .f { position: absolute; left: 16px; right: 16px; bottom: 14px; display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 13px; z-index: 3; }
+.poster .f i { font-style: normal; width: 34px; height: 34px; border-radius: 17px; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; }
+
+/* ===== 4. Le comparateur = un ticket de caisse ===== */
+.cmp { position: relative; background: var(--navy); padding: 46px 18px 54px; overflow: hidden; }
+.cmp .h2 { padding: 0; color: #fff; }
+.receipt { position: relative; margin: 22px auto 0; width: 300px; background: #FFFDF8; color: #1A1A1A; padding: 20px 20px 26px; font-family: 'IBM Plex Mono', Heebo, monospace; font-size: 14px; transform: rotate(-2deg); box-shadow: 0 30px 60px rgba(0,0,0,.45);
+  -webkit-mask: radial-gradient(8px at 50% 100%, #0000 98%, #000) 50% 100% / 16px 100% repeat-x; }
+.receipt .hd { text-align: center; font-weight: 600; letter-spacing: .1em; border-bottom: 1.5px dashed #999; padding-bottom: 10px; margin-bottom: 10px; }
+.receipt .ln { display: flex; gap: 6px; padding: 5px 0; } .receipt .ln span:nth-child(2) { flex: 1; border-bottom: 2px dotted #bbb; margin-bottom: 5px; }
+.receipt .best { font-weight: 600; color: var(--or); }
+.stamp { position: absolute; inset-inline-end: -44px; top: -44px; padding: 8px 14px; border: 4px solid var(--or); border-radius: 10px; color: var(--or); font-family: Karantina; font-size: 40px; line-height: .9; transform: rotate(-14deg); background: rgba(255,253,248,.6); text-align: center; }
+.cmp .go { display: flex; width: max-content; margin: 28px auto 0; align-items: center; gap: 10px; padding: 16px 28px; border-radius: 32px; background: var(--or); color: #fff; font-weight: 800; font-size: 16px; text-decoration: none; }
+
+/* ===== 5. Chaud devant (restos) ===== */
+.hot { position: relative; background: #E2471B; color: #fff; padding: 52px 0 40px; overflow: hidden; }
+.torn { position: absolute; left: 0; right: 0; height: 24px; z-index: 3; } .torn.t { top: -1px; }
+.hot .giant2 { font-size: 150px; text-align: center; color: #FFD9C2; opacity: .95; }
+.hot .plate { position: relative; height: 290px; margin-top: -70px; }
+.hot .plate img { position: absolute; filter: drop-shadow(0 18px 16px rgba(60,10,0,.4)); animation: drift 5s ease-in-out infinite; }
+.hot p { text-align: center; font-weight: 700; font-size: 17px; padding: 0 30px; }
+.hot .go { display: flex; width: max-content; margin: 16px auto 0; padding: 15px 26px; border-radius: 30px; background: var(--navy); color: #fff; font-weight: 800; text-decoration: none; }
+
+/* ===== 6. Hoppy ===== */
+.voice { position: relative; background: var(--paper); color: var(--ink); padding: 50px 18px 0; overflow: hidden; }
+.bubble { position: relative; z-index: 2; display: inline-block; max-width: 230px; padding: 16px 18px; border-radius: 24px; background: #fff; border: 3px solid var(--ink); font-weight: 800; font-size: 20px; line-height: 1.15; box-shadow: 6px 6px 0 var(--ink); }
+.bubble::after { content: ''; position: absolute; inset-inline-end: -16px; bottom: 18px; border: 12px solid transparent; border-inline-start-color: var(--ink); }
+.voice .h2 { padding: 0; margin-top: 18px; position: relative; z-index: 2; max-width: 210px; }
+.voice img { position: absolute; inset-inline-end: -16px; bottom: 0; height: 330px; }
+.voice .mic { position: relative; z-index: 2; display: flex; align-items: center; gap: 12px; margin: 18px 0 40px; width: 200px; padding: 8px 16px 8px 8px; border-radius: 30px; background: var(--ink); color: #fff; font-weight: 800; }
+html[dir=rtl] .voice .mic { padding: 8px 8px 8px 16px; }
+.voice .mic i { width: 42px; height: 42px; border-radius: 21px; background: var(--or); display: flex; align-items: center; justify-content: center; flex: none; animation: pulse 1.6s infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,106,19,.6); } 100% { box-shadow: 0 0 0 16px rgba(255,106,19,0); } }
+
+/* ===== 7. Fin ===== */
+.end { background: var(--navy); text-align: center; padding: 30px 0 40px; overflow: hidden; }
+.end .big { font-family: Heebo; font-weight: 900; font-size: 168px; letter-spacing: -.06em; line-height: .85; color: #fff; }
+.end .big i { font-style: normal; color: var(--or); display: inline-block; animation: bang 2.6s cubic-bezier(.3, 1.8, .4, 1) infinite; transform-origin: 50% 100%; }
+.end p { color: #9FB3D9; font-weight: 700; margin-top: 8px; }
+</style>
+</head>
+<body>
+<header class="top"><div class="logo ltr">HOP<i>!</i></div><div class="addr"><i class="pin"></i><span><small data-t="to"></small><span data-t="addr"></span></span></div><a class="round" id="lang" href="#"></a></header>
+
+<section class="hero">
+  <div class="giant K ltr" data-t="city"></div>
+  <div class="stage">
+  <svg class="arc" viewBox="0 0 410 260"><path d="M-10 240 C 60 20, 150 10, 205 120 S 330 40, 420 150"/></svg>
+  <img class="hoppyJump" src="img/v4/hoppy.webp" alt="Hoppy">
+  <img class="prop" src="img/v4/coca.webp" style="height:110px;left:18px;top:60px;--r:-12deg" alt="">
+  <img class="prop" src="img/v4/pommes.webp" style="height:62px;right:26px;top:70px;--r:16deg;animation-delay:-1.2s" alt="">
+  <img class="prop" src="img/v4/baguette.webp" style="height:110px;left:30px;top:190px;--r:22deg;animation-delay:-2.1s" alt="">
+  </div>
+  <div class="star"><svg viewBox="0 0 100 100" width="112" height="112"><path fill="#FF6A13" d="M50 2l7 12 13-6 1 14 14 1-6 13 12 7-12 7 6 13-14 1-1 14-13-6-7 12-7-12-13 6-1-14-14-1 6-13-12-7 12-7-6-13 14-1 1-14 13 6z"/></svg><div><small data-t="from"></small><b class="ltr">25 ₪</b><small data-t="inCity"></small></div></div>
+  <div class="tagline">
+    <h1 class="K"><span data-t="t1"></span><br><b data-t="t2"></b></h1>
+    <div class="note S"><svg width="34" height="30" viewBox="0 0 34 30" fill="none" stroke="#FF6A13" stroke-width="2.6" stroke-linecap="round"><path d="M4 4c2 12 10 20 24 20"/><path d="M22 18l6 6-7 4"/></svg><span data-t="note"></span></div>
+  </div>
+  <div class="search"><span data-t="search"></span><b><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span data-t="go"></span></b></div>
+  <svg class="zig" viewBox="0 0 390 18" preserveAspectRatio="none"><path fill="#F4ECDD" d="M0 18 L0 9 L10 0 L20 9 L30 0 L40 9 L50 0 L60 9 L70 0 L80 9 L90 0 L100 9 L110 0 L120 9 L130 0 L140 9 L150 0 L160 9 L170 0 L180 9 L190 0 L200 9 L210 0 L220 9 L230 0 L240 9 L250 0 L260 9 L270 0 L280 9 L290 0 L300 9 L310 0 L320 9 L330 0 L340 9 L350 0 L360 9 L370 0 L380 9 L390 0 L390 18 Z"/></svg>
+</section>
+
+<div class="ticket grain"><div class="row" id="tk1"></div></div>
+
+<section class="kinds grain">
+  <h2 class="h2 K hop"><span data-t="kT"></span><em data-t="kE"></em></h2>
+  <div class="posters" id="posters"></div>
+</section>
+
+<section class="cmp">
+  <h2 class="h2 K hop"><span data-t="cT"></span><em data-t="cE"></em></h2>
+  <div class="receipt hop" id="receipt"></div>
+  <a class="go hop" href="#" data-t="cGo"></a>
+</section>
+
+<section class="hot">
+  <svg class="torn t" viewBox="0 0 390 24" preserveAspectRatio="none"><path class="tp" fill="#0F1F3D"/></svg>
+  <div class="giant2 K ltr" data-t="hT"></div>
+  <div class="plate" id="hotP"></div>
+  <p data-t="hP"></p>
+  <a class="go" href="#" data-t="hGo"></a>
+</section>
+
+<section class="voice grain">
+  <svg class="torn t" viewBox="0 0 390 24" preserveAspectRatio="none"><path class="tp" fill="#E2471B"/></svg>
+  <div class="bubble hop" data-t="vB"></div>
+  <h2 class="h2 K hop"><span data-t="vT"></span><em data-t="vE"></em></h2>
+  <div class="mic"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><rect x="9" y="2.5" width="6" height="11.5" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3.5" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg></i><span data-t="vM"></span></div>
+  <img src="img/v4/hoppy.webp" alt="Hoppy">
+</section>
+
+<footer class="end"><div class="big ltr">HOP<i>!</i></div><p data-t="foot"></p></footer>
+
+<script>
+const T = {
+  fr: { to: 'LIVRER À', addr: 'Maison · Herzl 12, Netanya', city: 'NETANYA', from: 'dès', inCity: 'en ville', t1: 'On fait vos courses', t2: 'pour vous.', note: 'au meilleur prix, promis', search: 'Lait, pizza, pharmacie…', go: 'Chercher',
+    ticket: [['LAIT 1 L', '✓'], ['PAIN', '✓'], ['COUCHES', '✓'], ['PIZZA', 'CHAUD'], ['DOLIPRANE', '✓'], ['FLEURS', 'POUR MAMAN'], ['COLIS', 'RÉCUPÉRÉ'], ['BAMBA', '✓']],
+    kT: 'Tout, livré.', kE: 'choisissez, on y va pour vous',
+    kinds: [['Courses', 'lait', '#9CD8A8', -6, 'Le moins cher'], ['Restos', 'frites', '#FFB283', 8, 'Bien chaud'], ['Makolet', 'bamba', '#FFD54F', -8, 'Tout de suite'], ['Boulange', 'baguette', '#EAD2A8', 12, 'Frais du jour'], ['Colis', 'sac', '#C9B8FF', -4, 'Dépôt, retrait']],
+    cT: 'Le moins cher gagne.', cE: 'votre liste comparée dans tous les magasins',
+    rc: { hd: 'VOTRE LISTE · 4 ARTICLES', rows: [['Rami Lévy', '128,40'], ['Shufersal', '142,90'], ['Yohananof', '119,80']], best: 2, total: 'VOUS ÉCONOMISEZ', save: '23,10 ₪' }, stamp: 'LE MOINS<br>CHER', cGo: 'Comparer ma liste ›',
+    hT: 'CHAUD DEVANT', hP: 'Vos restos préférés de Netanya, livrés bien chauds.', hGo: 'Voir les restos ›',
+    vB: '« Du lait, des couches et un Mars. À la maison. »', vT: 'Dites-le.', vE: 'Hoppy s\'occupe du reste', vM: 'Parler à Hoppy', foot: 'Livraison à Netanya · dès 25 ₪ en ville', lang: 'עב' },
+  he: { to: 'משלוח אל', addr: 'הבית · הרצל 12, נתניה', city: 'נתניה', from: 'החל מ־', inCity: 'בעיר', t1: 'עושים לכם', t2: 'את הקניות.', note: 'במחיר הכי טוב, מבטיחים', search: 'חלב, פיצה, בית מרקחת…', go: 'חיפוש',
+    ticket: [['חלב 1 ל׳', '✓'], ['לחם', '✓'], ['חיתולים', '✓'], ['פיצה', 'חמה'], ['אקמול', '✓'], ['פרחים', 'לאמא'], ['חבילה', 'נאספה'], ['במבה', '✓']],
+    kT: 'הכול, עד הבית.', kE: 'בוחרים, ואנחנו הולכים בשבילכם',
+    kinds: [['קניות', 'lait', '#9CD8A8', -6, 'הכי זול'], ['מסעדות', 'frites', '#FFB283', 8, 'חם'], ['מכולת', 'bamba', '#FFD54F', -8, 'מיד'], ['מאפייה', 'baguette', '#EAD2A8', 12, 'טרי'], ['חבילות', 'sac', '#C9B8FF', -4, 'מסירה, איסוף']],
+    cT: 'הכי זול מנצח.', cE: 'הרשימה שלכם מושווית בכל החנויות',
+    rc: { hd: 'הרשימה שלכם · 4 פריטים', rows: [['רמי לוי', '128.40'], ['שופרסל', '142.90'], ['יוחננוף', '119.80']], best: 2, total: 'אתם חוסכים', save: '23.10 ₪' }, stamp: 'הכי<br>זול', cGo: '‹ להשוות את הרשימה',
+    hT: 'חם ומהביל', hP: 'המסעדות האהובות שלכם בנתניה, מגיעות חמות.', hGo: '‹ למסעדות',
+    vB: '«חלב, חיתולים ומארס. הביתה.»', vT: 'פשוט תגידו.', vE: 'הופי דואג לשאר', vM: 'לדבר עם הופי', foot: 'משלוחים בנתניה · החל מ־25 ₪ בעיר', lang: 'FR' },
+};
+const SRC = k => (['frites', 'onion-rings', 'aioli', 'chili', 'wings'].includes(k) ? `img/smashit/${k}.webp` : `img/v4/${k}.webp`);
+let L = new URLSearchParams(location.search).get('lang') === 'he' ? 'he' : 'fr';
+const $ = s => document.querySelector(s);
+function torn(seed) { let d = 'M0 0 L390 0 L390 12 ', x = 390, r = seed; while (x > 0) { r = (r * 9301 + 49297) % 233280; x -= 6 + (r / 233280) * 12; d += `L${Math.max(0, x).toFixed(1)} ${(7 + (r / 233280) * 15).toFixed(1)} `; } return d + 'L0 12 Z'; }
+document.querySelectorAll('.tp').forEach((p, i) => p.setAttribute('d', torn(11 + i * 17)));
+function apply() {
+  const t = T[L]; document.documentElement.lang = L; document.documentElement.dir = L === 'he' ? 'rtl' : 'ltr';
+  document.querySelectorAll('[data-t]').forEach(e => { e.innerHTML = t[e.dataset.t]; }); $('#lang').textContent = t.lang;
+  $('#tk1').innerHTML = t.ticket.map(([a, b]) => `<span>${a} ········ <b>${b}</b></span>`).join('').repeat(4);
+  $('#posters').innerHTML = t.kinds.map(([n, im, bg, r, s], i) => `<div class="poster hop" style="background:${bg}"><div class="n ltr">0${i + 1}</div><img src="${SRC(im)}" style="--r:${r}deg" alt=""><div class="w K" style="font-size:${Math.min(104, Math.floor(205 / (n.length * .47)))}px">${n}</div><div class="f"><span>${s}</span><i>›</i></div></div>`).join('');
+  const rc = t.rc;
+  $('#receipt').innerHTML = `<div class="hd">${rc.hd}</div>${rc.rows.map(([n, v], i) => `<div class="ln${i === rc.best ? ' best' : ''}"><span>${n}</span><span></span><span class="ltr">${v}</span></div>`).join('')}<div class="ln" style="border-top:1.5px dashed #999;margin-top:8px;padding-top:10px;font-weight:600"><span>${rc.total}</span><span></span><span class="ltr best">${rc.save}</span></div><div class="stamp">${t.stamp}</div>`;
+  const P = [['onion-rings', 150, 30, 70, -10], ['frites', 150, 200, 40, 12], ['wings', 130, 120, 150, 0], ['chili', 80, 20, 190, 0], ['aioli', 80, 290, 180, 0]];
+  $('#hotP').innerHTML = P.map(([k, h, x, y, r], i) => `<img src="${SRC(k)}" style="height:${h}px;${L === 'he' ? 'right' : 'left'}:${x}px;top:${y}px;--r:${r}deg;animation-delay:${-i * 1.1}s" alt="">`).join('');
+  const g = $('.giant'); g.style.fontSize = '120px'; const k = (innerWidth - 24) / g.scrollWidth; g.style.fontSize = Math.min(150, 120 * k) + 'px';
+  observe();
+}
+let io;
+function observe() { io && io.disconnect(); io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: .2 }); document.querySelectorAll('.hop').forEach((e, i) => { e.style.transitionDelay = (e.classList.contains('poster') ? (i % 5) * 70 : 0) + 'ms'; io.observe(e); }); }
+$('#lang').addEventListener('click', e => { e.preventDefault(); L = L === 'fr' ? 'he' : 'fr'; apply(); });
+apply();
+</script>
+</body>
+</html>

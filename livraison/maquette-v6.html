@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HOP! · identité complète (maquette v6)</title>
+<meta name="theme-color" content="#0F1F3D">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Karantina:wght@700&family=Heebo:wght@500;600;700;800;900&family=Caveat:wght@700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================================================
+   HOP! — identité « affiche de quartier » (maquette v6, proposition au patron du 24/11). Tous les écrans du client :
+   accueil, restos, page resto, magasin, pharmacie, panier, commande, suivi, + la charte.
+   Couleurs : bleu nuit (marque), papier crème, orange = l'action (un seul), jaune « étiquette de rayon » pour les prix,
+   une couleur par rubrique. Titres Karantina (FR + HE), texte Heebo, chiffres et tickets IBM Plex Mono, notes Caveat.
+   Signatures : le saut de Hoppy (pointillés en arc), l'étiquette prix en étoile, le ticket de caisse, le tampon, le papier déchiré.
+   Règles HOP! : pas d'émoji, jamais « partenaire », pas de durée chiffrée, « dès 25 ₪ en ville », casher (aucun mot laitier en resto viande).
+   ==================================================================================================== */
+:root { --navy: #0F1F3D; --navy2: #1A2E57; --paper: #F4ECDD; --paper2: #EADFCB; --or: #FF6A13; --tag: #FFE14A; --ink: #0F1F3D; --red: #E2471B; --green: #1F9D57;
+  --c-courses: #9CD8A8; --c-restos: #FFB283; --c-makolet: #FFD54F; --c-pharma: #A9D0FF; --c-boulange: #EAD2A8; --c-colis: #C9B8FF; --c-fleurs: #FFB8CB; }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { overflow-x: clip; } body { font-family: Heebo, system-ui, sans-serif; background: #050B17; color: var(--ink); overflow-x: clip; }
+button { font: inherit; border: 0; background: none; color: inherit; cursor: pointer; }
+img { display: block; user-select: none; -webkit-user-drag: none; }
+.ltr { direction: ltr; unicode-bidi: isolate; }
+.K { font-family: Karantina, Heebo, sans-serif; font-weight: 700; line-height: .84; letter-spacing: -.005em; text-transform: uppercase; }
+.S { font-family: Caveat, cursive; font-weight: 700; } html[dir=rtl] .S { font-family: Heebo; font-weight: 800; }
+.M { font-family: 'IBM Plex Mono', Heebo, monospace; }
+.app { position: relative; max-width: 430px; margin: 0 auto; min-height: 100vh; background: var(--paper); overflow: hidden; }
+.screen { display: none; padding-bottom: 96px; min-height: 100vh; } .screen.on { display: block; animation: in .45s cubic-bezier(.2, 1.3, .4, 1); }
+@keyframes in { from { opacity: 0; transform: translateY(24px); } }
+.grain { position: relative; } .grain::after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .25; mix-blend-mode: multiply; z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .28 0 0 0 0 .2 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.grain > * { position: relative; z-index: 1; }
+
+/* ----- composants ----- */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 16px 26px; border-radius: 32px; background: var(--or); color: #fff; font-weight: 800; font-size: 16px; text-decoration: none; }
+.btn.dark { background: var(--navy); } .btn.light { background: #fff; color: var(--navy); } .btn.block { display: flex; width: 100%; }
+.btn .pr { font-family: Karantina; font-size: 26px; line-height: .8; }
+.chip { flex: none; padding: 9px 16px; border-radius: 22px; background: rgba(15,31,61,.08); font-weight: 800; font-size: 14px; white-space: nowrap; }
+.chip.on { background: var(--navy); color: #fff; }
+.chips { display: flex; gap: 8px; overflow-x: auto; padding: 4px 16px 6px; scrollbar-width: none; } .chips::-webkit-scrollbar { display: none; }
+.round { width: 44px; height: 44px; border-radius: 22px; background: #fff; color: var(--navy); display: flex; align-items: center; justify-content: center; flex: none; box-shadow: 0 6px 16px rgba(15,31,61,.15); }
+.round.d { background: var(--navy); color: #fff; } html[dir=rtl] .round .flip { transform: scaleX(-1); }
+.plus { width: 40px; height: 40px; border-radius: 20px; background: var(--navy); color: #fff; display: flex; align-items: center; justify-content: center; flex: none; font-weight: 900; font-size: 24px; line-height: 1; }
+.plus.or { background: var(--or); }
+.star { position: relative; width: 96px; height: 96px; flex: none; } .star svg { position: absolute; inset: 0; animation: spin 16s linear infinite; }
+.star div { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: #fff; font-weight: 800; font-size: 11px; line-height: 1.05; }
+.star b { font-family: Karantina; font-size: 40px; line-height: .8; } @keyframes spin { to { transform: rotate(360deg); } }
+.stamp { display: inline-block; padding: 6px 12px; border: 4px solid var(--or); border-radius: 10px; color: var(--or); font-family: Karantina; font-size: 34px; line-height: .9; transform: rotate(-10deg); text-align: center; text-transform: uppercase; }
+.stamp.g { border-color: var(--green); color: var(--green); }
+.tag { position: relative; display: inline-flex; flex-direction: column; padding: 6px 12px 6px 22px; background: var(--tag); color: var(--ink); border-radius: 6px 4px 4px 6px; clip-path: polygon(10px 0, 100% 0, 100% 100%, 10px 100%, 0 50%); }
+html[dir=rtl] .tag { padding: 6px 22px 6px 12px; clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%); }
+.tag::before { content: ''; position: absolute; inset-inline-start: 11px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 3px; background: var(--paper); }
+.tag b { font-family: Karantina; font-size: 34px; line-height: .8; } .tag s { font-size: 11px; font-weight: 700; opacity: .6; }
+.receipt { position: relative; background: #FFFDF8; color: #1A1A1A; padding: 22px 20px 28px; font-family: 'IBM Plex Mono', Heebo, monospace; font-size: 14px; box-shadow: 0 24px 50px rgba(15,31,61,.22);
+  -webkit-mask: radial-gradient(8px at 50% 100%, #0000 98%, #000) 50% 100% / 16px 100% repeat-x; }
+.receipt .hd { text-align: center; font-weight: 600; letter-spacing: .08em; border-bottom: 1.5px dashed #aaa; padding-bottom: 12px; margin-bottom: 8px; }
+.receipt .ln { display: flex; gap: 6px; align-items: baseline; padding: 6px 0; } .receipt .ln .dt { flex: 1; border-bottom: 2px dotted #c4c4c4; transform: translateY(-4px); }
+.receipt .tot { border-top: 1.5px dashed #aaa; margin-top: 8px; padding-top: 12px; font-weight: 600; font-size: 16px; }
+.torn { display: block; width: 100%; height: 22px; }
+.arc path { fill: none; stroke: var(--or); stroke-width: 3; stroke-dasharray: 2 11; stroke-linecap: round; animation: dash 1.4s linear infinite; } @keyframes dash { to { stroke-dashoffset: -26; } }
+.float { animation: drift 5s ease-in-out infinite; } @keyframes drift { 0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); } 50% { transform: translateY(-9px) rotate(calc(var(--r, 0deg) + 6deg)); } }
+.hd2 { padding: 0 18px; font-size: 54px; } .hd2 em { display: block; font-family: Caveat; font-style: normal; text-transform: none; font-size: 27px; color: var(--or); letter-spacing: 0; line-height: 1; margin-top: 4px; }
+html[dir=rtl] .hd2 em { font-family: Heebo; font-weight: 800; font-size: 18px; }
+.lbl { font-family: 'IBM Plex Mono'; font-size: 12px; font-weight: 600; letter-spacing: .08em; opacity: .6; text-transform: uppercase; }
+
+/* ----- barre du haut / du bas ----- */
+.top { position: sticky; top: 0; z-index: 40; display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--navy); color: #fff; }
+.logo { font-weight: 900; font-size: 30px; letter-spacing: -.04em; line-height: 1; } .logo i { display: inline-block; font-style: normal; color: var(--or); transform-origin: 50% 100%; animation: bang 2.6s cubic-bezier(.3, 1.8, .4, 1) infinite; }
+@keyframes bang { 0%, 70%, 100% { transform: none; } 78% { transform: translateY(-7px) rotate(10deg); } 86% { transform: scaleY(.85); } }
+.addr { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 22px; background: rgba(255,255,255,.09); font-size: 13px; font-weight: 700; }
+.addr span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .addr small { display: block; font-size: 10px; color: #9FB3D9; letter-spacing: .05em; }
+.pin { width: 9px; height: 9px; border-radius: 5px; background: var(--or); box-shadow: 0 0 0 4px rgba(255,106,19,.25); flex: none; }
+.lang { width: 40px; height: 40px; border-radius: 20px; background: var(--paper); color: var(--navy); font-weight: 900; font-size: 13px; flex: none; }
+.bar { position: fixed; z-index: 50; left: 50%; bottom: 12px; transform: translateX(-50%); width: min(406px, calc(100% - 24px)); display: flex; align-items: center; justify-content: space-around; padding: 8px 10px; border-radius: 30px; background: var(--navy); color: #9FB3D9; box-shadow: 0 16px 40px rgba(5,11,23,.45); }
+.bar button { display: flex; flex-direction: column; align-items: center; gap: 2px; font-weight: 700; font-size: 10px; width: 62px; }
+.bar button.on { color: #fff; } .bar button.on svg { stroke: var(--or); }
+.bar .mic { width: 58px; height: 58px; margin-top: -26px; border-radius: 29px; background: var(--or); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 5px var(--navy); }
+.sub { position: sticky; top: 0; z-index: 40; display: flex; align-items: center; gap: 10px; padding: 10px 14px; }
+.sub.d { background: var(--navy); color: #fff; } .sub .t { flex: 1; font-size: 30px; }
+
+/* ----- accueil ----- */
+.hero { position: relative; background: var(--navy); color: #fff; padding: 14px 0 0; overflow: hidden; }
+.giant { text-align: center; color: var(--paper); white-space: nowrap; font-size: 132px; }
+.stage { position: relative; height: 300px; margin-top: -34px; }
+.stage .hp { position: absolute; z-index: 3; left: 50%; top: 0; height: 300px; transform: translateX(-50%); filter: drop-shadow(0 26px 24px rgba(0,0,0,.5)); animation: jump 3.2s cubic-bezier(.45, 0, .35, 1) infinite; }
+@keyframes jump { 0%, 100% { transform: translate(-50%, 0) rotate(-2deg); } 45% { transform: translate(-50%, -20px) rotate(3deg); } }
+.stage .arc { position: absolute; z-index: 2; left: -10px; top: 20px; width: 410px; height: 250px; }
+.stage .p { position: absolute; z-index: 4; filter: drop-shadow(0 12px 12px rgba(0,0,0,.45)); }
+.stage .star { position: absolute; z-index: 6; inset-inline-end: 8px; top: 120px; }
+.tagline { padding: 0 20px; } .tagline h1 { font-size: 62px; } .tagline h1 b { color: var(--or); font-weight: 700; }
+.tagline .note { display: flex; align-items: flex-end; gap: 6px; margin-top: 8px; font-size: 25px; color: #CFE0FF; } html[dir=rtl] .tagline .note { font-size: 16px; }
+html[dir=rtl] .tagline .note svg { transform: scaleX(-1); }
+.search { display: flex; align-items: center; gap: 10px; margin: 18px 16px 0; padding: 8px 8px 8px 18px; border-radius: 34px; background: var(--paper); color: #6B6152; font-weight: 600; font-size: 15px; }
+html[dir=rtl] .search { padding: 8px 18px 8px 8px; } .search b { margin-inline-start: auto; display: flex; align-items: center; gap: 6px; padding: 12px 16px; border-radius: 26px; background: var(--or); color: #fff; font-weight: 800; font-size: 14px; }
+.zig { display: block; width: 100%; height: 16px; margin-top: 30px; }
+.tick { background: var(--paper); overflow: hidden; border-bottom: 1.5px dashed rgba(15,31,61,.25); }
+.tick .row { display: flex; gap: 26px; width: max-content; padding: 9px 0; font-weight: 600; font-size: 14px; animation: slide 30s linear infinite; } .tick b { color: var(--or); }
+@keyframes slide { to { transform: translateX(-50%); } } html[dir=rtl] .tick .row { animation-name: slideR; } @keyframes slideR { to { transform: translateX(50%); } }
+.posters { display: flex; gap: 12px; overflow-x: auto; padding: 16px 18px 8px; scroll-snap-type: x mandatory; scrollbar-width: none; } .posters::-webkit-scrollbar { display: none; }
+.poster { position: relative; flex: none; width: 210px; height: 270px; border-radius: 26px; overflow: hidden; scroll-snap-align: start; padding: 14px; text-align: start; }
+.poster .n { font-family: 'IBM Plex Mono'; font-size: 12px; font-weight: 600; opacity: .55; }
+.poster .w { position: absolute; left: 0; right: 0; bottom: 52px; text-align: center; white-space: nowrap; z-index: 1; }
+.poster img { position: absolute; z-index: 2; left: 50%; top: 30px; height: 150px; transform: translateX(-50%) rotate(var(--r)); filter: drop-shadow(0 14px 12px rgba(0,0,0,.25)); }
+.poster .pic { position: absolute; inset: 0 0 auto 0; height: 160px; background-size: cover; background-position: center; -webkit-mask: linear-gradient(#000 80%, transparent); }
+.poster .f { position: absolute; left: 14px; right: 14px; bottom: 14px; display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 13px; z-index: 3; }
+.poster .f i { font-style: normal; width: 32px; height: 32px; border-radius: 16px; background: var(--navy); color: #fff; display: flex; align-items: center; justify-content: center; }
+.stubs { display: flex; gap: 10px; overflow-x: auto; padding: 14px 18px 4px; scrollbar-width: none; }
+.stub { flex: none; width: 200px; background: #FFFDF8; padding: 14px 14px 18px; font-size: 13px; box-shadow: 0 10px 24px rgba(15,31,61,.12); -webkit-mask: radial-gradient(7px at 50% 100%, #0000 98%, #000) 50% 100% / 14px 100% repeat-x; }
+.stub b { display: block; font-family: Heebo; font-weight: 900; font-size: 16px; } .stub .again { margin-top: 10px; color: var(--or); font-family: Heebo; font-weight: 800; }
+
+/* ----- restos ----- */
+.rhero { background: var(--red); color: #fff; padding: 18px 0 0; overflow: hidden; position: relative; }
+.rhero .giant { color: #FFD9C2; font-size: 150px; }
+.rhero .plate { position: relative; height: 170px; margin-top: 6px; }
+.rhero .plate img { position: absolute; filter: drop-shadow(0 14px 12px rgba(60,10,0,.4)); }
+.rcard { position: relative; margin: 0 16px 18px; border-radius: 26px; background: #fff; overflow: hidden; box-shadow: 0 14px 30px rgba(15,31,61,.1); text-align: start; width: calc(100% - 32px); display: block; }
+.rcard .ph { height: 168px; background-size: cover; background-position: center; }
+.rcard .torn { position: absolute; top: 150px; left: 0; }
+.rcard .b { position: relative; padding: 4px 16px 16px; }
+.rcard .nm { font-size: 46px; } .rcard .meta { display: flex; gap: 8px; align-items: center; margin-top: 6px; font-weight: 700; font-size: 13px; color: #5A6270; flex-wrap: wrap; }
+.rcard .meta i { width: 4px; height: 4px; border-radius: 2px; background: #B8BEC8; }
+.rcard .stamp { position: absolute; inset-inline-end: 14px; top: 16px; font-size: 24px; background: rgba(255,255,255,.88); }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 4px; background: var(--green); }
+
+/* ----- page resto (menu éclaté) ----- */
+.shero { position: relative; background: #17100B; color: #fff; padding: 10px 0 0; overflow: hidden; }
+.shero .giant { color: #F6EEDF; font-size: 120px; margin-top: 6px; }
+.shero .info { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; padding: 0 16px; }
+.shero .info span { padding: 6px 12px; border-radius: 16px; background: rgba(255,255,255,.1); font-weight: 700; font-size: 12px; }
+.exp { position: relative; padding: 50px 0 40px; margin-top: 0; transition: background .6s; color: var(--ink); }
+.exp .plate { position: relative; height: 300px; }
+.exp .wm { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-8deg); font-family: Caveat; font-size: 140px; color: rgba(255,255,255,.25); white-space: nowrap; }
+.exp .dish { position: absolute; left: 50%; top: 52%; width: 210px; transform: translate(-50%, -50%); z-index: 2; filter: drop-shadow(0 24px 22px rgba(0,0,0,.35)); transition: transform .55s cubic-bezier(.2, 1.4, .4, 1), opacity .25s; }
+.exp .dish.out { transform: translate(-50%, -30%) scale(.6) rotate(-14deg); opacity: 0; }
+.exp .ing { position: absolute; z-index: 1; filter: drop-shadow(0 10px 10px rgba(0,0,0,.28)); transition: transform .7s cubic-bezier(.2, 1.5, .35, 1), opacity .3s; } .exp .ing.f { z-index: 3; }
+.exp .ing.gone { opacity: 0; transform: translate(var(--fx), var(--fy)) scale(.2) !important; }
+.exp .nm { text-align: center; font-size: 46px; } .exp .ds { text-align: center; font-weight: 600; font-size: 14px; opacity: .78; padding: 6px 28px 0; min-height: 40px; }
+.exp .act { display: flex; justify-content: center; margin-top: 14px; }
+.mcat { padding: 26px 16px 4px; display: flex; align-items: baseline; gap: 12px; } .mcat .K { font-size: 44px; } .mcat .lbl { opacity: .5; }
+.item { display: flex; gap: 12px; align-items: center; padding: 12px 16px; border-bottom: 1.5px dashed rgba(15,31,61,.15); }
+.item .th { width: 76px; height: 76px; flex: none; border-radius: 20px; background: var(--paper2); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.item .th img { width: 88%; height: 88%; object-fit: contain; }
+.item .tx { flex: 1; min-width: 0; } .item .tx b { display: block; font-weight: 900; font-size: 16px; } .item .tx span { display: block; font-size: 13px; color: #5A6270; font-weight: 500; margin-top: 2px; line-height: 1.3; }
+.item .pr { font-family: Karantina; font-size: 30px; color: var(--or); margin-top: 4px; }
+.cartbar { position: fixed; z-index: 55; left: 50%; bottom: 12px; transform: translateX(-50%); width: min(406px, calc(100% - 24px)); display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 18px; border-radius: 30px; background: var(--or); color: #fff; font-weight: 800; box-shadow: 0 16px 40px rgba(255,106,19,.45); }
+html[dir=rtl] .cartbar { padding: 10px 18px 10px 10px; } .cartbar .n { width: 30px; height: 30px; border-radius: 15px; background: #fff; color: var(--or); display: flex; align-items: center; justify-content: center; font-weight: 900; }
+.cartbar .go { margin-inline-start: auto; padding: 10px 16px; border-radius: 22px; background: var(--navy); font-family: Karantina; font-size: 26px; line-height: .8; }
+
+/* ----- magasin ----- */
+.mhero { position: relative; height: 230px; background-size: cover; background-position: center; }
+.mhero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(15,31,61,.1), rgba(15,31,61,.85)); }
+.mhero .in { position: absolute; z-index: 2; left: 18px; right: 18px; bottom: 16px; color: #fff; } .mhero .giant { text-align: start; font-size: 96px; color: #fff; }
+.mhero .star { position: absolute; z-index: 3; inset-inline-end: 12px; top: 54px; }
+.aisles { display: flex; gap: 10px; overflow-x: auto; padding: 14px 16px 6px; scrollbar-width: none; }
+.aisle { flex: none; width: 112px; height: 132px; border-radius: 22px; position: relative; overflow: hidden; padding: 10px; font-family: Karantina; font-size: 30px; line-height: .85; text-transform: uppercase; text-align: start; }
+.aisle img { position: absolute; inset-inline-end: -6px; bottom: -6px; height: 84px; filter: drop-shadow(0 8px 8px rgba(0,0,0,.2)); }
+.pgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 10px 16px; }
+.prod { position: relative; background: #fff; border-radius: 22px; padding: 12px 12px 12px; box-shadow: 0 8px 20px rgba(15,31,61,.07); }
+.prod .im { height: 128px; display: flex; align-items: center; justify-content: center; } .prod .im img { max-height: 120px; max-width: 100%; filter: drop-shadow(0 8px 8px rgba(0,0,0,.15)); }
+.prod .nm { font-weight: 800; font-size: 14px; line-height: 1.2; margin-top: 8px; min-height: 34px; }
+.prod .row { display: flex; align-items: flex-end; justify-content: space-between; margin-top: 8px; }
+.prod .promo { position: absolute; top: 8px; inset-inline-start: 8px; width: 58px; height: 58px; } .prod .promo b { font-size: 22px; } .prod .promo svg { animation: none; }
+.cmpbox { margin: 18px 16px; padding: 18px; border-radius: 26px; background: var(--navy); color: #fff; display: flex; gap: 14px; align-items: center; }
+.cmpbox .K { font-size: 36px; } .cmpbox p { font-size: 13px; color: #CFE0FF; font-weight: 600; margin-top: 4px; }
+
+/* ----- pharmacie ----- */
+.phhero { position: relative; background: var(--c-pharma); padding: 20px 0 30px; overflow: hidden; }
+.phhero .giant { color: var(--navy); font-size: 104px; } .phhero .S { max-width: 250px; }
+.cross { position: absolute; inset-inline-end: 18px; top: 116px; width: 86px; height: 86px; border-radius: 22px; background: #fff; transform: rotate(12deg); display: flex; align-items: center; justify-content: center; box-shadow: 0 14px 30px rgba(15,31,61,.18); }
+.drop { margin: 18px 16px 0; padding: 26px 18px; border-radius: 26px; border: 3px dashed var(--navy); background: rgba(255,255,255,.6); text-align: center; }
+.drop .cam { width: 70px; height: 70px; margin: 0 auto 10px; border-radius: 35px; background: var(--navy); display: flex; align-items: center; justify-content: center; }
+.drop b { display: block; font-weight: 900; font-size: 19px; } .drop span { display: block; font-size: 14px; color: #3C4A66; font-weight: 600; margin-top: 4px; }
+.steps { padding: 20px 16px 0; display: grid; gap: 12px; }
+.step { display: flex; gap: 14px; align-items: center; padding: 14px; border-radius: 22px; background: #fff; } .step .K { font-size: 54px; color: var(--or); width: 40px; text-align: center; }
+.step b { display: block; font-weight: 900; } .step span { font-size: 13px; color: #5A6270; font-weight: 600; }
+
+/* ----- panier / commande / suivi ----- */
+.cart { padding: 20px 22px 10px; }
+.cart .receipt { transform: rotate(-1.2deg); }
+.qty { display: inline-flex; align-items: center; gap: 8px; font-family: Heebo; font-weight: 900; } .qty i { width: 24px; height: 24px; border-radius: 12px; background: var(--paper2); display: inline-flex; align-items: center; justify-content: center; font-style: normal; }
+.opt { display: flex; align-items: center; gap: 12px; padding: 16px; margin: 0 16px 10px; border-radius: 22px; background: #fff; border: 2.5px solid transparent; }
+.opt.on { border-color: var(--navy); } .opt .ic { width: 46px; height: 46px; border-radius: 16px; display: flex; align-items: center; justify-content: center; flex: none; }
+.opt b { display: block; font-weight: 900; font-size: 15px; } .opt span { font-size: 13px; color: #5A6270; font-weight: 600; } .opt .r { margin-inline-start: auto; width: 24px; height: 24px; border-radius: 12px; border: 2.5px solid #B8BEC8; flex: none; }
+.opt.on .r { border: 7px solid var(--navy); }
+.sec-t { padding: 22px 18px 10px; } .sec-t .K { font-size: 36px; }
+.map { position: relative; height: 380px; background: #E9E1D1; overflow: hidden; }
+.map svg.city { position: absolute; inset: 0; width: 100%; height: 100%; }
+.map .route { position: absolute; inset: 0; width: 100%; height: 100%; }
+.map .rider { position: absolute; z-index: 3; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 26px; background: var(--or); border: 4px solid #fff; box-shadow: 0 10px 20px rgba(0,0,0,.25); display: flex; align-items: center; justify-content: center; }
+.map .home { position: absolute; z-index: 2; width: 48px; height: 48px; margin: -24px 0 0 -24px; border-radius: 24px; background: var(--navy); border: 4px solid #fff; display: flex; align-items: center; justify-content: center; }
+.status { position: relative; margin: -40px 16px 0; z-index: 4; padding: 18px; border-radius: 26px; background: var(--navy); color: #fff; }
+.status .K { font-size: 54px; } .status .K b { color: var(--or); font-weight: 700; } .status p { color: #CFE0FF; font-weight: 600; font-size: 14px; margin-top: 6px; }
+.tl { padding: 16px 22px; } .tl .s { position: relative; display: flex; gap: 14px; padding-bottom: 18px; } .tl .s::before { content: ''; position: absolute; inset-inline-start: 11px; top: 26px; bottom: 0; border-inline-start: 3px dotted #B8BEC8; }
+.tl .s:last-child::before { display: none; } .tl .b { width: 25px; height: 25px; border-radius: 13px; background: #D6CDBD; flex: none; display: flex; align-items: center; justify-content: center; }
+.tl .s.ok .b { background: var(--green); } .tl .s.now .b { background: var(--or); box-shadow: 0 0 0 6px rgba(255,106,19,.22); }
+.tl b { display: block; font-weight: 900; } .tl span { font-size: 13px; color: #5A6270; font-weight: 600; }
+.livre { text-align: center; padding: 20px 0 10px; } .livre .stamp { font-size: 56px; }
+
+/* ----- charte ----- */
+.sw { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 12px 16px; }
+.sw div { height: 90px; border-radius: 18px; padding: 10px; display: flex; flex-direction: column; justify-content: flex-end; font-weight: 800; font-size: 12px; }
+.sw small { font-family: 'IBM Plex Mono'; font-weight: 500; font-size: 10px; opacity: .75; }
+.typo { padding: 8px 18px; } .typo div { padding: 12px 0; border-bottom: 1.5px dashed rgba(15,31,61,.15); }
+.comp { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; padding: 14px 18px; }
+.nav-demo { position: fixed; z-index: 60; top: 64px; inset-inline-end: 8px; display: flex; flex-direction: column; gap: 4px; }
+.nav-demo button { width: 30px; height: 30px; border-radius: 15px; background: rgba(15,31,61,.82); color: #fff; font-size: 10px; font-weight: 800; }
+.nav-demo button.on { background: var(--or); }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <!-- ======================= ACCUEIL ======================= -->
+  <section class="screen" id="s-accueil">
+    <header class="top"><div class="logo ltr">HOP<i>!</i></div><div class="addr"><i class="pin"></i><span><small data-t="to"></small><span data-t="addr"></span></span></div><button class="lang" data-lang></button></header>
+    <div class="hero">
+      <div class="giant K ltr fit" data-t="city"></div>
+      <div class="stage">
+        <svg class="arc" viewBox="0 0 410 250"><path d="M-10 230 C 60 20, 150 10, 205 115 S 330 40, 420 140"/></svg>
+        <img class="hp" src="img/v4/hoppy.webp" alt="Hoppy">
+        <img class="p float" src="img/v4/coca.webp" style="height:104px;left:18px;top:30px;--r:-12deg" alt="">
+        <img class="p float" src="img/v4/pommes.webp" style="height:58px;right:26px;top:40px;--r:16deg;animation-delay:-1.2s" alt="">
+        <img class="p float" src="img/v4/baguette.webp" style="height:104px;left:30px;top:180px;--r:22deg;animation-delay:-2.1s" alt="">
+        <div class="star"><svg viewBox="0 0 100 100"><path fill="#FF6A13" d="M50 2l7 12 13-6 1 14 14 1-6 13 12 7-12 7 6 13-14 1-1 14-13-6-7 12-7-12-13 6-1-14-14-1 6-13-12-7 12-7-6-13 14-1 1-14 13 6z"/></svg><div><span data-t="from"></span><b class="ltr">25 ₪</b><span data-t="inCity"></span></div></div>
+      </div>
+      <div class="tagline"><h1 class="K"><span data-t="t1"></span><br><b data-t="t2"></b></h1>
+        <div class="note S"><svg width="34" height="30" viewBox="0 0 34 30" fill="none" stroke="#FF6A13" stroke-width="2.6" stroke-linecap="round"><path d="M4 4c2 12 10 20 24 20"/><path d="M22 18l6 6-7 4"/></svg><span data-t="note"></span></div></div>
+      <div class="search"><span data-t="search"></span><b><span data-t="find"></span></b></div>
+      <svg class="zig" viewBox="0 0 390 16" preserveAspectRatio="none"><path fill="#F4ECDD" d="M0 16V8L10 0l10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8V16z"/></svg>
+    </div>
+    <div class="tick M"><div class="row" id="tick"></div></div>
+    <div class="grain" style="padding:24px 0 10px"><h2 class="hd2 K"><span data-t="kT"></span><em data-t="kE"></em></h2><div class="posters" id="kinds"></div></div>
+    <div style="padding:16px 0 6px"><h2 class="hd2 K"><span data-t="sT"></span><em data-t="sE"></em></h2><div class="posters" id="shops"></div></div>
+    <div style="padding:18px 0 6px"><h2 class="hd2 K"><span data-t="aT"></span><em data-t="aE"></em></h2><div class="stubs M" id="stubs"></div></div>
+    <div style="padding:22px 16px 0"><div class="cmpbox"><div class="star" style="width:80px;height:80px"><svg viewBox="0 0 100 100"><path fill="#FF6A13" d="M50 2l7 12 13-6 1 14 14 1-6 13 12 7-12 7 6 13-14 1-1 14-13-6-7 12-7-12-13 6-1-14-14-1 6-13-12-7 12-7-6-13 14-1 1-14 13 6z"/></svg><div><b style="font-size:30px">HOP</b></div></div><div><div class="K" data-t="libT"></div><p data-t="libP"></p></div></div></div>
+  </section>
+
+  <!-- ======================= RESTOS ======================= -->
+  <section class="screen" id="s-restos">
+    <header class="top"><div class="logo ltr">HOP<i>!</i></div><div class="addr"><i class="pin"></i><span><small data-t="to"></small><span data-t="addr"></span></span></div><button class="lang" data-lang></button></header>
+    <div class="rhero"><div class="giant K ltr fit" data-t="rGiant"></div>
+      <div class="plate"><img src="img/smashit/onion-rings.webp" style="height:120px;left:20px;top:20px" class="float" alt=""><img src="img/smashit/frites.webp" style="height:130px;right:14px;top:0;--r:10deg" class="float" alt=""><img src="img/smashit/chili.webp" style="height:70px;left:46%;top:80px" class="float" alt=""></div>
+      <svg class="torn" viewBox="0 0 390 22" preserveAspectRatio="none" style="margin-top:-6px"><path class="tp" fill="#F4ECDD"/></svg></div>
+    <p class="S" style="text-align:center;font-size:26px;color:var(--red);padding:4px 20px 0" data-t="rNote"></p>
+    <div class="chips" id="rchips" style="padding-top:12px;padding-bottom:16px"></div>
+    <div id="rlist"></div>
+  </section>
+
+  <!-- ======================= PAGE RESTO ======================= -->
+  <section class="screen" id="s-resto">
+    <div class="sub d"><button class="round" data-go="restos"><svg class="flip" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F1F3D" stroke-width="3" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></button><div class="t K"></div><button class="round"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F1F3D" stroke-width="2.6"><path d="M12 21s-7-4.5-9-9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c-2 4.5-9 9-9 9z"/></svg></button><button class="lang" data-lang></button></div>
+    <div class="shero"><div class="giant K ltr fit">SMASH IT</div>
+      <div class="info" id="sInfo"></div>
+      <div class="chips" id="dchips" style="padding:16px 16px 12px"></div>
+      <svg class="torn" viewBox="0 0 390 22" preserveAspectRatio="none" style="margin-bottom:-1px"><path class="tp" id="tornExp" fill="#F2B21B"/></svg></div>
+    <div class="exp" id="exp" style="background:#F2B21B;padding-top:10px">
+      <div class="plate" id="plate"><div class="wm">Smash It</div></div>
+      <div class="nm K" id="dn"></div><div class="ds" id="dd"></div>
+      <div class="act"><button class="btn dark" id="dAdd"></button></div>
+    </div>
+    <div id="menu"></div>
+    <div class="cartbar"><span class="n">2</span><span data-t="seeCart"></span><button class="go ltr" data-go="panier">74 ₪</button></div>
+  </section>
+
+  <!-- ======================= MAGASIN ======================= -->
+  <section class="screen" id="s-magasin">
+    <div class="mhero" style="background-image:url(img/market/carrefour-cover.webp)">
+      <div class="sub" style="position:absolute;inset:0 0 auto 0;z-index:3"><button class="round" data-go="accueil"><svg class="flip" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F1F3D" stroke-width="3" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></button><div style="flex:1"></div><button class="lang" data-lang></button></div>
+      <div class="star"><svg viewBox="0 0 100 100"><path fill="#FF6A13" d="M50 2l7 12 13-6 1 14 14 1-6 13 12 7-12 7 6 13-14 1-1 14-13-6-7 12-7-12-13 6-1-14-14-1 6-13-12-7 12-7-6-13 14-1 1-14 13 6z"/></svg><div><span data-t="promoN"></span><b>−30%</b></div></div>
+      <div class="in"><div class="giant K ltr">CARREFOUR</div><div style="font-weight:700;font-size:14px;color:#CFE0FF;margin-top:4px" data-t="mMeta"></div></div>
+    </div>
+    <div class="search" style="margin-top:14px;background:#fff"><span data-t="mSearch"></span><b><span data-t="find"></span></b></div>
+    <div class="aisles" id="aisles"></div>
+    <div style="padding:14px 18px 0;display:flex;align-items:baseline;justify-content:space-between"><div class="K" style="font-size:40px" data-t="mPromo"></div><span class="lbl" data-t="seeAll"></span></div>
+    <div class="pgrid" id="pgrid"></div>
+    <div class="cmpbox"><div class="stamp" style="font-size:26px;flex:none;background:#fff" data-t="stampBest"></div><div><div class="K" data-t="cmpT"></div><p data-t="cmpP"></p></div></div>
+    <div class="cartbar"><span class="n">4</span><span data-t="seeCart"></span><button class="go ltr" data-go="panier">38,60 ₪</button></div>
+  </section>
+
+  <!-- ======================= PHARMACIE ======================= -->
+  <section class="screen" id="s-pharma">
+    <div class="sub" style="background:var(--c-pharma)"><button class="round" data-go="accueil"><svg class="flip" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F1F3D" stroke-width="3" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></button><div style="flex:1"></div><button class="lang" data-lang></button></div>
+    <div class="phhero"><div class="giant K ltr fit" data-t="phG"></div><div class="cross"><svg width="46" height="46" viewBox="0 0 24 24"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z" fill="#E2471B"/></svg></div>
+      <p class="S" style="padding:10px 20px 0;font-size:27px;color:var(--navy)" data-t="phNote"></p></div>
+    <div class="drop"><div class="cam"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></div><b data-t="phDrop"></b><span data-t="phDrop2"></span></div>
+    <div class="steps" id="phSteps"></div>
+    <div style="padding:20px 16px"><button class="btn block" data-t="phGo"></button></div>
+  </section>
+
+  <!-- ======================= PANIER ======================= -->
+  <section class="screen" id="s-panier">
+    <div class="sub d"><button class="round" data-go="resto"><svg class="flip" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F1F3D" stroke-width="3" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></button><div class="t K" data-t="cartT"></div><button class="lang" data-lang></button></div>
+    <div class="cart"><div class="receipt" id="rcpt"></div></div>
+    <p class="S" style="text-align:center;font-size:24px;color:#6B5A48;padding:14px 20px 0" data-t="cartNote"></p>
+    <div style="padding:18px 16px"><button class="btn block" data-go="commande"><span data-t="order"></span><span class="pr ltr">99 ₪</span></button></div>
+  </section>
+
+  <!-- ======================= COMMANDE ======================= -->
+  <section class="screen" id="s-commande">
+    <div class="sub d"><button class="round" data-go="panier"><svg class="flip" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F1F3D" stroke-width="3" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></button><div class="t K" data-t="chkT"></div><button class="lang" data-lang></button></div>
+    <div class="sec-t"><div class="lbl" data-t="l1"></div><div class="K" data-t="chkWhere"></div></div>
+    <div class="opt on"><div class="ic" style="background:var(--c-courses)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0F1F3D" stroke-width="2.4"><path d="M3 11l9-7 9 7v9H3z"/></svg></div><div><b data-t="home"></b><span data-t="addr"></span></div><i class="r"></i></div>
+    <div class="sec-t"><div class="lbl" data-t="l2"></div><div class="K" data-t="chkWhen"></div></div>
+    <div class="opt on"><div class="ic" style="background:#FFE3D1"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FF6A13" stroke-width="2.6" stroke-linecap="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></div><div><b data-t="asap"></b><span data-t="asap2"></span></div><i class="r"></i></div>
+    <div class="opt"><div class="ic" style="background:var(--c-pharma)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0F1F3D" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div><b data-t="plan"></b><span data-t="plan2"></span></div><i class="r"></i></div>
+    <div class="sec-t"><div class="lbl" data-t="l3"></div><div class="K" data-t="chkTot"></div></div>
+    <div style="padding:0 22px"><div class="receipt" style="transform:rotate(.8deg)" id="rcpt2"></div></div>
+    <div style="padding:20px 16px"><button class="btn block" data-go="suivi"><span data-t="confirm"></span><span class="pr ltr">99 ₪</span></button></div>
+  </section>
+
+  <!-- ======================= SUIVI ======================= -->
+  <section class="screen" id="s-suivi">
+    <div class="sub d"><button class="round" data-go="accueil"><svg class="flip" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F1F3D" stroke-width="3" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></button><div class="t K" data-t="trkT"></div><button class="lang" data-lang></button></div>
+    <div class="map grain">
+      <svg class="city" viewBox="0 0 390 380" preserveAspectRatio="xMidYMid slice"><g fill="#DED3BF">
+        <rect x="14" y="18" width="110" height="70" rx="12"/><rect x="146" y="18" width="96" height="70" rx="12"/><rect x="264" y="18" width="112" height="70" rx="12"/>
+        <rect x="14" y="112" width="70" height="120" rx="12"/><rect x="106" y="112" width="136" height="54" rx="12"/><rect x="264" y="112" width="112" height="120" rx="12"/>
+        <rect x="106" y="188" width="136" height="44" rx="12"/><rect x="14" y="256" width="150" height="104" rx="12"/><rect x="188" y="256" width="188" height="104" rx="12"/></g>
+        <rect x="106" y="188" width="60" height="44" rx="12" fill="#BFDDB5"/><path d="M0 380 C 120 350, 260 372, 390 340 L390 380 Z" fill="#9FCBE6"/></svg>
+      <svg class="route arc" viewBox="0 0 390 380" preserveAspectRatio="xMidYMid slice"><path id="rt" d="M60 330 C 60 240, 95 245, 95 180 S 250 175, 253 100 S 320 60, 330 50"/></svg>
+      <div class="home" style="left:84.6%;top:13.2%"><svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M3 11l9-7 9 7v9H3z"/></svg></div>
+      <div class="rider" id="rider"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M6 17h7l3-7h3M9 10h4"/></svg></div>
+    </div>
+    <div class="status"><div class="K" id="stt"></div><p data-t="trkP"></p></div>
+    <div class="tl" id="tl"></div>
+    <div class="livre" id="livre" style="display:none"><span class="stamp g" data-t="done"></span></div>
+  </section>
+
+  <!-- ======================= CHARTE ======================= -->
+  <section class="screen" id="s-charte">
+    <div class="sub d"><div class="t K" data-t="chT"></div><button class="lang" data-lang></button></div>
+    <div class="sec-t"><div class="lbl">01</div><div class="K" data-t="chC"></div></div>
+    <div class="sw" id="sw"></div>
+    <div class="sec-t"><div class="lbl">02</div><div class="K" data-t="chTy"></div></div>
+    <div class="typo"><div><span class="K" style="font-size:56px">Karantina</span><br><span class="lbl" data-t="ty1"></span></div><div><b style="font-size:22px;font-weight:900">Heebo · עברית</b><br><span class="lbl" data-t="ty2"></span></div><div><span class="M" style="font-size:18px">IBM PLEX MONO 128,40</span><br><span class="lbl" data-t="ty3"></span></div><div><span class="S" style="font-size:32px;color:var(--or)">Caveat, la note à la main</span><br><span class="lbl" data-t="ty4"></span></div></div>
+    <div class="sec-t"><div class="lbl">03</div><div class="K" data-t="chCo"></div></div>
+    <div class="comp"><button class="btn" data-t="order"></button><button class="btn dark" data-t="add"></button><span class="tag"><s data-t="was"></s><b class="ltr">8,90</b></span><span class="stamp" data-t="stampBest"></span><div class="star"><svg viewBox="0 0 100 100"><path fill="#FF6A13" d="M50 2l7 12 13-6 1 14 14 1-6 13 12 7-12 7 6 13-14 1-1 14-13-6-7 12-7-12-13 6-1-14-14-1 6-13-12-7 12-7-6-13 14-1 1-14 13 6z"/></svg><div><span data-t="from"></span><b class="ltr">25 ₪</b></div></div><span class="plus or">+</span><span class="chip on" data-t="cBurg"></span></div>
+    <div class="sec-t"><div class="lbl">04</div><div class="K" data-t="chSi"></div></div>
+    <ul style="padding:0 22px 20px 40px;font-weight:600;line-height:1.6" id="rules"></ul>
+  </section>
+
+  <nav class="bar" id="bar">
+    <button data-go="accueil"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M3 11l9-7 9 7v9H3z"/></svg><span data-t="nHome"></span></button>
+    <button data-go="restos"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 21V3c-3 2-4 6-4 9h4"/></svg><span data-t="nRest"></span></button>
+    <span class="mic"><svg width="26" height="26" viewBox="0 0 24 24" fill="#fff"><rect x="9" y="2.5" width="6" height="11.5" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3.5" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg></span>
+    <button data-go="magasin"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M3 4h2l2 12h11l2-8H7"/><circle cx="9" cy="20" r="1.5"/><circle cx="17" cy="20" r="1.5"/></svg><span data-t="nShop"></span></button>
+    <button data-go="suivi"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg><span data-t="nOrd"></span></button>
+  </nav>
+  <div class="nav-demo" id="navdemo"></div>
+</div>
+
+<script>
+const STAR = '<svg viewBox="0 0 100 100"><path fill="#FF6A13" d="M50 2l7 12 13-6 1 14 14 1-6 13 12 7-12 7 6 13-14 1-1 14-13-6-7 12-7-12-13 6-1-14-14-1 6-13-12-7 12-7-6-13 14-1 1-14 13 6z"/></svg>';
+const T = {
+fr: { to: 'LIVRER À', addr: 'Herzl 12, Netanya', city: 'NETANYA', from: 'dès', inCity: 'en ville', t1: 'On fait vos courses', t2: 'pour vous.', note: 'au meilleur prix, promis', search: 'Lait, pizza, pharmacie…', find: 'Chercher',
+  tick: [['LAIT 1 L', '✓'], ['PAIN', '✓'], ['COUCHES', '✓'], ['PIZZA', 'CHAUDE'], ['ORDONNANCE', 'PRÊTE'], ['FLEURS', 'POUR MAMAN'], ['COLIS', 'RÉCUPÉRÉ'], ['BAMBA', '✓']],
+  kT: 'Tout, livré.', kE: 'choisissez, on y va pour vous', kinds: [['Courses', 'lait', '--c-courses', -6, 'Le moins cher', 'magasin'], ['Restos', 'frites', '--c-restos', 8, 'Bien chaud', 'restos'], ['Pharmacie', '', '--c-pharma', 0, 'Ordonnance', 'pharma'], ['Makolet', 'bamba', '--c-makolet', -8, 'Tout de suite', 'magasin'], ['Boulange', 'baguette', '--c-boulange', 12, 'Frais du jour', 'magasin'], ['Colis', 'sac', '--c-colis', -4, 'Dépôt, retrait', 'accueil']],
+  sT: 'Faites vos courses', sE: 'tous les magasins, le moins cher gagne', shops: [['Carrefour', 'market/carrefour-cover.webp', '−30 % sur 200 articles'], ['Rami Lévy', 'market/ramilevy-cover.webp', 'Le moins cher souvent'], ['Shufersal', 'market/shufersal-cover.webp', 'Toutes les promos'], ['Yohananof', 'market/yohananof-cover.webp', 'Grand choix']],
+  aT: 'Comme d\'hab ?', aE: 'vos tickets, en un geste', stubs: [['Lundi · Carrefour', '12 articles · 86,40 ₪'], ['Vendredi · Smash It', '2 Royal, 1 frites · 130 ₪'], ['Mardi · Pharmacie', 'Ordonnance · 42 ₪']], again: 'Recommander ›',
+  libT: 'Course libre', libP: 'N\'importe quoi, n\'importe où dans Netanya : on y va pour vous.',
+  rGiant: 'CHAUD DEVANT', rNote: 'vos restos de Netanya, livrés bien chauds', rchips: ['Tout', 'Burgers', 'Sushi', 'Pizza', 'Casher viande', 'Casher lait'],
+  restos: [['Smash It', 'img/market/../smashit/burger-royal.webp', '#17100B', 'Burgers · Casher viande', 'Ouvert', true, 'resto'], ['Japan Japan', 'img/japanjapan/cover.webp', '', 'Sushi · Casher', 'Ouvert', false], ['Raffaello', 'img/raffaello/cover.webp', '', 'Italien · Casher lait', 'Ouvert', false], ['Shiso', 'img/shiso/cover.webp', '', 'Asiatique · Casher', 'Ferme à 23 h', false]], newR: 'Nouveau',
+  sInfo: ['Casher viande', 'Ouvert jusqu\'à 23 h', 'Livraison dès 25 ₪'], add: 'Ajouter',
+  dishes: [['Smash It Royal', 'burger-royal', '#F2B21B', 56, 'Pain brioché, 2 steaks 110 g, 2 tranches cheddar végétal, pickles maison et oignon.'], ['Onion rings', 'onion-rings', '#E2552B', 26, 'Rondelles d\'oignon en tempura croustillante, sauce maison à part.'], ['Frites Crispy', 'frites', '#3E8E5A', 18, 'Frites épaisses et croustillantes, ketchup et mayo à part.'], ['Smash It Wings', 'wings', '#7A3E1D', 48, '10 ailes de poulet croustillantes, sauce maison à part.']],
+  menu: [['Burgers', [['Smash It Royal', 'Pain brioché, 2 steaks 110 g, cheddar végétal, pickles, oignon', 56, 'burger-royal'], ['Smash It classique', '2 steaks smash, sauce maison, laitue, tomate, oignon', 45, 'burger-royal']]], ['À partager', [['Onion rings', 'Tempura croustillante, sauce maison', 26, 'onion-rings'], ['Frites Crispy', 'Épaisses, ketchup et mayo à part', 18, 'frites'], ['Smash It Wings', '10 pièces croustillantes', 48, 'wings']]], ['Sauces', [['L\'aïoli secret', 'La sauce de la maison', 3, 'aioli'], ['Aïoli chili', 'Très piquant', 3, 'chili']]]],
+  seeCart: 'Voir le panier', promoN: 'promos', mMeta: 'Supermarché · prix Carrefour · livré au plus vite', mSearch: 'Chercher chez Carrefour…', mPromo: 'Les promos', seeAll: 'Tout voir',
+  aisles: [['Laitier', 'lait', '--c-pharma'], ['Fruits', 'pommes', '--c-courses'], ['Boulange', 'baguette', '--c-boulange'], ['Snacks', 'bamba', '--c-makolet'], ['Boissons', 'coca', '--c-restos']],
+  prods: [['Tnuva · Lait 1 L', 'lait', '6,90', '8,90', 1], ['Coca-Cola 1,5 L', 'coca', '7,50', '', 0], ['Osem · Bamba 80 g', 'bamba', '3,90', '5,50', 1], ['Pommes rouges 1 kg', 'pommes', '9,90', '', 0], ['Baguette', 'baguette', '6,50', '', 0], ['Chips 50 g', 'chips', '4,90', '6,90', 1]], was: 'avant',
+  stampBest: 'Le moins<br>cher', cmpT: 'Comparer ma liste', cmpP: 'On regarde chez tous les magasins et on vous dit où c\'est le moins cher.',
+  phG: 'PHARMACIE', phNote: 'on passe à la pharmacie pour vous', phDrop: 'Photo de l\'ordonnance', phDrop2: 'ou écrivez ce qu\'il vous faut', phSteps: [['Envoyez', 'la photo ou la liste'], ['On y va', 'à la pharmacie de votre choix'], ['On livre', 'au plus vite, chez vous']], phGo: 'Envoyer à HOP!',
+  cartT: 'Mon ticket', rc: { hd: 'SMASH IT · NETANYA', lines: [['1 × Smash It Royal', '56,00'], ['1 × Frites Crispy', '18,00']], sub: 'Sous-total', del: 'Livraison', delV: '25,00', tot: 'TOTAL' }, cartNote: 'votre plat arrive chaud, promis', order: 'Commander',
+  chkT: 'Commande', l1: 'Étape 1', l2: 'Étape 2', l3: 'Étape 3', chkWhere: 'Où ?', chkWhen: 'Quand ?', chkTot: 'Le total', home: 'Maison', asap: 'Au plus vite', asap2: 'On part dès que c\'est prêt', plan: 'Programmer', plan2: 'Choisir un jour et une heure', confirm: 'Confirmer',
+  trkT: 'Ma commande', st: ['On prépare', 'En route', 'Livré'], trkP: 'Yossi a récupéré votre commande chez Smash It.', tl: [['Commande reçue', 'Smash It a accepté'], ['Préparée', 'Bien chaude, dans le sac HOP!'], ['En route', 'Yossi arrive chez vous'], ['Livrée', 'Bon appétit !']], done: 'Livré',
+  chT: 'La charte', chC: 'Les couleurs', chTy: 'Les polices', chCo: 'Les pièces', chSi: 'Les règles', ty1: 'Titres, affiches · FR + HE', ty2: 'Texte, boutons', ty3: 'Prix, tickets, numéros', ty4: 'Notes à la main (français)', cBurg: 'Burgers',
+  sw: [['Bleu nuit', '#0F1F3D', 'marque, fonds'], ['Papier', '#F4ECDD', 'fond des pages'], ['Orange', '#FF6A13', 'l\'action, un seul'], ['Étiquette', '#FFE14A', 'les prix'], ['Courses', '#9CD8A8', ''], ['Restos', '#FFB283', ''], ['Pharmacie', '#A9D0FF', ''], ['Makolet', '#FFD54F', ''], ['Colis', '#C9B8FF', '']],
+  rules: ['Un seul orange par écran : le bouton qui fait avancer.', 'Les titres en affiche, jamais plus de 4 mots.', 'Les prix toujours sur l\'étiquette jaune ou en orange.', 'Hoppy (image officielle) sur l\'accueil, la voix et les moments de joie.', 'Les tickets pour tout ce qui est liste, panier, commande.', 'Le tampon pour une bonne nouvelle : le moins cher, livré.', 'Français et hébreu de la même taille, jamais coupés.'],
+  nHome: 'Accueil', nRest: 'Restos', nShop: 'Courses', nOrd: 'Commandes', lang: 'עב' },
+he: { to: 'משלוח אל', addr: 'הרצל 12, נתניה', city: 'נתניה', from: 'החל מ־', inCity: 'בעיר', t1: 'עושים לכם', t2: 'את הקניות.', note: 'במחיר הכי טוב, מבטיחים', search: 'חלב, פיצה, בית מרקחת…', find: 'חיפוש',
+  tick: [['חלב 1 ל׳', '✓'], ['לחם', '✓'], ['חיתולים', '✓'], ['פיצה', 'חמה'], ['מרשם', 'מוכן'], ['פרחים', 'לאמא'], ['חבילה', 'נאספה'], ['במבה', '✓']],
+  kT: 'הכול, עד הבית.', kE: 'בוחרים, ואנחנו הולכים בשבילכם', kinds: [['קניות', 'lait', '--c-courses', -6, 'הכי זול', 'magasin'], ['מסעדות', 'frites', '--c-restos', 8, 'חם', 'restos'], ['בית מרקחת', '', '--c-pharma', 0, 'מרשם', 'pharma'], ['מכולת', 'bamba', '--c-makolet', -8, 'מיד', 'magasin'], ['מאפייה', 'baguette', '--c-boulange', 12, 'טרי', 'magasin'], ['חבילות', 'sac', '--c-colis', -4, 'מסירה, איסוף', 'accueil']],
+  sT: 'עושים קניות', sE: 'כל החנויות, הכי זול מנצח', shops: [['Carrefour', 'market/carrefour-cover.webp', '‎−30%‎ על 200 מוצרים'], ['רמי לוי', 'market/ramilevy-cover.webp', 'לרוב הכי זול'], ['שופרסל', 'market/shufersal-cover.webp', 'כל המבצעים'], ['יוחננוף', 'market/yohananof-cover.webp', 'מבחר גדול']],
+  aT: 'כמו תמיד?', aE: 'הקבלות שלכם, בלחיצה', stubs: [['שני · Carrefour', '12 פריטים · 86.40 ₪'], ['שישי · סמאש איט', '2 רויאל, צ׳יפס · 130 ₪'], ['שלישי · בית מרקחת', 'מרשם · 42 ₪']], again: '‹ להזמין שוב',
+  libT: 'שליחות חופשית', libP: 'כל דבר, לכל מקום בנתניה: אנחנו הולכים בשבילכם.',
+  rGiant: 'חם ומהביל', rNote: 'המסעדות של נתניה, מגיעות חמות', rchips: ['הכול', 'המבורגרים', 'סושי', 'פיצה', 'כשר בשרי', 'כשר חלבי'],
+  restos: [['סמאש איט', 'img/smashit/burger-royal.webp', '#17100B', 'המבורגרים · כשר בשרי', 'פתוח', true, 'resto'], ['ג׳פן ג׳פן', 'img/japanjapan/cover.webp', '', 'סושי · כשר', 'פתוח', false], ['רפאלו', 'img/raffaello/cover.webp', '', 'איטלקי · כשר חלבי', 'פתוח', false], ['שיסו', 'img/shiso/cover.webp', '', 'אסייתי · כשר', 'נסגר ב־23:00', false]], newR: 'חדש',
+  sInfo: ['כשר בשרי', 'פתוח עד 23:00', 'משלוח החל מ־25 ₪'], add: 'להוסיף',
+  dishes: [['סמאש איט רויאל', 'burger-royal', '#F2B21B', 56, 'לחמניית בריוש, 2 קציצות 110 גר׳, 2 פרוסות צ׳דר צמחי, חמוצים ובצל.'], ['אוניון רינגס', 'onion-rings', '#E2552B', 26, 'טבעות בצל בציפוי טמפורה קריספי, רוטב הבית בצד.'], ['צ׳יפס קריספי', 'frites', '#3E8E5A', 18, 'צ׳יפס עבה וקריספי, קטשופ ומיונז בצד.'], ['סמאש איט ווינגס', 'wings', '#7A3E1D', 48, '10 כנפיים קריספיות, רוטב הבית בצד.']],
+  menu: [['המבורגרים', [['סמאש איט רויאל', 'בריוש, 2 קציצות 110 גר׳, צ׳דר צמחי, חמוצים, בצל', 56, 'burger-royal'], ['סמאש איט קלאסי', '2 קציצות סמאש, רוטב הבית, חסה, עגבנייה, בצל', 45, 'burger-royal']]], ['לחלוק', [['אוניון רינגס', 'טמפורה קריספית, רוטב הבית', 26, 'onion-rings'], ['צ׳יפס קריספי', 'עבה, קטשופ ומיונז בצד', 18, 'frites'], ['סמאש איט ווינגס', '10 יחידות קריספיות', 48, 'wings']]], ['רטבים', [['האיולי הסודי', 'הרוטב של הבית', 3, 'aioli'], ['איולי צ׳ילי', 'חריף מאוד', 3, 'chili']]]],
+  seeCart: 'לסל', promoN: 'מבצעים', mMeta: 'סופרמרקט · מחירי Carrefour · מגיע הכי מהר', mSearch: 'חיפוש ב־Carrefour…', mPromo: 'המבצעים', seeAll: 'הכול',
+  aisles: [['חלבי', 'lait', '--c-pharma'], ['פירות', 'pommes', '--c-courses'], ['מאפים', 'baguette', '--c-boulange'], ['חטיפים', 'bamba', '--c-makolet'], ['משקאות', 'coca', '--c-restos']],
+  prods: [['תנובה · חלב 1 ל׳', 'lait', '6.90', '8.90', 1], ['קוקה קולה 1.5 ל׳', 'coca', '7.50', '', 0], ['אסם · במבה 80 גר׳', 'bamba', '3.90', '5.50', 1], ['תפוחים אדומים 1 ק״ג', 'pommes', '9.90', '', 0], ['באגט', 'baguette', '6.50', '', 0], ['צ׳יפס 50 גר׳', 'chips', '4.90', '6.90', 1]], was: 'לפני',
+  stampBest: 'הכי<br>זול', cmpT: 'להשוות את הרשימה', cmpP: 'אנחנו בודקים בכל החנויות ואומרים לכם איפה הכי זול.',
+  phG: 'בית מרקחת', phNote: 'קופצים לבית המרקחת בשבילכם', phDrop: 'צילום של המרשם', phDrop2: 'או כתבו מה צריך', phSteps: [['שולחים', 'צילום או רשימה'], ['הולכים', 'לבית המרקחת שבחרתם'], ['מביאים', 'הכי מהר, עד הבית']], phGo: 'לשלוח ל־HOP!',
+  cartT: 'הקבלה שלי', rc: { hd: 'סמאש איט · נתניה', lines: [['1 × סמאש איט רויאל', '56.00'], ['1 × צ׳יפס קריספי', '18.00']], sub: 'ביניים', del: 'משלוח', delV: '25.00', tot: 'סה״כ' }, cartNote: 'האוכל מגיע חם, מבטיחים', order: 'להזמנה',
+  chkT: 'הזמנה', l1: 'שלב 1', l2: 'שלב 2', l3: 'שלב 3', chkWhere: 'לאן?', chkWhen: 'מתי?', chkTot: 'הסכום', home: 'הבית', asap: 'הכי מהר', asap2: 'יוצאים ברגע שמוכן', plan: 'לתזמן', plan2: 'לבחור יום ושעה', confirm: 'לאשר',
+  trkT: 'ההזמנה שלי', st: ['מכינים', 'בדרך', 'נמסר'], trkP: 'יוסי אסף את ההזמנה מסמאש איט.', tl: [['ההזמנה התקבלה', 'סמאש איט אישרו'], ['מוכנה', 'חמה, בתיק של HOP!'], ['בדרך', 'יוסי בדרך אליכם'], ['נמסרה', 'בתיאבון!']], done: 'נמסר',
+  chT: 'השפה העיצובית', chC: 'הצבעים', chTy: 'הגופנים', chCo: 'הרכיבים', chSi: 'הכללים', ty1: 'כותרות, פוסטרים · עברית + צרפתית', ty2: 'טקסט, כפתורים', ty3: 'מחירים, קבלות, מספרים', ty4: 'הערות בכתב יד (צרפתית)', cBurg: 'המבורגרים',
+  sw: [['כחול לילה', '#0F1F3D', 'מותג, רקעים'], ['נייר', '#F4ECDD', 'רקע העמודים'], ['כתום', '#FF6A13', 'הפעולה, רק אחד'], ['תווית', '#FFE14A', 'המחירים'], ['קניות', '#9CD8A8', ''], ['מסעדות', '#FFB283', ''], ['בית מרקחת', '#A9D0FF', ''], ['מכולת', '#FFD54F', ''], ['חבילות', '#C9B8FF', '']],
+  rules: ['כתום אחד בכל מסך: הכפתור שמתקדם.', 'כותרות פוסטר, לא יותר מ־4 מילים.', 'מחירים תמיד על התווית הצהובה או בכתום.', 'הופי (התמונה הרשמית) בדף הבית, בקול וברגעי שמחה.', 'קבלות לכל מה שהוא רשימה, סל, הזמנה.', 'חותמת לבשורה טובה: הכי זול, נמסר.', 'עברית וצרפתית באותו גודל, אף פעם לא חתוכות.'],
+  nHome: 'בית', nRest: 'מסעדות', nShop: 'קניות', nOrd: 'הזמנות', lang: 'FR' },
+};
+const IMG = k => (['frites', 'onion-rings', 'aioli', 'chili', 'wings', 'burger-royal', 'tomate', 'oignon', 'salade', 'pickles', 'steak', 'pain'].includes(k) ? `img/smashit/${k}.webp` : `img/v4/${k}.webp`);
+const ING = { 'burger-royal': [['pain', 112, -148, -100, -14], ['steak', 112, 140, -90, 10], ['tomate', 88, -146, 52, 18, 1], ['salade', 98, 146, 44, -22], ['pickles', 70, -40, 122, 8, 1], ['oignon', 78, 98, 120, -12, 1]],
+  'onion-rings': [['oignon', 96, -146, -90, -16], ['aioli', 96, 146, -76, 0], ['chili', 88, 136, 100, 0, 1]], frites: [['aioli', 96, -146, -86, 0], ['chili', 92, 146, -80, 0], ['tomate', 80, -136, 104, 20, 1]], wings: [['chili', 96, -146, -86, 0], ['aioli', 92, 146, -82, 0], ['salade', 92, 136, 100, -20, 1]] };
+let L = new URLSearchParams(location.search).get('lang') === 'he' ? 'he' : 'fr', cur = 0, screen = location.hash.slice(1) || 'accueil';
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+function torn(seed) { let d = 'M0 0 L390 0 L390 10 ', x = 390, r = seed; while (x > 0) { r = (r * 9301 + 49297) % 233280; x -= 6 + (r / 233280) * 12; d += `L${Math.max(0, x).toFixed(1)} ${(6 + (r / 233280) * 14).toFixed(1)} `; } return d + 'L0 10 Z'; }
+const fit = (n, w, k = .47, mx = 104) => Math.min(mx, Math.floor(w / (n.length * k)));
+function render() {
+  const t = T[L]; document.documentElement.lang = L; document.documentElement.dir = L === 'he' ? 'rtl' : 'ltr';
+  $$('[data-t]').forEach(e => { const v = t[e.dataset.t]; if (typeof v === 'string') e.innerHTML = v; }); $$('[data-lang]').forEach(b => b.textContent = t.lang);
+  $$('.tp').forEach((p, i) => p.setAttribute('d', torn(9 + i * 23)));
+  $('#tick').innerHTML = t.tick.map(([a, b]) => `<span>${a} ········ <b>${b}</b></span>`).join('').repeat(4);
+  $('#kinds').innerHTML = t.kinds.map(([n, im, c, r, s, go], i) => `<button class="poster" data-go="${go}" style="background:var(${c})"><div class="n ltr">0${i + 1}</div>${im ? `<img src="${IMG(im)}" style="--r:${r}deg" alt="">` : `<div style="position:absolute;left:50%;top:40px;transform:translateX(-50%) rotate(10deg);width:120px;height:120px;border-radius:30px;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 14px 26px rgba(15,31,61,.18)"><svg width="64" height="64" viewBox="0 0 24 24"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z" fill="#E2471B"/></svg></div>`}<div class="w K" style="font-size:${fit(n, 196)}px">${n}</div><div class="f"><span>${s}</span><i>›</i></div></button>`).join('');
+  $('#shops').innerHTML = t.shops.map(([n, ph, s]) => `<button class="poster" data-go="magasin" style="background:#fff"><div class="pic" style="background-image:url(img/${ph})"></div><div class="w K" style="bottom:50px;font-size:${fit(n, 190, .47, 70)}px">${n}</div><div class="f" style="font-size:12px;color:#5A6270"><span>${s}</span><i>›</i></div></button>`).join('');
+  $('#stubs').innerHTML = t.stubs.map(([a, b]) => `<div class="stub"><b>${a}</b>${b}<div class="again">${t.again}</div></div>`).join('');
+  $('#rchips').innerHTML = t.rchips.map((c, i) => `<span class="chip${i ? '' : ' on'}">${c}</span>`).join('');
+  $('#rlist').innerHTML = t.restos.map(([n, ph, bg, meta, open, isNew, go]) => `<button class="rcard" ${go ? `data-go="${go}"` : ''}><div class="ph" style="${bg ? `background:${bg} url(${ph}) center/auto 88% no-repeat` : `background-image:url(${ph})`}"></div><svg class="torn" viewBox="0 0 390 22" preserveAspectRatio="none"><path fill="#fff" d="${torn(n.length * 7)}" transform="scale(1,-1) translate(0,-22)"/></svg>${isNew ? `<span class="stamp">${t.newR}</span>` : ''}<div class="b"><div class="nm K">${n}</div><div class="meta"><span class="dot"></span>${open}<i></i>${meta}<i></i><span class="ltr">${t.from} 25 ₪</span></div></div></button>`).join('');
+  $('#s-resto .sub .t').textContent = t.restos[0][0];
+  $('#sInfo').innerHTML = t.sInfo.map(x => `<span>${x}</span>`).join('');
+  $('#dchips').innerHTML = t.dishes.map((d, i) => `<button class="chip${i === cur ? ' on' : ''}" data-d="${i}" style="background:${i === cur ? '#fff' : 'rgba(255,255,255,.12)'};color:${i === cur ? '#17100B' : '#fff'}">${d[0]} · <span class="ltr">${d[3]} ₪</span></button>`).join('');
+  $('#menu').innerHTML = t.menu.map(([c, items], i) => `<div class="mcat"><span class="K">${c}</span><span class="lbl ltr">0${i + 1}</span></div>` + items.map(([n, d, p, im]) => `<div class="item"><div class="th"><img src="${IMG(im)}" alt=""></div><div class="tx"><b>${n}</b><span>${d}</span><div class="pr ltr">${p} ₪</div></div><span class="plus or">+</span></div>`).join('')).join('');
+  $('#aisles').innerHTML = t.aisles.map(([n, im, c]) => `<div class="aisle" style="background:var(${c})">${n}<img src="${IMG(im)}" alt=""></div>`).join('');
+  $('#pgrid').innerHTML = t.prods.map(([n, im, p, was, pr]) => `<div class="prod">${pr ? `<div class="star promo">${STAR.replace('<svg', '<svg style="animation:none"')}<div><b>−${Math.round((1 - parseFloat(p.replace(',', '.')) / parseFloat(was.replace(',', '.'))) * 100)}%</b></div></div>` : ''}<div class="im"><img src="${IMG(im)}" alt=""></div><div class="nm">${n}</div><div class="row"><span class="tag">${was ? `<s class="ltr">${t.was} ${was}</s>` : '<s>&nbsp;</s>'}<b class="ltr">${p}</b></span><span class="plus">+</span></div></div>`).join('');
+  $('#phSteps').innerHTML = t.phSteps.map(([a, b], i) => `<div class="step"><span class="K ltr">${i + 1}</span><div><b>${a}</b><span>${b}</span></div></div>`).join('');
+  const rc = t.rc, lines = rc.lines.map(([a, b]) => `<div class="ln"><span>${a}</span><span class="dt"></span><span class="ltr">${b}</span></div>`).join('');
+  $('#rcpt').innerHTML = `<div class="hd">${rc.hd}</div>${lines}<div class="ln" style="margin-top:8px;border-top:1.5px dashed #aaa;padding-top:10px"><span>${rc.sub}</span><span class="dt"></span><span class="ltr">74,00</span></div><div class="ln"><span>${rc.del}</span><span class="dt"></span><span class="ltr">${rc.delV}</span></div><div class="ln tot"><span>${rc.tot}</span><span class="dt"></span><span class="ltr" style="color:var(--or)">99,00 ₪</span></div><div style="position:absolute;inset-inline-end:-10px;top:-18px"><span class="stamp" style="background:rgba(255,253,248,.8)">${L === 'he' ? 'מוכן' : 'Prêt'}</span></div>`;
+  $('#rcpt2').innerHTML = `${lines}<div class="ln"><span>${rc.del}</span><span class="dt"></span><span class="ltr">${rc.delV}</span></div><div class="ln tot"><span>${rc.tot}</span><span class="dt"></span><span class="ltr" style="color:var(--or)">99,00 ₪</span></div>`;
+  $('#tl').innerHTML = t.tl.map(([a, b], i) => `<div class="s ${i < 2 ? 'ok' : i === 2 ? 'now' : ''}"><span class="b">${i < 2 ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' : ''}</span><div><b>${a}</b><span>${b}</span></div></div>`).join('');
+  $('#sw').innerHTML = t.sw.map(([n, c, u]) => `<div style="background:${c};color:${['#0F1F3D'].includes(c) ? '#fff' : '#0F1F3D'}">${n}<small class="ltr">${c}</small><small>${u}</small></div>`).join('');
+  $('#rules').innerHTML = t.rules.map(r => `<li>${r}</li>`).join('');
+  $('#navdemo').innerHTML = ['accueil', 'restos', 'resto', 'magasin', 'pharma', 'panier', 'commande', 'suivi', 'charte'].map((s, i) => `<button data-go="${s}" class="${s === screen ? 'on' : ''}">${i + 1}</button>`).join('');
+  dish(cur, true);
+}
+function fitAll() { $$('.screen.on .fit').forEach(g => { g.style.fontSize = '120px'; const w = Math.min(innerWidth, 430) - 24; if (g.scrollWidth) g.style.fontSize = Math.min(160, 120 * w / g.scrollWidth) + 'px'; }); }
+function dish(i, instant) {
+  const t = T[L], d = t.dishes[i], pl = $('#plate'), rtl = L === 'he'; cur = i;
+  $$('#dchips .chip').forEach((c, k) => { c.style.background = k === i ? '#fff' : 'rgba(255,255,255,.12)'; c.style.color = k === i ? '#17100B' : '#fff'; });
+  $('#exp').style.background = d[2]; $('#tornExp').setAttribute('fill', d[2]);
+  const old = pl.querySelectorAll('.dish, .ing'); old.forEach(e => e.classList.add(e.classList.contains('dish') ? 'out' : 'gone')); setTimeout(() => old.forEach(e => e.remove()), instant ? 0 : 300);
+  const build = () => {
+    const cx = pl.clientWidth / 2 || 195, cy = 160;
+    const im = new Image(); im.className = 'dish out'; im.src = IMG(d[1]); pl.appendChild(im);
+    (ING[d[1]] || []).forEach(([n, w, x, y, r, f], k) => { const g = new Image(); g.className = 'ing gone' + (f ? ' f' : ''); g.src = IMG(n); const xx = rtl ? -x : x;
+      g.style.cssText = `width:${w}px;left:${cx + xx - w / 2}px;top:${cy + y - w / 2}px;--fx:${-xx}px;--fy:${-y}px`; pl.appendChild(g); setTimeout(() => { g.classList.remove('gone'); g.style.transform = `rotate(${r}deg)`; }, 110 + k * 55); });
+    requestAnimationFrame(() => requestAnimationFrame(() => im.classList.remove('out')));
+    $('#dn').textContent = d[0]; $('#dd').textContent = d[4]; $('#dAdd').innerHTML = `${t.add} <span class="pr ltr" style="color:var(--or)">${d[3]} ₪</span>`;
+  };
+  instant ? build() : setTimeout(build, 240);
+}
+function go(s) { screen = s; $$('.screen').forEach(x => x.classList.toggle('on', x.id === 's-' + s)); $$('#bar button').forEach(b => b.classList.toggle('on', b.dataset.go === s));
+  $('#bar').style.display = ['resto', 'magasin', 'panier', 'commande'].includes(s) ? 'none' : 'flex'; scrollTo(0, 0); history.replaceState(null, '', '#' + s + (L === 'he' ? '' : ''));
+  $$('#navdemo button').forEach(b => b.classList.toggle('on', b.dataset.go === s)); fitAll(); if (s === 'resto') dish(cur, true); if (s === 'suivi') track(); }
+let trkT = 0;
+function track() { const p = $('#rt'), len = p.getTotalLength(), rider = $('#rider'), box = $('.map').getBoundingClientRect(), t0 = performance.now(); cancelAnimationFrame(trkT); $('#livre').style.display = 'none';
+  const st = T[L].st; $('#stt').innerHTML = `${st[1]} <b>·</b>`;
+  const step = now => { const k = Math.min(1, (now - t0) / 6000), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2, pt = p.getPointAtLength(len * e), sc = Math.max(box.width / 390, 380 / 380);
+    rider.style.left = (pt.x / 390 * 100) + '%'; rider.style.top = (pt.y / 380 * 100) + '%';
+    if (k < 1) trkT = requestAnimationFrame(step); else { $('#stt').innerHTML = `<b>${st[2]}</b>`; $('#livre').style.display = 'block'; $$('#tl .s').forEach(s => { s.classList.remove('now'); s.classList.add('ok'); }); } };
+  trkT = requestAnimationFrame(step); }
+document.addEventListener('click', e => { const g = e.target.closest('[data-go]'); if (g) { e.preventDefault(); go(g.dataset.go); return; }
+  const d = e.target.closest('[data-d]'); if (d) return dish(+d.dataset.d);
+  if (e.target.closest('[data-lang]')) { L = L === 'fr' ? 'he' : 'fr'; render(); go(screen); } });
+render(); go(screen);
+</script>
+</body>
+</html>
