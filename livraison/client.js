@@ -4391,6 +4391,125 @@ document.addEventListener("click", e => {
   document.addEventListener("touchend", e => { if (!sx || !vt.cfg) return; const dx = e.changedTouches[0].clientX - sx; sx = 0; if (Math.abs(dx) < 50) return; vt.auto = false; clearInterval(vt.timer);
     const dir = (dx < 0) !== (I18N.lang === "he") ? 1 : -1; vtDish((vt.cur + dir + vt.cfg.dishes.length) % vt.cfg.dishes.length); }, { passive: true }); })();
 
+// ===== Design 5 « affiche de quartier » (patron, 24/11) : l'affiche du haut de l'accueil et le ticket qui défile =====
+// (le reste du style est dans d5.css ; ici seulement ce qui n'existait pas dans la page : surtitre, grand titre, Hoppy, repères)
+const d6RestoList = () => (state.showcase || []).filter(x => /restaurant|resto|food|cafe/i.test(x.kind || "") && !x.paused).slice(0, 10);
+const d6RestoCards = list => list.map(x => { const pic = UI.safeImg(x.cover) || UI.safeImg(x.logo); return `<button type="button" class="d6-rc" data-d4-pro="${UI.esc(x.code)}"><span class="d6-rp"${pic ? ` style="background-image:url('${pic}')"` : ""}></span><b>${UI.esc(d4Nm(x))}</b><small>${UI.esc(I18N.lang === "he" ? "החל מ־25 ₪" : "dès 25 ₪")}</small></button>`; }).join("");
+// (les commerces arrivent après l'accueil : la rangée des restos et la bande de noms se remplissent quand ils sont là)
+function d6Fill() {
+  const r = document.getElementById("d6RRow"); if (!r) return;
+  const html = d6RestoCards(d6RestoList()); if (r.dataset.html !== html) { r.innerHTML = html; r.dataset.html = html; }
+  const b = document.getElementById("d5Tick"); if (b && !b.dataset.names && (state.showcase || []).length) { b.dataset.names = "1"; d5Home(); }
+}
+function d5Home() {
+  if (!document.documentElement.classList.contains("d5")) return;
+  const top = document.getElementById("vitTop"), sheet = document.getElementById("homeSheet");
+  if (!top || !sheet) return;
+  const he = I18N.lang === "he", A = he ? "‹" : "›";
+  // 1. Les grands blocs en slides (pleine couleur, photo détourée, titre, bulles) — ils défilent tout seuls, on glisse au doigt
+  const S = he ? [
+    ["c1", "light", "עושים לכם", "את הקניות", "במחיר הכי טוב, מבטיחים", ["הכי מהר", "החל מ־25 ₪ בעיר"], "img/v4/hoppy.webp", "hop", "d4:shops", "להזמנה"],
+    ["c3", "light", "המסעדות", "שלכם", "האוכל מגיע חם", ["סמאש איט", "רפאלו", "ג׳פן ג׳פן"], "img/smashit/burger-royal.webp", "dish", "kind:resto", "למסעדות"],
+    ["c2", "dark", "כל המבצעים", "במקום אחד", "עד ‎−50%‎", ["Carrefour", "רמי לוי"], "img/v4/bamba.webp", "prod", "d4:promo", "למבצעים"],
+    ["c4", "dark", "בית מרקחת", "בלי לזוז", "בלי מרשם, עד הבית", ["אקמול", "חיתולים"], "", "cross", "d4:pharm", "להזמנה"],
+  ] : [
+    ["c1", "light", "On fait vos", "courses", "pour vous, promis", ["au plus vite", "dès 25 ₪ en ville"], "img/v4/hoppy.webp", "hop", "d4:shops", "Commander"],
+    ["c3", "light", "Vos restos", "préférés", "votre plat arrive chaud", ["Smash It", "Raffaello", "Japan Japan"], "img/smashit/burger-royal.webp", "dish", "kind:resto", "Voir les restos"],
+    ["c2", "dark", "Toutes les", "promos", "jusqu'à −50 %", ["Carrefour", "Rami Lévy"], "img/v4/bamba.webp", "prod", "d4:promo", "Voir les promos"],
+    ["c4", "dark", "La pharmacie", "sans bouger", "sans ordonnance, chez vous", ["Acamol", "couches"], "", "cross", "d4:pharm", "Commander"],
+  ];
+  let sl = document.getElementById("d6Slides");
+  if (!sl) { sl = document.createElement("section"); sl.id = "d6Slides"; sl.className = "d6-slides"; top.after(sl); }
+  const cross = `<span class="d6-cross"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/></svg></span>`;
+  sl.innerHTML = `<div class="d6-track">${S.map(([c, tone, a, b, note, bubs, img, kind, go, btn], k) => `<article class="d6-slide ${tone} k-${kind}" style="--s:var(--${c})">
+      <h2 class="d6-st"><span>${UI.esc(a)}</span><span>${UI.esc(b)}</span></h2><p class="d6-sn">${UI.esc(note)}</p>
+      ${bubs.map((x, n) => `<span class="d6-bub b${n}">${UI.esc(x)}</span>`).join("")}
+      ${img ? `<img class="d6-si" src="${img}" alt="" ${k ? 'loading="lazy"' : ""} />` : cross}
+      <button type="button" class="d6-btn" data-d5go="${go}">${UI.esc(btn)} <i>${A}</i></button></article>`).join("")}</div>
+    <div class="d6-dots">${S.map((_, k) => `<i class="${k ? "" : "on"}"></i>`).join("")}</div>
+    <svg class="d6-wave" viewBox="0 0 390 36" preserveAspectRatio="none" aria-hidden="true"><path d="M0 22 C 100 0, 210 40, 390 8 L390 36 L0 36 Z"/></svg>`;
+  const tr = sl.querySelector(".d6-track"), dots = [...sl.querySelectorAll(".d6-dots i")];
+  let cur = 0, user = false;
+  const paint = () => dots.forEach((d, k) => d.classList.toggle("on", k === cur));
+  tr.addEventListener("scroll", () => { const k = Math.round(Math.abs(tr.scrollLeft) / tr.clientWidth); if (k !== cur) { cur = k; paint(); } }, { passive: true });
+  tr.addEventListener("touchstart", () => { user = true; }, { passive: true });
+  clearInterval(d5Home.t);
+  d5Home.t = setInterval(() => { if (user || document.hidden || (document.body.dataset.view || "home") !== "home") return; cur = (cur + 1) % S.length; tr.scrollTo({ left: (he ? -1 : 1) * cur * tr.clientWidth, behavior: "smooth" }); paint(); }, 4600);
+  // 2. La bande de mots : ce qu'on fait + les restos et magasins qu'il y a
+  const names = (state.showcase || []).filter(x => !x.paused).map(x => d4Nm(x)).filter(Boolean).slice(0, 10);
+  const words = (he ? ["קניות", "מסעדות", "בית מרקחת", "חבילות", "פרחים", "מאפייה", "הכי מהר"] : ["Courses", "Restos", "Pharmacie", "Colis", "Fleurs", "Boulangerie", "Au plus vite"]);
+  const mix = []; words.forEach((w, k) => { mix.push(w); if (names[k]) mix.push(names[k]); });
+  let tk = document.getElementById("d5Tick");
+  if (!tk) { tk = document.createElement("div"); tk.id = "d5Tick"; tk.className = "d6-band"; tk.setAttribute("aria-hidden", "true"); sl.after(tk); }
+  tk.className = "d6-band";
+  tk.innerHTML = `<div>${mix.map(w => `<span>${UI.esc(w)}</span>`).join("").repeat(3)}</div>`;
+  // 3. Le bloc des promos (jaune, produits qui défilent) et le bloc des restos (turquoise)
+  let pr = document.getElementById("d6Promo");
+  if (!pr) { pr = document.createElement("section"); pr.id = "d6Promo"; pr.className = "d6-block d6-promo"; sheet.appendChild(pr); }
+  const pics = ["lait", "coca", "bamba", "pommes", "chips", "baguette"].map(k => `<img src="img/v4/${k}.webp" alt="" loading="lazy" />`).join("");
+  pr.innerHTML = `<svg class="d6-torn" viewBox="0 0 390 16" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0H390V7L378 14 364 6 350 15 334 7 320 14 304 5 290 13 274 6 260 15 244 7 230 14 214 5 200 13 184 6 170 15 154 7 140 14 124 5 110 13 94 6 80 15 64 7 50 14 34 5 20 13 0 6Z"/></svg>
+    <h2 class="d6-bt">${UI.esc(he ? "המבצעים של השבוע" : "Les promos de la semaine")}</h2><p class="d6-bs">${UI.esc(he ? "כל המבצעים של החנויות שלנו, במקום אחד" : "Toutes les promos de nos magasins, au même endroit")}</p>
+    <span class="d6-pill">${UI.esc(he ? "עד ‎−50%‎" : "jusqu'à −50 %")}</span>
+    <div class="d6-run"><div>${pics}${pics}</div></div>
+    <button type="button" class="d6-btn" data-d5go="d4:promo">${UI.esc(he ? "לכל המבצעים" : "Voir toutes les promos")} <i>${A}</i></button>`;
+  let rs = document.getElementById("d6Restos");
+  if (!rs) { rs = document.createElement("section"); rs.id = "d6Restos"; rs.className = "d6-block d6-restos"; sheet.appendChild(rs); }
+  const restos = d6RestoList();
+  rs.innerHTML = `<svg class="d6-torn" viewBox="0 0 390 16" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0H390V8L376 15 362 6 348 14 332 5 318 13 302 6 288 15 272 7 258 14 242 5 228 13 212 6 198 15 182 7 168 14 152 5 138 13 122 6 108 15 92 7 78 14 62 5 48 13 32 6 18 15 0 7Z"/></svg>
+    <h2 class="d6-bt">${UI.esc(he ? "המסעדות של נתניה" : "Les restos de Netanya")}</h2><p class="d6-bs">${UI.esc(he ? "מזמינים, ואנחנו מביאים חם" : "Vous choisissez, on vous l'apporte chaud")}</p>
+    <div class="d6-rrow" id="d6RRow">${d6RestoCards(restos)}</div>
+    <button type="button" class="d6-btn light" data-d5go="kind:resto">${UI.esc(he ? "לכל המסעדות" : "Tous les restos")} <i>${A}</i></button>`;
+  // 4. Le dernier bloc : partager HOP!, WhatsApp — en grosses pilules pleine couleur
+  let en = document.getElementById("d6End");
+  if (!en) { en = document.createElement("section"); en.id = "d6End"; en.className = "d6-block d6-end"; sheet.appendChild(en); }
+  en.innerHTML = `<h2 class="d6-bt">${UI.esc(he ? "HOP! עם החברים" : "HOP! entre amis")}</h2><p class="d6-bs">${UI.esc(he ? "שתפו את האפליקציה, או שלחו לנו רשימה בוואטסאפ" : "Partagez l'appli, ou envoyez-nous votre liste sur WhatsApp")}</p>
+    <div class="d6-pills"><button type="button" class="d6-big" data-share-app>${UI.esc(he ? "לשתף את HOP!" : "Partager HOP!")}</button><button type="button" class="d6-big wa" data-d6wa>${UI.esc(he ? "רשימה בוואטסאפ" : "Ma liste sur WhatsApp")}</button></div>`;
+  en.querySelector("[data-d6wa]").onclick = () => { const a = document.querySelector("#homeSheet .vit-wa, #homeSheet a.wa-list"); if (a) a.click(); };
+}
+d5Home(); window.addEventListener("hop:lang", d5Home);
+// Accueil en affiches (patron, 24/11 : « on ne fait plus ces tuiles ») : les rubriques en affiches de couleur, mot géant + vraie
+// photo ; les autres services en liste nette. Chaque affiche déclenche le bouton d'origine (même parcours qu'avant).
+const D5_POSTERS = [
+  ["promo", "d4:promo", "#0F1F3D", "img/v4/hoppy.webp", ["Promos", "Les vraies promos"], ["מבצעים", "המבצעים האמיתיים"], 1],
+  ["courses", "d4:shops", "#9CD8A8", "img/v4/lait.webp", ["Courses", "Le moins cher"], ["קניות", "הכי זול"]],
+  ["restos", "kind:resto", "#FFB283", "img/smashit/frites.webp", ["Restos", "Bien chaud"], ["מסעדות", "חם"]],
+  ["pharma", "d4:pharm", "#A9D0FF", "", ["Pharmacie", "Sans ordonnance"], ["בית מרקחת", "ללא מרשם"]],
+  ["makolet", "kind:shop", "#FFD54F", "img/v4/bamba.webp", ["Makolet", "Tout de suite"], ["מכולת", "מיד"]],
+  ["boulange", "d4:bakery", "#EAD2A8", "img/v4/baguette.webp", ["Boulange", "Baguette, challah"], ["מאפייה", "באגט, חלה"]],
+  ["colis", "d4:poste", "#C9B8FF", "img/v4/sac.webp", ["Colis", "Envoi et retrait"], ["חבילות", "שליחה ואיסוף"]],
+  ["mezouza", "d4:mezouza", "#BFE3C5", "", ["Mezouzot", "Au sofer et retour"], ["מזוזות", "לסופר וחזרה"]],
+  ["mikve", "d4:mikve", "#CFE3FF", "", ["Mikvé", "Vaisselle trempée"], ["טבילת כלים", "הלוך וחזור"]],
+];
+const D5_MORE = ["tabac", "baby", "pets", "home", "gift", "pressing", "docs", "yad2", "keys"];
+function d5Kinds() {
+  if (!document.documentElement.classList.contains("d5")) return;
+  const tiles = document.querySelector("#d4Tiles"); if (!tiles) return;
+  const he = I18N.lang === "he";
+  let box = document.querySelector("#d5Kinds");
+  if (!box) { box = document.createElement("section"); box.id = "d5Kinds"; box.className = "d5-kinds"; tiles.before(box); }
+  const fit = (s, w, mx) => Math.min(mx, Math.floor(w / (Math.max(1, [...s].length) * (he ? .62 : .6))));
+  const cross = `<span class="d5-cross"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/></svg></span>`;
+  const posters = D5_POSTERS.map(([k, go, bg, img, fr, hb, dark], i) => { const [w, sub] = he ? hb : fr;
+    return `<button type="button" class="d5-poster${dark ? " dark" : ""}" data-d5go="${go}" style="--pbg:${bg}"><span class="d5-pn" dir="ltr">0${i + 1}</span>
+      ${img ? `<img src="${img}" alt="" loading="lazy" />` : k === "pharma" ? cross : `<span class="d5-pw2">${UI.esc(w.slice(0, 1))}</span>`}
+      <b style="--fs:${fit(w, 172, 60)}px">${UI.esc(w)}</b><span class="d5-pf"><span>${UI.esc(sub)}</span><i>${he ? "‹" : "›"}</i></span></button>`; }).join("");
+  const more = D5_MORE.map(k => { const b = document.querySelector(`#homeKinds .ch-kind[data-kind="${k}"] b`); return b ? `<button type="button" class="d5-more-it" data-d5go="kind:${k}"><span>${UI.esc(b.textContent)}</span><i>${he ? "‹" : "›"}</i></button>` : ""; }).join("");
+  const html = `<h2 class="d5-h2">${UI.esc(he ? "הכול, עד הבית." : "Tout, livré.")}<em>${UI.esc(he ? "בוחרים, ואנחנו הולכים בשבילכם" : "choisissez, on y va pour vous")}</em></h2>
+    <div class="d5-posters">${posters}</div>
+    ${more ? `<h3 class="d5-h3">${UI.esc(he ? "שירותים נוספים" : "Autres services")}</h3><div class="d5-more">${more}</div>` : ""}`;
+  if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
+}
+document.addEventListener("click", e => {
+  const g = e.target.closest && e.target.closest("[data-d5go]"); if (!g) return;
+  const [kind, id] = g.dataset.d5go.split(":");
+  const el = kind === "d4" ? document.querySelector(`#d4Tiles [data-d4="${id}"], #d4Shops [data-d4="${id}"]`) : document.querySelector(`#homeKinds .ch-kind[data-kind="${id}"]`);
+  if (el) { e.preventDefault(); el.click(); }
+});
+(() => { const run = () => { try { d5Kinds(); d6Fill(); } catch (e) { console.warn("d5Kinds", e); } };
+  if (window.MutationObserver) { const sheet = document.getElementById("homeSheet"); if (sheet) new MutationObserver(() => { clearTimeout(run.t); run.t = setTimeout(run, 120); }).observe(sheet, { childList: true, subtree: true }); }
+  run(); window.addEventListener("hop:lang", () => setTimeout(run, 80)); })();
+
+
 // ===== Mode patron sur la page client (règle du 04/11) : le patron change un produit là où le client le voit =====
 // Nom (français · hébreu), prix, visible ou masqué. Boutiques HOP! (mises à jour toutes seules depuis le magasin) :
 // le choix du patron reste par-dessus chaque mise à jour, et « Revenir au magasin » remet ce que dit le magasin.
@@ -11173,74 +11292,3 @@ document.addEventListener("submit", async e => {
 });
 
 })();
-
-// ===== Design 5 « affiche de quartier » (patron, 24/11) : l'affiche du haut de l'accueil et le ticket qui défile =====
-// (le reste du style est dans d5.css ; ici seulement ce qui n'existait pas dans la page : surtitre, grand titre, Hoppy, repères)
-function d5Home() {
-  if (!document.documentElement.classList.contains("d5")) return;
-  const hero = document.getElementById("vitHero"), top = document.getElementById("vitTop");
-  if (!hero || !top) return;
-  const he = I18N.lang === "he", T5 = he
-    ? { eb: "משלוחים בנתניה", a: "עושים", b: "לכם את", c: "הקניות.", note: "במחיר הכי טוב, מבטיחים", city: "נתניה",
-        f: [["הכול", "חנויות, מסעדות, בית מרקחת"], ["הכי זול", "משווים בשבילכם"], ["25 ₪", "בעיר, הכי מהר"]],
-        tick: [["חלב 1 ל׳", "✓"], ["לחם", "✓"], ["חיתולים", "✓"], ["פיצה", "חמה"], ["מרשם", "מוכן"], ["פרחים", "לאמא"], ["חבילה", "נאספה"], ["במבה", "✓"]] }
-    : { eb: "Livraison à Netanya", a: "On fait vos", b: "courses", c: "pour vous.", note: "au meilleur prix, promis", city: "Netanya",
-        f: [["Tout", "magasins, restos, pharmacie"], ["Moins cher", "on compare pour vous"], ["25 ₪", "en ville, au plus vite"]],
-        tick: [["LAIT 1 L", "✓"], ["PAIN", "✓"], ["COUCHES", "✓"], ["PIZZA", "CHAUDE"], ["ORDONNANCE", "PRÊTE"], ["FLEURS", "POUR MAMAN"], ["COLIS", "RÉCUPÉRÉ"], ["BAMBA", "✓"]] };
-  let h = hero.querySelector(".d5-hero");
-  if (!h) { h = document.createElement("div"); h.className = "d5-hero"; hero.insertBefore(h, hero.firstChild); }
-  h.innerHTML = `<div class="d5-ghost" aria-hidden="true" dir="ltr">${UI.esc(T5.city)}</div>
-    <div class="d5-eyebrow"><i></i><span>${UI.esc(T5.eb)}</span></div>
-    <h1 class="d5-title"><span>${UI.esc(T5.a)}</span><span>${UI.esc(T5.b)}</span><b>${UI.esc(T5.c)}</b></h1>
-    <div class="d5-row"><div class="d5-note"><svg width="30" height="26" viewBox="0 0 34 30" fill="none" stroke="#FF6A13" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M4 4c2 12 10 20 24 20"/><path d="M22 18l6 6-7 4"/></svg><span>${UI.esc(T5.note)}</span></div>
-      <div class="d5-fig"><svg viewBox="0 0 200 120" aria-hidden="true"><path d="M-40 110 C 10 -10, 120 -20, 190 60"/></svg><img src="img/v4/hoppy.webp" alt="Hoppy" /></div></div>`;
-  let f = hero.querySelector(".d5-facts");
-  if (!f) { f = document.createElement("div"); f.className = "d5-facts"; hero.appendChild(f); }
-  f.innerHTML = T5.f.map(([a, b]) => `<div><b${/₪/.test(a) ? ' dir="ltr"' : ""}>${UI.esc(a)}</b><small>${UI.esc(b)}</small></div>`).join("");
-  if (!top.querySelector(".d5-zig")) top.insertAdjacentHTML("beforeend", `<svg class="d5-zig" viewBox="0 0 390 14" preserveAspectRatio="none" aria-hidden="true"><path fill="#F4ECDD" d="M0 14V7L10 0l10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7V14z"/></svg>`);
-  let tk = document.getElementById("d5Tick");
-  if (!tk) { tk = document.createElement("div"); tk.id = "d5Tick"; tk.className = "d5-tick"; tk.setAttribute("aria-hidden", "true"); top.after(tk); }
-  tk.innerHTML = `<div>${T5.tick.map(([a, b]) => `<span>${UI.esc(a)} ········ <b>${UI.esc(b)}</b></span>`).join("").repeat(4)}</div>`;
-}
-d5Home(); window.addEventListener("hop:lang", d5Home);
-// Accueil en affiches (patron, 24/11 : « on ne fait plus ces tuiles ») : les rubriques en affiches de couleur, mot géant + vraie
-// photo ; les autres services en liste nette. Chaque affiche déclenche le bouton d'origine (même parcours qu'avant).
-const D5_POSTERS = [
-  ["promo", "d4:promo", "#0F1F3D", "img/v4/hoppy.webp", ["Promos", "Les vraies promos"], ["מבצעים", "המבצעים האמיתיים"], 1],
-  ["courses", "d4:shops", "#9CD8A8", "img/v4/lait.webp", ["Courses", "Le moins cher"], ["קניות", "הכי זול"]],
-  ["restos", "kind:resto", "#FFB283", "img/smashit/frites.webp", ["Restos", "Bien chaud"], ["מסעדות", "חם"]],
-  ["pharma", "d4:pharm", "#A9D0FF", "", ["Pharmacie", "Sans ordonnance"], ["בית מרקחת", "ללא מרשם"]],
-  ["makolet", "kind:shop", "#FFD54F", "img/v4/bamba.webp", ["Makolet", "Tout de suite"], ["מכולת", "מיד"]],
-  ["boulange", "d4:bakery", "#EAD2A8", "img/v4/baguette.webp", ["Boulange", "Baguette, challah"], ["מאפייה", "באגט, חלה"]],
-  ["colis", "d4:poste", "#C9B8FF", "img/v4/sac.webp", ["Colis", "Envoi et retrait"], ["חבילות", "שליחה ואיסוף"]],
-  ["mezouza", "d4:mezouza", "#BFE3C5", "", ["Mezouzot", "Au sofer et retour"], ["מזוזות", "לסופר וחזרה"]],
-  ["mikve", "d4:mikve", "#CFE3FF", "", ["Mikvé", "Vaisselle trempée"], ["טבילת כלים", "הלוך וחזור"]],
-];
-const D5_MORE = ["tabac", "baby", "pets", "home", "gift", "pressing", "docs", "yad2", "keys"];
-function d5Kinds() {
-  if (!document.documentElement.classList.contains("d5")) return;
-  const tiles = document.querySelector("#d4Tiles"); if (!tiles) return;
-  const he = I18N.lang === "he";
-  let box = document.querySelector("#d5Kinds");
-  if (!box) { box = document.createElement("section"); box.id = "d5Kinds"; box.className = "d5-kinds"; tiles.before(box); }
-  const fit = (s, w, mx) => Math.min(mx, Math.floor(w / (Math.max(1, [...s].length) * (he ? .5 : .44))));
-  const cross = `<span class="d5-cross"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/></svg></span>`;
-  const posters = D5_POSTERS.map(([k, go, bg, img, fr, hb, dark], i) => { const [w, sub] = he ? hb : fr;
-    return `<button type="button" class="d5-poster${dark ? " dark" : ""}" data-d5go="${go}" style="--pbg:${bg}"><span class="d5-pn" dir="ltr">0${i + 1}</span>
-      ${img ? `<img src="${img}" alt="" loading="lazy" />` : k === "pharma" ? cross : `<span class="d5-pw2">${UI.esc(w.slice(0, 1))}</span>`}
-      <b style="--fs:${fit(w, 168, 84)}px">${UI.esc(w)}</b><span class="d5-pf"><span>${UI.esc(sub)}</span><i>${he ? "‹" : "›"}</i></span></button>`; }).join("");
-  const more = D5_MORE.map(k => { const b = document.querySelector(`#homeKinds .ch-kind[data-kind="${k}"] b`); return b ? `<button type="button" class="d5-more-it" data-d5go="kind:${k}"><span>${UI.esc(b.textContent)}</span><i>${he ? "‹" : "›"}</i></button>` : ""; }).join("");
-  const html = `<h2 class="d5-h2">${UI.esc(he ? "הכול, עד הבית." : "Tout, livré.")}<em>${UI.esc(he ? "בוחרים, ואנחנו הולכים בשבילכם" : "choisissez, on y va pour vous")}</em></h2>
-    <div class="d5-posters">${posters}</div>
-    ${more ? `<h3 class="d5-h3">${UI.esc(he ? "שירותים נוספים" : "Autres services")}</h3><div class="d5-more">${more}</div>` : ""}`;
-  if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
-}
-document.addEventListener("click", e => {
-  const g = e.target.closest && e.target.closest("[data-d5go]"); if (!g) return;
-  const [kind, id] = g.dataset.d5go.split(":");
-  const el = kind === "d4" ? document.querySelector(`#d4Tiles [data-d4="${id}"], #d4Shops [data-d4="${id}"]`) : document.querySelector(`#homeKinds .ch-kind[data-kind="${id}"]`);
-  if (el) { e.preventDefault(); el.click(); }
-});
-(() => { const run = () => { try { d5Kinds(); } catch (e) { console.warn("d5Kinds", e); } };
-  if (window.MutationObserver) { const sheet = document.getElementById("homeSheet"); if (sheet) new MutationObserver(() => { clearTimeout(run.t); run.t = setTimeout(run, 60); }).observe(sheet, { childList: true }); }
-  run(); window.addEventListener("hop:lang", () => setTimeout(run, 80)); })();
