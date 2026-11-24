@@ -208,3 +208,57 @@ html.d5 body .d5-poster b, html.d5 body .d5-pw2, html.d5 body .d5-facts b, html.
 html.d5 body .d5-pn { font-family: var(--M) !important; }
 html.d5 body .d5-tick div { font-family: var(--M) !important; }
 html.d5 body #vitStatus { color: #FFD9C2 !important; font-weight: 700 !important; }
+
+/* ======================= MAGASINS (liste) ======================= */
+html.d5 body #d4Mag, html.d5 body #d4Mag .d4m-in { background: var(--paper) !important; }
+html.d5 body #d4Mag .d4m-h { font: 700 54px/.88 var(--K) !important; text-transform: uppercase; color: var(--navy) !important; letter-spacing: 0 !important; }
+html.d5 body #d4Mag .d4m-find { background: #fff !important; border: 0 !important; border-radius: 30px !important; box-shadow: none !important; }
+html.d5 body #d4Mag .d4m-any { background: var(--navy) !important; color: #fff !important; border: 0 !important; border-radius: 26px !important; }
+html.d5 body #d4Mag .d4m-any b { font: 700 32px/.9 var(--K) !important; text-transform: uppercase; color: #fff !important; letter-spacing: 0 !important; }
+html.d5 body #d4Mag .d4m-any small, html.d5 body #d4Mag .d4m-any span { color: #CFE0FF !important; }
+html.d5 body #d4Mag .d4m-go { background: var(--act) !important; color: var(--act-fg) !important; border-radius: 24px !important; border: 0 !important; }
+html.d5 body #d4Mag .d4m-chips button { border-radius: 22px !important; border: 0 !important; background: rgba(15,31,61,.07) !important; color: var(--navy) !important; font-weight: 800 !important; }
+html.d5 body #d4Mag .d4m-chips button.on { background: var(--navy) !important; color: #fff !important; }
+html.d5 body #d4Mag .d4m-card { background: #fff !important; border: 0 !important; border-radius: 24px !important; box-shadow: 0 10px 24px rgba(15,31,61,.07) !important; overflow: hidden; }
+html.d5 body #d4Mag .d4m-card .d4m-ph { border-radius: 0 !important; background-color: var(--paper2) !important; }
+html.d5 body #d4Mag .d4m-nm { font: 700 28px/.9 var(--K) !important; text-transform: uppercase; color: var(--navy) !important; letter-spacing: 0 !important; }
+
+/* ======================= MES COURSES · COMPTE ======================= */
+html.d5 body #mes-courses, html.d5 body #mes-courses .wrap { background: var(--paper) !important; }
+html.d5 body #mes-courses .title-row h2 { font-size: 52px !important; }
+html.d5 body #mes-courses .sub { color: var(--mute5) !important; }
+html.d5 body #mes-courses .card, html.d5 body .account-card { background: #fff !important; border: 0 !important; border-radius: 24px !important; box-shadow: none !important; }
+html.d5 body #mes-courses .empty.card { background: #FFFDF8 !important; font-family: var(--M); -webkit-mask: radial-gradient(7px at 50% 100%, #0000 98%, #000) 50% 100% / 14px 100% repeat-x; mask: radial-gradient(7px at 50% 100%, #0000 98%, #000) 50% 100% / 14px 100% repeat-x; padding-bottom: 22px !important; }
+html.d5 body #mes-courses .empty.card a { color: var(--act) !important; font-family: Heebo, sans-serif; font-weight: 800; }
+html.d5 body .lgx-hero { background: var(--navy) !important; color: #fff !important; border-radius: 24px !important; }
+html.d5 body .lgx-hero b, html.d5 body .lgx-hero h3, html.d5 body .lgx-hero strong { font: 700 34px/.9 var(--K) !important; text-transform: uppercase; color: #fff !important; letter-spacing: 0 !important; }
+html.d5 body .lgx-hero small, html.d5 body .lgx-hero p, html.d5 body .lgx-hero span { color: #CFE0FF !important; }
+html.d5 body .lgx-perks li { background: transparent !important; border: 0 !important; border-bottom: 1.5px dashed var(--line5) !important; border-radius: 0 !important; }
+html.d5 body .lgx-perks li::before, html.d5 body .lgx-perks li > i, html.d5 body .lgx-perks li > svg { display: none !important; }
+html.d5 body .lgx-perks li b { font-weight: 900 !important; color: var(--navy) !important; }
+html.d5 body .lgx-voice { background: var(--navy) !important; color: #fff !important; border: 0 !important; border-radius: 24px !important; }
+html.d5 body .lgx-voice i { background: var(--act) !important; }
+html.d5 body .lgx-switch { color: var(--navy) !important; font-weight: 800 !important; }
+html.d5 body .orders .order, html.d5 body .orders .o-card, html.d5 body .orders > .card { background: #FFFDF8 !important; font-family: var(--M); }
+html.d5.d3 body .lgx-card .lgx-perks .lgx-p > i, html.d5.d3 body .lgx-card .lgx-perks .lgx-p::before { display: none !important; }
+html.d5.d3 body .lgx-card .lgx-perks .lgx-p { padding: 12px 4px !important; gap: 0 !important; }
+html.d5.d3 body .lgx-card .lgx-hero h3 { display: block !important; font: 700 34px/.9 var(--K) !important; color: #fff !important; text-transform: uppercase; }
+html.d5.d3 body .lgx-card .lgx-hero p { color: #CFE0FF !important; }
+/* rayons (pharmacie, makolet…) */
+html.d5 body .ph-head b { display: block; font: 700 44px/.9 var(--K) !important; text-transform: uppercase; color: var(--navy) !important; letter-spacing: 0 !important; }
+html.d5 body .ph-head small { color: var(--mute5) !important; }
+/* pages annexes (Ce qu'on livre, Bienvenue, Suivi) : même barre du haut */
+html.d5 body > header.topbar, html.d5 body header.topbar { background: var(--navy) !important; }
+html.d5 body header.topbar .logo, html.d5 body header.topbar .wordmark b { color: #fff !important; }
+html.d5.d3 body .lgx-perks .lgx-p > i { display: none !important; }
+html.d5.d3 body .lgx-perks .lgx-p { grid-template-columns: minmax(0, 1fr) !important; }
+html.d5 body header.topbar .logo-mark { display: none !important; }
+html.d5 body header.topbar .logo-name { color: #fff !important; font-family: Heebo, sans-serif !important; font-weight: 900 !important; font-size: 30px !important; letter-spacing: -.04em; }
+html.d5 body h1 { font-family: var(--K) !important; font-weight: 700 !important; text-transform: uppercase; letter-spacing: 0 !important; line-height: .9 !important; }
+html.d5.d3 body #loginCard .lgx-perks .lgx-p > i { display: none !important; }
+html.d5.d3 body #loginCard .lgx-perks .lgx-p { grid-template-columns: minmax(0, 1fr) !important; }
+html.d5 body #olH1, html.d5 body #bvH1 { font-family: var(--K) !important; font-weight: 700 !important; letter-spacing: 0 !important; line-height: .88 !important; text-transform: uppercase; }
+html.d5 body #olH1 { font-size: 56px !important; color: var(--navy) !important; } html.d5 body #bvH1 { font-size: 54px !important; }
+html.d5 body .ol, html.d5 body main, html.d5 body .bv { background: var(--paper) !important; }
+html.d5 body header.topbar .logo img { display: none !important; }
+html.d5 body .ol h2, html.d5 body .bv h2, html.d5 body main h2 { font-family: var(--K) !important; font-weight: 700 !important; font-size: 38px !important; letter-spacing: 0 !important; line-height: .9 !important; }
