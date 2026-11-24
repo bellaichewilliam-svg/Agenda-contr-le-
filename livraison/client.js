@@ -6643,7 +6643,8 @@ function d4Tiles() {
   const pCode = (slides[0] && slides[0].code) || "HOPRAMILEVY";
   const pItems = pa.data ? paItems().filter(y => y.code === pCode && y.ph && y.o && y.o > y.p && !y.b).sort((a2, b2) => (Number(b2.f) || 0) - (Number(a2.f) || 0)).slice(0, 3) : [];
   const pSc = (state.showcase || []).find(x => x.code === pCode), pLogo = pSc && UI.safeImg(pSc.logo);
-  const promoCard = pItems.length === 3 ? `<div class="d4t d4-pc" data-d4="promo2" data-code="${UI.esc(pCode)}" role="button" tabindex="0">
+  // (patron 24/11 : « on n'a jamais eu ce Rami Lévy à la page d'accueil ») plus de carte promos d'un seul magasin sur l'accueil
+  const promoCard = false && pItems.length === 3 ? `<div class="d4t d4-pc" data-d4="promo2" data-code="${UI.esc(pCode)}" role="button" tabindex="0">
       <span class="d4-pc-h">${pLogo ? `<img src="${UI.esc(pLogo)}" alt="" />` : ""}<span><small>${UI.esc(t("d4Promo"))}</small><b><bdi>${UI.esc(d4Nm({ code: pCode, name: paShopName(pCode) }))}</bdi></b></span><em>${UI.esc(t("d4See"))} ${I18N.lang === "he" ? "‹" : "›"}</em></span>
       <span class="d4-pc-l">${pItems.map(y => `<span class="d4-pc-i"><span class="d4-pc-ph"><img src="${UI.esc(y.ph)}" alt="" loading="lazy" decoding="async"${UI.imgCors ? UI.imgCors(y.ph) : ""} /></span><span class="d4-pc-n"><bdi>${UI.esc(UI.bi(y.name))}</bdi></span><span class="d4-pc-p"><b dir="ltr">${UI.esc(y.l > 1 ? t("paLot", { n: y.l, price: money(y.p) }) : money(y.p))}</b><s dir="ltr">${UI.esc(money(y.o))}</s></span></span>`).join("")}</span>
       ${pItems[0].e ? `<span class="d4-pc-f">${UI.esc(t("paUntil", { d: pItems[0].e }))}</span>` : ""}</div>` : "";
