@@ -4545,8 +4545,18 @@ function d5Kinds() {
 document.addEventListener("click", e => {
   const g = e.target.closest && e.target.closest("[data-d5go]"); if (!g) return;
   const [kind, id] = g.dataset.d5go.split(":");
-  const el = kind === "d4" ? document.querySelector(`#d4Tiles [data-d4="${id}"], #d4Shops [data-d4="${id}"]`) : document.querySelector(`#homeKinds .ch-kind[data-kind="${id}"]`);
-  if (el) { e.preventDefault(); el.click(); }
+  e.preventDefault();
+  // (patron 24/11 : « les boutons ne marchent pas ») on ouvre directement la bonne page, sans dépendre des anciennes tuiles
+  // (la tuile « promo » change de forme selon les promos du jour, le bouton ne la trouvait plus)
+  UI.track("d5_go", { page: g.dataset.d5go });
+  if (id === "promo") return openPromosAll("");
+  if (id === "shops") return d4MagOpen();
+  if (id === "mikve") return mikveOpen();
+  const kb = document.querySelector(`#homeKinds .ch-kind[data-kind="${id}"], #homeKinds [data-kind="${id}"]`);
+  if (kb) return kb.click();
+  const t4 = document.querySelector(`#d4Tiles [data-d4="${id}"], #d4Shops [data-d4="${id}"]`);
+  if (t4) return t4.click();
+  const vc = $("#vitCourse"); if (vc) vc.click();
 });
 (() => { const run = () => { try { d5Kinds(); d6Fill(); } catch (e) { console.warn("d5Kinds", e); } };
   if (window.MutationObserver) { const sheet = document.getElementById("homeSheet"); if (sheet) new MutationObserver(() => { clearTimeout(run.t); run.t = setTimeout(run, 120); }).observe(sheet, { childList: true, subtree: true }); }
