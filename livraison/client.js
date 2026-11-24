@@ -4184,6 +4184,9 @@ const shopMods = p => {
   const kosher = isKosher(state.shop) || /casher|cacher|כשר/i.test((state.shop && state.shop.name) || "");
   return MODS.filter(k => MOD_RX[k].test(txt) && !(k === "cheese" && kosher));
 };
+// Restaurant casher de viande : le « fromage » de la vitrine est un cheddar végétal (patron 24/11)
+const kosherShop = () => isKosher(state.shop) || /casher|cacher|כשר/i.test((state.shop && state.shop.name) || "");
+const modLbl = k => (k === "cheese" && kosherShop() ? t("mod_cheeseVeg") : t("mod_" + k));
 const modsFor = p => /burger|royal|mac|chicken|cheese|steak|tortilla|wrap|sandwich|crunch|crispy|המבורגר|בורגר|טורטי|צ'יקן|רויאל|סנדוויץ/i.test(`${(p && p.name) || ""} ${(p && p.description) || ""}`);
 // Menus McDonald's : le client choisit sa boisson (comprise dans le menu, sans supplément)
 // Boissons avec supplément (Fuze Tea, jus d'orange) : un article caché du catalogue « Supplément boisson : … » est ajouté au panier
@@ -4239,7 +4242,7 @@ const modText = (id, lang) => {
   if (!m) return "";
   // Dans la commande (lue par le patron), toujours en français ; à l'écran, dans la langue du client
   const fr = { onion: "oignons", pickle: "cornichons", ketchup: "ketchup", mustard: "moutarde", sauce: "sauce", lettuce: "salade", tomato: "tomate", cheese: "fromage" };
-  const lab = k => (lang === "fr" ? "sans " + fr[k] : t("modNo") + " " + t("mod_" + k));
+  const lab = k => (lang === "fr" ? "sans " + (k === "cheese" && kosherShop() ? "cheddar végétal" : fr[k]) : t("modNo") + " " + modLbl(k));
   const drink = m.drink ? (lang === "fr" ? "boisson : " : t("drinkLbl") + " : ") + drinkName(m.drink, lang) : "";
   const fl = (m.flavors || []).filter(Boolean);
   const flavor = fl.length ? (lang === "fr" ? "goût : " : t("flavorLbl") + " : ") + fl.map(k => flavorName(k, lang)).join(" + ") : "";
@@ -4284,6 +4287,32 @@ async function loadCatalogFor(shop) {
 // Ses plats vedettes détourés au centre, leurs ingrédients qui s'envolent autour, une couleur par plat, les couleurs de l'enseigne.
 // Le client touche un ingrédient pour l'enlever (« sans oignons » → même note que la fiche produit) ou ajoute une sauce (un vrai
 // produit du catalogue, prix compris). Mise en scène dans la base (shop_vitrine) ; noms, prix, descriptions = le catalogue.
+// Pleine couleur (patron 24/11) : la page d'un commerce prend la couleur de son enseigne sur tout l'écran (réglée dans sa vitrine,
+// sinon une couleur par type de commerce) ; le texte passe en blanc ou en foncé selon la couleur
+const D6_KIND_COLOR = { restaurant: "#FF5D73", epicerie: "#1E9BF0", supermarche: "#1E9BF0", pharmacie: "#7ED9A6", boulangerie: "#FFE14A", fleurs: "#FF8FB1", cafe: "#8E6CEF" };
+// Le haut de page d'un commerce, version pleine couleur : grand nom, accroche, bulles (ouvert, livraison), la photo qui flotte,
+// boutons pilules (infos, WhatsApp, horaire choisi) — mêmes actions qu'avant (data-sh-info, data-sl-goto)
+function d6HeroHtml(s, logo, cover) {
+  const st = UI.openState(s.hours), wa = shopWa(s), he = I18N.lang === "he";
+  const dish = typeof vt !== "undefined" && vt && vt.cfg && vt.code === s.code && vt.cfg.dishes && vt.cfg.dishes[0] ? vt.cfg.dishes[0].img : "";
+  const pic = dish || cover || "";
+  const at = (() => { try { return val("urgency") === "programmee" && (state.shopSched || form.classList.contains("no-now")) && pickupDate(); } catch (e) { return null; } })();
+  return `<div class="d6h">
+    <div class="d6h-bubs">${st ? `<span class="d6h-b ${st.open ? "on" : "off"}"><i></i>${UI.esc(openLabel(st))}</span>` : ""}<span class="d6h-b w">${UI.esc(s.shop_pays ? t("scGift") : t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) }))}</span>${isKosher(s) ? `<span class="d6h-b k">${UI.esc(he ? "כשר" : "Casher")}</span>` : ""}</div>
+    <h1 class="d6h-name${Math.max(...UI.bi(s.name).split(/\s+/).map(w => w.length)) > 6 ? " long" : ""}">${UI.esc(UI.bi(s.name))}</h1>
+    <p class="d6h-tag">${UI.esc(UI.shopText(s, "tagline") || (t("shKinds") || {})[s.kind] || "")}</p>
+    ${pic ? `${dish ? `<i class="d6-halo h" aria-hidden="true"></i><i class="d6-ground h" aria-hidden="true"></i>` : ""}<img class="d6h-pic${dish ? " cut" : ""}" src="${UI.esc(pic)}" alt="" />` : logo ? `<img class="d6h-logo" src="${UI.esc(logo)}" alt="" />` : ""}
+    <div class="d6h-acts"><button type="button" class="d6h-a" data-sh-info="1">${UI.esc(t("shInfoBtn"))}</button>${wa ? `<a class="d6h-a wa" href="https://wa.me/${UI.esc(wa)}?text=${encodeURIComponent(t("shWaHello", { name: UI.bi(s.name) }))}" target="_blank" rel="noopener">WhatsApp</a>` : ""}${at ? `<button type="button" class="d6h-a when" data-sl-goto>${UI.esc(vitWhenLong(at))} · ${UI.esc(t("slChange"))}</button>` : ""}</div>
+  </div>${shopSheet(s)}`;
+}
+function d6ShopColor() {
+  if (!document.documentElement.classList.contains("d5")) return;
+  const s = state.shop, cfg = typeof vt !== "undefined" && vt && vt.cfg && vt.code === (s && s.code) ? vt.cfg : null;
+  const c = (cfg && cfg.colors && cfg.colors.page) || (s && D6_KIND_COLOR[s.kind]) || "#1E9BF0";
+  const rgb = c.replace("#", "").match(/../g).map(x => parseInt(x, 16)), lum = (.299 * rgb[0] + .587 * rgb[1] + .114 * rgb[2]) / 255;
+  document.body.style.setProperty("--shop", c); document.body.style.setProperty("--shop-ink", lum > .62 ? "#3A1E0E" : "#FFFFFF");
+  document.body.classList.toggle("d6-shop", !!s);
+}
 var vt = { cfg: null, code: "", cur: 0, off: {}, add: {}, auto: true, timer: 0 };
 async function vtLoad(code, seq) {
   vt.cfg = null; vt.code = code; vt.cur = 0; vt.off = {}; vt.add = {}; vt.auto = true; vtRender();
@@ -4295,7 +4324,8 @@ async function vtLoad(code, seq) {
   if (!cfg.dishes.length) return;
   if (!document.getElementById("vtFonts")) { const l = document.createElement("link"); l.id = "vtFonts"; l.rel = "stylesheet";
     l.href = "https://fonts.googleapis.com/css2?family=Karantina:wght@700&family=Caveat:wght@700&display=swap"; document.head.appendChild(l); }
-  vt.cfg = cfg; vtRender(true);
+  vt.cfg = cfg; vtRender(true); d6ShopColor();
+  try { const h = $("#shopHero"); if (h && document.documentElement.classList.contains("d5") && state.shop) { const html = d6HeroHtml(state.shop, UI.safeImg(state.shop.logo), UI.safeImg(state.shop.cover)); h.innerHTML = html; h.dataset.html = html; } } catch (e) { /* le haut reste */ }
 }
 const vtProd = id => cgProducts().find(p => p.id === id);
 function vtTorn(seed) { let d = "M0 0 L390 0 L390 10 ", x = 390, r = seed; while (x > 0) { r = (r * 9301 + 49297) % 233280; x -= 6 + (r / 233280) * 12; d += `L${Math.max(0, x).toFixed(1)} ${(6 + (r / 233280) * 14).toFixed(1)} `; } return d + "L0 10 Z"; }
@@ -4328,18 +4358,20 @@ function vtDish(i, instant) {
   const on = document.querySelector(`#vitrineBox .vt-chip[data-vt-dish="${i}"]`), row = on && on.parentElement;
   // (pas scrollIntoView : il fait aussi glisser la vitrine elle-même de côté, surtout en hébreu)
   if (on && row && !instant) row.scrollTo({ left: on.offsetLeft - (row.clientWidth - on.offsetWidth) / 2, behavior: "smooth" });
-  $("#vitrineBox .vt-stage").style.background = d.bg || "#F2B21B";
+  $("#vitrineBox .vt-stage").style.background = d.bg || "#FFE14A";
   const old = plate.querySelectorAll(".vt-dish, .vt-ing, .vt-tag");
   old.forEach(e => e.classList.add(e.classList.contains("vt-dish") ? "out" : "gone"));
   setTimeout(() => old.forEach(e => e.remove()), instant ? 0 : 320);
   const build = () => {
     const cx = plate.clientWidth / 2 || 190, cy = 170, off = vt.off[d.product] || [], add = vt.add[d.product] || [];
-    const im = new Image(); im.className = "vt-dish out"; im.src = d.img; im.alt = UI.bi(p.name); im.style.width = (d.w || 220) + "px"; plate.appendChild(im);
-    (d.ing || []).forEach((g, k) => {
+    // (patron 24/11 : « la nourriture autour qui dépasse ») tout le plat rétrécit pour que chaque ingrédient reste dans l'écran
+    const ext = Math.max(1, ...(d.ing || []).map(g => Math.abs(g.x) + g.w / 2)), sc = Math.min(1, (cx - 6) / ext);
+    const im = new Image(); im.className = "vt-dish out"; im.src = d.img; im.alt = UI.bi(p.name); im.style.width = Math.round((d.w || 220) * sc) + "px"; plate.appendChild(im);
+    (d.ing || []).map(g => Object.assign({}, g, { x: g.x * sc, y: g.y * sc, w: Math.round(g.w * sc) })).forEach((g, k) => {
       const tap = g.off || g.add, el = document.createElement(tap ? "button" : "span"), xx = rtl ? -g.x : g.x;
       el.className = "vt-ing gone" + (g.front ? " f" : "") + (tap ? " tap" : "") + ((g.off && off.includes(g.off)) ? " x" : "") + ((g.add && add.includes(g.add)) ? " plus" : "");
       if (tap) { el.type = "button"; if (g.off) el.dataset.vtOff = g.off; else el.dataset.vtPlus = g.add;
-        el.setAttribute("aria-label", g.off ? `${t("modNo")} ${t("mod_" + g.off)}` : UI.bi((vtProd(g.add) || {}).name || "")); }
+        el.setAttribute("aria-label", g.off ? `${t("modNo")} ${modLbl(g.off)}` : UI.bi((vtProd(g.add) || {}).name || "")); }
       el.style.cssText = `width:${g.w}px;left:${cx + xx - g.w / 2}px;top:${cy + g.y - g.w / 2}px;--fx:${-xx}px;--fy:${-g.y}px;--r:${g.r || 0}deg`;
       el.innerHTML = `<img src="${UI.esc(g.img)}" alt="" />${tap ? `<i>${g.off ? "−" : "+"}</i>` : ""}`;
       plate.appendChild(el); setTimeout(() => el.classList.remove("gone"), 110 + k * 55);
@@ -4357,7 +4389,7 @@ function vtPicks() {
   const d = vt.cfg.dishes[vt.cur], p = vtProd(d.product), off = vt.off[d.product] || [], add = vt.add[d.product] || [];
   const adds = add.map(vtProd).filter(Boolean), total = Number(p.price) + adds.reduce((s, x) => s + Number(x.price), 0);
   const hasTap = (d.ing || []).some(g => g.off || g.add);
-  $("#vtPicks").innerHTML = (off.length || adds.length) ? off.map(k => `<span>${UI.esc(t("modNo"))} ${UI.esc(t("mod_" + k))}</span>`).join("") + adds.map(x => `<span class="plus">+ ${UI.esc(UI.bi(x.name))}</span>`).join("")
+  $("#vtPicks").innerHTML = (off.length || adds.length) ? off.map(k => `<span>${UI.esc(t("modNo"))} ${UI.esc(modLbl(k))}</span>`).join("") + adds.map(x => `<span class="plus">+ ${UI.esc(UI.bi(x.name))}</span>`).join("")
     : hasTap ? `<em>${UI.esc(t("vtHint"))}</em>` : "";
   $("#vtAdd").innerHTML = `${UI.esc(t("vtAdd"))} <b dir="ltr">${UI.esc(money(total))}</b>`;
 }
@@ -4390,6 +4422,136 @@ document.addEventListener("click", e => {
 (() => { let sx = 0; document.addEventListener("touchstart", e => { if (e.target.closest && e.target.closest("#vtPlate")) sx = e.touches[0].clientX; else sx = 0; }, { passive: true });
   document.addEventListener("touchend", e => { if (!sx || !vt.cfg) return; const dx = e.changedTouches[0].clientX - sx; sx = 0; if (Math.abs(dx) < 50) return; vt.auto = false; clearInterval(vt.timer);
     const dir = (dx < 0) !== (I18N.lang === "he") ? 1 : -1; vtDish((vt.cur + dir + vt.cfg.dishes.length) % vt.cfg.dishes.length); }, { passive: true }); })();
+
+// ===== Design 5 « affiche de quartier » (patron, 24/11) : l'affiche du haut de l'accueil et le ticket qui défile =====
+// (le reste du style est dans d5.css ; ici seulement ce qui n'existait pas dans la page : surtitre, grand titre, Hoppy, repères)
+const d6RestoList = () => (state.showcase || []).filter(x => /restaurant|resto|food|cafe/i.test(x.kind || "") && !x.paused).slice(0, 10);
+const D6_CARD = ["#1E9BF0", "#0B4A6F", "#FF5D73", "#13A88A", "#7C5CE0"];
+const d6RestoCards = (list, tag) => list.map((x, k) => { const pic = UI.safeImg(x.cover) || UI.safeImg(x.logo), st = shopState(x), open = !x.paused && (!st || st.open);
+  return `<button type="button" class="d6-rc" data-d4-pro="${UI.esc(x.code)}" style="--rc:${D6_CARD[k % D6_CARD.length]}"><span class="d6-rp"${pic ? ` style="background-image:url('${pic}')"` : ""}></span>${tag ? `<span class="d6-st2">${UI.esc(tag)}</span>` : ""}<b>${UI.esc(d4Nm(x))}</b><small>${UI.esc(open ? (I18N.lang === "he" ? "פתוח · החל מ־25 ₪" : "Ouvert · dès 25 ₪") : (I18N.lang === "he" ? "סגור · אפשר לתזמן" : "Fermé · à programmer"))}</small></button>`; }).join("");
+const d6ShopList = () => (state.showcase || []).filter(x => !/restaurant|resto|food|cafe/i.test(x.kind || "") && !x.paused).slice(0, 12);
+// (les commerces arrivent après l'accueil : la rangée des restos et la bande de noms se remplissent quand ils sont là)
+function d6Fill() {
+  const r = document.getElementById("d6RRow"); if (!r) return;
+  const html = d6RestoCards(d6RestoList()); if (r.dataset.html !== html) { r.innerHTML = html; r.dataset.html = html; }
+  const m = document.getElementById("d6SRow"); if (m) { const h2 = d6RestoCards(d6ShopList()); if (m.dataset.html !== h2) { m.innerHTML = h2; m.dataset.html = h2; } }
+  const b = document.getElementById("d5Tick"); if (b && !b.dataset.names && (state.showcase || []).length) { b.dataset.names = "1"; d5Home(); }
+}
+function d5Home() {
+  if (!document.documentElement.classList.contains("d5")) return;
+  const top = document.getElementById("vitTop"), sheet = document.getElementById("homeSheet");
+  if (!top || !sheet) return;
+  const he = I18N.lang === "he", A = he ? "‹" : "›";
+  // 1. Les grands blocs en slides (pleine couleur, photo détourée, titre, bulles) — ils défilent tout seuls, on glisse au doigt
+  const S = he ? [
+    ["c1", "light", "עושים לכם", "את הקניות", "במחיר הכי טוב, מבטיחים", ["הכי מהר", "החל מ־25 ₪ בעיר"], "img/v4/hoppy.webp", "hop", "d4:shops", "להזמנה"],
+    ["c3", "light", "המסעדות", "שלכם", "האוכל מגיע חם", ["סמאש איט", "רפאלו", "ג׳פן ג׳פן"], "img/smashit/burger-royal.webp", "dish", "kind:resto", "למסעדות"],
+    ["c2", "dark", "כל המבצעים", "במקום אחד", "עד ‎−50%‎", ["Carrefour", "רמי לוי"], "img/v4/bamba.webp", "prod", "d4:promo", "למבצעים"],
+    ["c4", "dark", "בית מרקחת", "בלי לזוז", "בלי מרשם, עד הבית", ["אקמול", "חיתולים"], "", "cross", "d4:pharm", "להזמנה"],
+  ] : [
+    ["c1", "light", "On fait vos", "courses", "pour vous, promis", ["au plus vite", "dès 25 ₪ en ville"], "img/v4/hoppy.webp", "hop", "d4:shops", "Commander"],
+    ["c3", "light", "Vos restos", "préférés", "votre plat arrive chaud", ["Smash It", "Raffaello", "Japan Japan"], "img/smashit/burger-royal.webp", "dish", "kind:resto", "Voir les restos"],
+    ["c2", "dark", "Toutes les", "promos", "jusqu'à −50 %", ["Carrefour", "Rami Lévy"], "img/v4/bamba.webp", "prod", "d4:promo", "Voir les promos"],
+    ["c4", "dark", "La pharmacie", "sans bouger", "sans ordonnance, chez vous", ["Acamol", "couches"], "", "cross", "d4:pharm", "Commander"],
+  ];
+  let sl = document.getElementById("d6Slides");
+  if (!sl) { sl = document.createElement("section"); sl.id = "d6Slides"; sl.className = "d6-slides"; top.after(sl); }
+  const cross = `<span class="d6-cross"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/></svg></span>`;
+  sl.innerHTML = `<div class="d6-track">${S.map(([c, tone, a, b, note, bubs, img, kind, go, btn], k) => `<article class="d6-slide ${tone} k-${kind}" style="--s:var(--${c})">
+      <h2 class="d6-st"><span>${UI.esc(a)}</span><span>${UI.esc(b)}</span></h2><p class="d6-sn">${UI.esc(note)}</p>
+      ${bubs.map((x, n) => `<span class="d6-bub b${n}">${UI.esc(x)}</span>`).join("")}
+      ${img ? `<i class="d6-halo" aria-hidden="true"></i><i class="d6-ground" aria-hidden="true"></i><img class="d6-si" src="${img}" alt="" ${k ? 'loading="lazy"' : ""} />` : cross}
+      <button type="button" class="d6-btn" data-d5go="${go}">${UI.esc(btn)} <i>${A}</i></button></article>`).join("")}</div>
+    <div class="d6-dots">${S.map((_, k) => `<i class="${k ? "" : "on"}"></i>`).join("")}</div>
+    <svg class="d6-wave" viewBox="0 0 390 36" preserveAspectRatio="none" aria-hidden="true"><path d="M0 22 C 100 0, 210 40, 390 8 L390 36 L0 36 Z"/></svg>`;
+  const tr = sl.querySelector(".d6-track"), dots = [...sl.querySelectorAll(".d6-dots i")];
+  // (patron 24/11 : « pourquoi ça défile pas tout seul ») après un glissement du doigt, le défilement reprend tout seul 6 s plus tard
+  let cur = 0, user = 0;
+  const paint = () => dots.forEach((d, k) => d.classList.toggle("on", k === cur));
+  tr.addEventListener("scroll", () => { const k = Math.round(Math.abs(tr.scrollLeft) / tr.clientWidth); if (k !== cur) { cur = k; paint(); } }, { passive: true });
+  ["touchstart", "touchmove", "pointerdown"].forEach(ev => tr.addEventListener(ev, () => { user = Date.now(); }, { passive: true }));
+  clearInterval(d5Home.t);
+  d5Home.t = setInterval(() => { if (Date.now() - user < 6000 || document.hidden || (document.body.dataset.view || "home") !== "home") return; cur = (cur + 1) % S.length; tr.scrollTo({ left: (he ? -1 : 1) * cur * tr.clientWidth, behavior: "smooth" }); paint(); }, 4600);
+  // 2. La bande de mots : ce qu'on fait + les restos et magasins qu'il y a
+  const names = (state.showcase || []).filter(x => !x.paused).map(x => d4Nm(x)).filter(Boolean).slice(0, 10);
+  const words = (he ? ["קניות", "מסעדות", "בית מרקחת", "חבילות", "פרחים", "מאפייה", "הכי מהר"] : ["Courses", "Restos", "Pharmacie", "Colis", "Fleurs", "Boulangerie", "Au plus vite"]);
+  const mix = []; words.forEach((w, k) => { mix.push(w); if (names[k]) mix.push(names[k]); });
+  let tk = document.getElementById("d5Tick");
+  if (!tk) { tk = document.createElement("div"); tk.id = "d5Tick"; tk.className = "d6-band"; tk.setAttribute("aria-hidden", "true"); sl.after(tk); }
+  tk.className = "d6-band";
+  tk.innerHTML = `<div>${mix.map(w => `<span>${UI.esc(w)}</span>`).join("").repeat(3)}</div>`;
+  // 3. Le bloc des promos (jaune, produits qui défilent) et le bloc des restos (turquoise)
+  let pr = document.getElementById("d6Promo");
+  if (!pr) { pr = document.createElement("section"); pr.id = "d6Promo"; pr.className = "d6-block d6-promo"; sheet.appendChild(pr); }
+  const pics = ["lait", "coca", "bamba", "pommes", "chips", "baguette"].map(k => `<img src="img/v4/${k}.webp" alt="" loading="lazy" />`).join("");
+  pr.innerHTML = `<svg class="d6-torn" viewBox="0 0 390 16" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0H390V7L378 14 364 6 350 15 334 7 320 14 304 5 290 13 274 6 260 15 244 7 230 14 214 5 200 13 184 6 170 15 154 7 140 14 124 5 110 13 94 6 80 15 64 7 50 14 34 5 20 13 0 6Z"/></svg>
+    <h2 class="d6-bt">${UI.esc(he ? "המבצעים של השבוע" : "Les promos de la semaine")}</h2><p class="d6-bs">${UI.esc(he ? "כל המבצעים של החנויות שלנו, במקום אחד" : "Toutes les promos de nos magasins, au même endroit")}</p>
+    <span class="d6-pill">${UI.esc(he ? "עד ‎−50%‎" : "jusqu'à −50 %")}</span>
+    <div class="d6-run"><div>${pics}${pics}</div></div>
+    <button type="button" class="d6-btn" data-d5go="d4:promo">${UI.esc(he ? "לכל המבצעים" : "Voir toutes les promos")} <i>${A}</i></button>`;
+  let rs = document.getElementById("d6Restos");
+  if (!rs) { rs = document.createElement("section"); rs.id = "d6Restos"; rs.className = "d6-block d6-restos"; sheet.appendChild(rs); }
+  const restos = d6RestoList();
+  rs.innerHTML = `<svg class="d6-torn" viewBox="0 0 390 16" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0H390V8L376 15 362 6 348 14 332 5 318 13 302 6 288 15 272 7 258 14 242 5 228 13 212 6 198 15 182 7 168 14 152 5 138 13 122 6 108 15 92 7 78 14 62 5 48 13 32 6 18 15 0 7Z"/></svg>
+    <h2 class="d6-bt">${UI.esc(he ? "המסעדות של נתניה" : "Les restos de Netanya")}</h2><p class="d6-bs">${UI.esc(he ? "מזמינים, ואנחנו מביאים חם" : "Vous choisissez, on vous l'apporte chaud")}</p>
+    <div class="d6-rrow" id="d6RRow">${d6RestoCards(restos)}</div>
+    <button type="button" class="d6-btn light" data-d5go="kind:resto">${UI.esc(he ? "לכל המסעדות" : "Tous les restos")} <i>${A}</i></button>`;
+  let sh = document.getElementById("d6Shops");
+  if (!sh) { sh = document.createElement("section"); sh.id = "d6Shops"; sh.className = "d6-block d6-shops"; sheet.appendChild(sh); }
+  sh.innerHTML = `<svg class="d6-torn" viewBox="0 0 390 16" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0H390V6L374 14 360 5 346 13 330 6 316 15 300 7 286 14 270 5 256 13 240 6 226 15 210 7 196 14 180 5 166 13 150 6 136 15 120 7 106 14 90 5 76 13 60 6 46 15 30 7 16 14 0 6Z"/></svg>
+    <h2 class="d6-bt">${UI.esc(he ? "עושים קניות" : "Faites vos courses")}</h2><p class="d6-bs">${UI.esc(he ? "כל החנויות, הכי זול מנצח" : "Tous les magasins, le moins cher gagne")}</p>
+    <div class="d6-rrow" id="d6SRow">${d6RestoCards(d6ShopList())}</div>
+    <button type="button" class="d6-btn" data-d5go="d4:shops">${UI.esc(he ? "לכל החנויות" : "Tous les magasins")} ${A === "›" ? "<i>›</i>" : "<i>‹</i>"}</button>`;
+  // 4. Le dernier bloc : partager HOP!, WhatsApp — en grosses pilules pleine couleur
+  let en = document.getElementById("d6End");
+  if (!en) { en = document.createElement("section"); en.id = "d6End"; en.className = "d6-block d6-end"; sheet.appendChild(en); }
+  en.innerHTML = `<h2 class="d6-bt">${UI.esc(he ? "HOP! עם החברים" : "HOP! entre amis")}</h2><p class="d6-bs">${UI.esc(he ? "שתפו את האפליקציה, או שלחו לנו רשימה בוואטסאפ" : "Partagez l'appli, ou envoyez-nous votre liste sur WhatsApp")}</p>
+    <div class="d6-pills"><button type="button" class="d6-big" data-share-app>${UI.esc(he ? "לשתף את HOP!" : "Partager HOP!")}</button><button type="button" class="d6-big wa" data-d6wa>${UI.esc(he ? "רשימה בוואטסאפ" : "Ma liste sur WhatsApp")}</button></div>`;
+  en.querySelector("[data-d6wa]").onclick = () => { const a = document.querySelector("#homeSheet .vit-wa, #homeSheet a.wa-list"); if (a) a.click(); };
+}
+d5Home(); window.addEventListener("hop:lang", d5Home);
+// Accueil en affiches (patron, 24/11 : « on ne fait plus ces tuiles ») : les rubriques en affiches de couleur, mot géant + vraie
+// photo ; les autres services en liste nette. Chaque affiche déclenche le bouton d'origine (même parcours qu'avant).
+const D5_POSTERS = [
+  ["promo", "d4:promo", "#0F1F3D", "img/v4/hoppy.webp", ["Promos", "Les vraies promos"], ["מבצעים", "המבצעים האמיתיים"], 1],
+  ["courses", "d4:shops", "#9CD8A8", "img/v4/lait.webp", ["Courses", "Le moins cher"], ["קניות", "הכי זול"]],
+  ["restos", "kind:resto", "#FFB283", "img/smashit/frites.webp", ["Restos", "Bien chaud"], ["מסעדות", "חם"]],
+  ["pharma", "d4:pharm", "#A9D0FF", "", ["Pharmacie", "Sans ordonnance"], ["בית מרקחת", "ללא מרשם"]],
+  ["makolet", "kind:shop", "#FFD54F", "img/v4/bamba.webp", ["Makolet", "Tout de suite"], ["מכולת", "מיד"]],
+  ["boulange", "d4:bakery", "#EAD2A8", "img/v4/baguette.webp", ["Boulange", "Baguette, challah"], ["מאפייה", "באגט, חלה"]],
+  ["colis", "d4:poste", "#C9B8FF", "img/v4/sac.webp", ["Colis", "Envoi et retrait"], ["חבילות", "שליחה ואיסוף"]],
+  ["mezouza", "d4:mezouza", "#BFE3C5", "", ["Mezouzot", "Au sofer et retour"], ["מזוזות", "לסופר וחזרה"]],
+  ["mikve", "d4:mikve", "#CFE3FF", "", ["Mikvé", "Vaisselle trempée"], ["טבילת כלים", "הלוך וחזור"]],
+];
+const D5_MORE = ["tabac", "baby", "pets", "home", "gift", "pressing", "docs", "yad2", "keys"];
+function d5Kinds() {
+  if (!document.documentElement.classList.contains("d5")) return;
+  const tiles = document.querySelector("#d4Tiles"); if (!tiles) return;
+  const he = I18N.lang === "he";
+  let box = document.querySelector("#d5Kinds");
+  if (!box) { box = document.createElement("section"); box.id = "d5Kinds"; box.className = "d5-kinds"; tiles.before(box); }
+  const fit = (s, w, mx) => Math.min(mx, Math.floor(w / (Math.max(1, [...s].length) * (he ? .62 : .6))));
+  const cross = `<span class="d5-cross"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/></svg></span>`;
+  const posters = D5_POSTERS.map(([k, go, bg, img, fr, hb, dark], i) => { const [w, sub] = he ? hb : fr;
+    return `<button type="button" class="d5-poster${dark ? " dark" : ""}" data-d5go="${go}" style="--pbg:${bg}"><span class="d5-pn" dir="ltr">0${i + 1}</span>
+      ${img ? `<img src="${img}" alt="" loading="lazy" />` : k === "pharma" ? cross : `<span class="d5-pw2">${UI.esc(w.slice(0, 1))}</span>`}
+      <b style="--fs:${fit(w, 172, 60)}px">${UI.esc(w)}</b><span class="d5-pf"><span>${UI.esc(sub)}</span><i>${he ? "‹" : "›"}</i></span></button>`; }).join("");
+  const more = D5_MORE.map(k => { const b = document.querySelector(`#homeKinds .ch-kind[data-kind="${k}"] b`); return b ? `<button type="button" class="d5-more-it" data-d5go="kind:${k}"><span>${UI.esc(b.textContent)}</span><i>${he ? "‹" : "›"}</i></button>` : ""; }).join("");
+  const html = `<h2 class="d5-h2">${UI.esc(he ? "הכול, עד הבית." : "Tout, livré.")}<em>${UI.esc(he ? "בוחרים, ואנחנו הולכים בשבילכם" : "choisissez, on y va pour vous")}</em></h2>
+    <div class="d5-posters">${posters}</div>
+    ${more ? `<h3 class="d5-h3">${UI.esc(he ? "שירותים נוספים" : "Autres services")}</h3><div class="d5-more">${more}</div>` : ""}`;
+  if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
+}
+document.addEventListener("click", e => {
+  const g = e.target.closest && e.target.closest("[data-d5go]"); if (!g) return;
+  const [kind, id] = g.dataset.d5go.split(":");
+  const el = kind === "d4" ? document.querySelector(`#d4Tiles [data-d4="${id}"], #d4Shops [data-d4="${id}"]`) : document.querySelector(`#homeKinds .ch-kind[data-kind="${id}"]`);
+  if (el) { e.preventDefault(); el.click(); }
+});
+(() => { const run = () => { try { d5Kinds(); d6Fill(); } catch (e) { console.warn("d5Kinds", e); } };
+  if (window.MutationObserver) { const sheet = document.getElementById("homeSheet"); if (sheet) new MutationObserver(() => { clearTimeout(run.t); run.t = setTimeout(run, 120); }).observe(sheet, { childList: true, subtree: true }); }
+  run(); window.addEventListener("hop:lang", () => setTimeout(run, 80)); })();
+
 
 // ===== Mode patron sur la page client (règle du 04/11) : le patron change un produit là où le client le voit =====
 // Nom (français · hébreu), prix, visible ou masqué. Boutiques HOP! (mises à jour toutes seules depuis le magasin) :
@@ -4659,9 +4821,9 @@ function renderCatalog() {
       // Taille ou boisson à choisir : le « + » ouvre la fiche de l'article
       const q = groupQty(p), multi = sizesOf(p).length > 1 || needsDrink(p), photo = UI.safeImg(p.photo);
       const bm = bossEditOn() && (state.bossMap || {})[p.id];
-      return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}${bm ? " boss-ch" : ""}" data-cg-open="${UI.esc(p.id)}">
+      return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}${bm ? " boss-ch" : ""}${!photo ? " nopic" : ""}" data-cg-open="${UI.esc(p.id)}">
         <div class="cg-info"><b>${q ? `<em class="cg-n"><bdi>${q}×</bdi></em> ` : ""}<bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></b>${p.description && !(grocShop() && promoOf(p)) ? `<small>${UI.esc(UI.bi(p.description))}</small>` : ""}${grocShop() && !multi ? cgPaPrice(p) : `<span class="cg-price">${UI.esc(groupPrice(p))}</span>`}${multi ? `<span class="cg-sizes">${UI.esc(sizesOf(p).map(x => UI.bi(sizeOf(x))).join(" · "))}</span>` : ""}${tileShop() ? tileMeta(p, multi) : ""}</div>
-        <div class="cg-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" loading="lazy" />` : shopArt(p)}
+        <div class="cg-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" loading="lazy" />` : document.documentElement.classList.contains("d5") ? "" : shopArt(p)}
         ${p.available && promoOf(p) ? `<em class="cg-promo${promoOf(p).lot > 1 ? " lot" : ""}"><bdi>${UI.esc(grocShop() ? `−${promoOf(p).off} %` : promoTag(promoOf(p)))}</bdi></em>` : ""}
         ${bossEditOn() ? `<button type="button" class="cg-boss" data-boss-edit="${UI.esc(p.id)}" aria-label="Modifier">✏️</button>` : ""}
         ${!p.available ? `<span class="cg-out">${bossEditOn() ? "🙈 Masqué" : UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</span>`
@@ -4934,7 +5096,7 @@ function itGroups(p) {
     opts: menuExtras().map(([k]) => { const a = addonOf(MENU_EXTRAS, k);
       return itbOpt({ attr: `data-it-extra="${k}"`, on: (item.extras || []).includes(k), img: ITB_IMG[k], emo: "➕", name: optName(MENU_EXTRAS, k), price: "+" + money(a.price) }); }) });
   if (modsFor(p)) g.push({ k: "mods", lbl: t("itbMods"), head: t("modTitle"), n: (item.off || []).length, ok: true, note: true,
-    opts: shopMods(p).map(k => itbOpt({ attr: `data-it-mod="${k}"`, x: true, on: (item.off || []).includes(k), emo: ITB_MOD[k], name: `${t("modNo")} ${t("mod_" + k)}` })) });
+    opts: shopMods(p).map(k => itbOpt({ attr: `data-it-mod="${k}"`, x: true, on: (item.off || []).includes(k), emo: ITB_MOD[k], name: `${t("modNo")} ${modLbl(k)}` })) });
   return g;
 }
 function itBuilder(p) {
@@ -5537,8 +5699,10 @@ function renderShopBanner() {
       </div>` : ""}
       ${compact ? shopSheet(s) : `${shopGallery(s)}
       ${vit ? shopInfo(s, true) + noPayBox("vitTitle") : shopInfo(s)}`}`;
-    if (hero.dataset.html !== html) { hero.innerHTML = html; hero.dataset.html = html; }
+    const html2 = document.documentElement.classList.contains("d5") && compact ? d6HeroHtml(s, logo, cover) : html;
+    if (hero.dataset.html !== html2) { hero.innerHTML = html2; hero.dataset.html = html2; }
   }
+  d6ShopColor();
   const compactOn = !!(showHero && s.pro);
   if (compactOn) $("#shopBanner").classList.add("hidden");
   document.body.classList.toggle("shop-compact", compactOn);
