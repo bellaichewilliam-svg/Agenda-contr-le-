@@ -855,3 +855,7 @@ html.d5 body .track-panel > .card h3 { font: 800 26px/1 var(--K) !important; let
 html.d5 body .track-panel #chatBtn, html.d5 body .track-panel .btn-wa { background-color: var(--ink) !important; color: #fff !important; border-radius: 28px !important; min-height: 54px; font-weight: 800 !important; }
 html.d5 body .track-panel .eta { background: var(--c1) !important; color: #fff !important; border-radius: var(--blk-r) !important; padding: 22px 18px !important; }
 html.d5 body .track-panel .eta b { font: 800 30px/1 var(--K) !important; color: #fff !important; }
+html.d5 body #cartSheet #cartMore { background: #E3EFFA !important; border: 0 !important; color: var(--ink) !important; text-decoration: none !important; }
+html.d5 body #cartSheet #cartBody .sw-fg { background: var(--shop, var(--c3)) !important; }
+html.d5 body .ph-shell .ph-top { margin: 0 0 14px !important; border-radius: var(--blk-r) !important; }
+html.d5 body .ph-shell .ph-cats { margin: 12px 0 !important; border-radius: 24px !important; }
