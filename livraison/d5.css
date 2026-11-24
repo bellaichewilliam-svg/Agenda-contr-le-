@@ -1154,3 +1154,8 @@ html.d5 body #catalogBox .nopay-mini[open] summary small { background: rgba(255,
 html.d5 body #catalogBox .nopay-mini > :not(summary) { margin-top: 12px; color: #fff !important; }
 html.d5 body #catalogBox .nopay-mini > :not(summary) * { color: #fff !important; }
 html.d5 body #catalogBox .nopay-mini summary, html.d5 body #catalogBox .nopay-mini summary * { text-decoration: none !important; border-bottom: 0 !important; }
+/* (patron 24/11) Bassari et Halavi : exactement la même taille */
+html.d5 body .ks-row { align-items: stretch !important; grid-auto-rows: 1fr; }
+html.d5 body .ks-card { height: 260px !important; min-height: 0 !important; }
+html.d5 body .ks-row { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } html.d5 body .ks-card { min-width: 0 !important; width: 100% !important; }
+html.d5 body .ks-card, html.d5 body .ks-card * { color: #fff !important; }
