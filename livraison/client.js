@@ -4299,13 +4299,13 @@ function d6HeroHtml(s, logo, cover) {
   // Identité du commerce en haut de sa page (patron 24/11, Rendez-Vous) : son logo, ses couleurs, sa phrase (cfg.brand de sa vitrine)
   const brand = typeof vt !== "undefined" && vt && vt.all && vt.code === s.code ? vt.all.brand : null;
   const at = (() => { try { return val("urgency") === "programmee" && (state.shopSched || form.classList.contains("no-now")) && pickupDate(); } catch (e) { return null; } })();
-  return `<div class="d6h${brand ? " d6h-brand" : ""}"${brand && brand.accent ? ` style="--brand-ac:${UI.esc(brand.accent)}"` : ""}>
+  return `<div class="d6h${brand ? " d6h-brand" : ""}"${brand ? ` style="${brand.accent ? `--brand-ac:${UI.esc(brand.accent)};` : ""}${brand.font ? `--brand-font:'${UI.esc(brand.font)}';` : ""}${brand.fontHe ? `--brand-font-he:'${UI.esc(brand.fontHe)}';` : ""}${brand.fontLine ? `--brand-font-line:'${UI.esc(brand.fontLine)}';` : ""}"` : ""}>
     <div class="d6h-bubs">${st ? `<span class="d6h-b ${st.open ? "on" : "off"}"><i></i>${UI.esc(openLabel(st))}</span>` : ""}<span class="d6h-b w">${UI.esc(s.shop_pays ? t("scGift") : t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) }))}</span>${isKosher(s) ? `<span class="d6h-b k">${UI.esc(he ? "כשר" : "Casher")}</span>` : ""}</div>
     ${brand && brand.logo ? `<img class="d6h-blogo" src="${UI.esc(brand.logo)}" alt="" />` : ""}
     <h1 class="d6h-name${Math.max(...UI.bi(s.name).split(/\s+/).map(w => w.length)) > 6 ? " long" : ""}">${UI.esc(UI.bi(s.name))}</h1>
-    ${brand && brand.line ? `<p class="d6h-bline">${UI.esc(brand.line[he ? "he" : "fr"] || brand.line.fr || "")}</p>` : `<p class="d6h-tag">${UI.esc(UI.shopText(s, "tagline") || (t("shKinds") || {})[s.kind] || "")}</p>`}
+    ${brand && brand.line ? `<p class="d6h-bline">${String(brand.line[he ? "he" : "fr"] || brand.line.fr || "").split(/\s*·\s*/).map((w, i, a) => `<span>${UI.esc(w)}${i < a.length - 1 ? " ·" : ""}</span>`).join(" ")}</p>` : `<p class="d6h-tag">${UI.esc(UI.shopText(s, "tagline") || (t("shKinds") || {})[s.kind] || "")}</p>`}
     ${pic ? `${dish ? `<i class="d6-halo h" aria-hidden="true"></i><i class="d6-ground h" aria-hidden="true"></i>` : ""}<img class="d6h-pic${dish ? " cut" : ""}" src="${UI.esc(pic)}" alt="" />` : logo ? `<img class="d6h-logo" src="${UI.esc(logo)}" alt="" />` : ""}
-    <div class="d6h-acts"><button type="button" class="d6h-a" data-sh-info="1">${UI.esc(t("shInfoBtn"))}</button>${wa ? `<a class="d6h-a wa" href="https://wa.me/${UI.esc(wa)}?text=${encodeURIComponent(t("shWaHello", { name: UI.bi(s.name) }))}" target="_blank" rel="noopener">WhatsApp</a>` : ""}${at ? `<button type="button" class="d6h-a when" data-sl-goto>${UI.esc(vitWhenLong(at))} · ${UI.esc(t("slChange"))}</button>` : ""}</div>
+    <div class="d6h-acts"><button type="button" class="d6h-a" data-sh-info="1">${UI.esc(t("shInfoBtn2"))}</button>${wa ? `<a class="d6h-a wa" href="https://wa.me/${UI.esc(wa)}?text=${encodeURIComponent(t("shWaHello", { name: UI.bi(s.name) }))}" target="_blank" rel="noopener">WhatsApp</a>` : ""}${at ? `<button type="button" class="d6h-a when" data-sl-goto>${UI.esc(vitWhenLong(at))} · ${UI.esc(t("slChange"))}</button>` : ""}</div>
   </div>${shopSheet(s)}`;
 }
 function d6ShopColor() {
@@ -4327,6 +4327,11 @@ async function vtLoad(code, seq) {
   if (!cfg.dishes.length) return;
   if (!document.getElementById("vtFonts")) { const l = document.createElement("link"); l.id = "vtFonts"; l.rel = "stylesheet";
     l.href = "https://fonts.googleapis.com/css2?family=Karantina:wght@700&family=Caveat:wght@700&display=swap"; document.head.appendChild(l); }
+  // police du commerce (cfg.brand.fonts : familles Google Fonts, ex. « Outfit:wght@600;700 »)
+  if (cfg.brand && Array.isArray(cfg.brand.fonts) && cfg.brand.fonts.length && !document.getElementById("brandFonts-" + code)) {
+    const l = document.createElement("link"); l.id = "brandFonts-" + code; l.rel = "stylesheet";
+    l.href = "https://fonts.googleapis.com/css2?" + cfg.brand.fonts.map(f => "family=" + encodeURIComponent(f).replace(/%3A/g, ":").replace(/%40/g, "@").replace(/%3B/g, ";")).join("&") + "&display=swap";
+    document.head.appendChild(l); }
   vt.all = cfg; vtApplySide(); d6ShopColor();
   try { const h = $("#shopHero"); if (h && document.documentElement.classList.contains("d5") && state.shop) { const html = d6HeroHtml(state.shop, UI.safeImg(state.shop.logo), UI.safeImg(state.shop.cover)); h.innerHTML = html; h.dataset.html = html; } } catch (e) { /* le haut reste */ }
 }
@@ -4796,7 +4801,9 @@ document.addEventListener("click", e => {
   ksRender();
   if (vt.all && vt.code === code) vtApplySide();
   const first = b.dataset.ksPick && document.querySelector(`#catalogBox h4.cg-sec[data-ks-sec="${b.dataset.ksPick}"]`);
-  const tgt = first || document.getElementById("ksPick");
+  // avec une vitrine : on descend sur ses plats de ce côté ; sinon sur la 1re rubrique de ce côté
+  const vb = document.getElementById("vitrineBox"), vOn = vb && !vb.classList.contains("hidden") && vt.all && vt.code === code;
+  const tgt = (b.dataset.ksPick && vOn ? vb : first) || document.getElementById("ksPick");
   if (tgt) { const bars = [...document.querySelectorAll(".topbar, .view-bar, #catalogBox .cg-head")].filter(x => getComputedStyle(x).position === "sticky" || getComputedStyle(x).position === "fixed").reduce((n, x) => n + x.offsetHeight, 0);
     window.scrollTo({ top: Math.max(0, tgt.getBoundingClientRect().top + scrollY - bars - 8), behavior: "smooth" }); }
 });

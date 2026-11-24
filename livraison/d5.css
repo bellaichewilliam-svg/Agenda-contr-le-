@@ -1072,3 +1072,26 @@ html[dir=rtl].d5 body #shopHero .d6h-brand .d6h-bline { letter-spacing: 0 !impor
 html.d5 body #shopHero .d6h-brand .d6h-pic.cut { top: 196px !important; width: 186px !important; height: 186px !important; }
 html.d5 body #shopHero .d6h-brand .d6-halo.h { top: 186px; width: 200px; height: 200px; } html.d5 body #shopHero .d6h-brand .d6-ground.h { top: 370px; }
 html.d5 body #shopHero .d6h-brand { min-height: 450px !important; }
+
+/* (patron 24/11 : « tes boutons sont coupés et pas jolis ») pastilles du haut entières, droites, sur une ligne ; vrais boutons en bas */
+html.d5 body #shopHero .d6h { padding-top: 26px !important; }
+html.d5 body #shopHero .d6h-bubs { position: relative; z-index: 4; display: flex !important; flex-wrap: wrap; gap: 8px !important; margin-bottom: 14px; }
+html.d5 body #shopHero .d6h .d6h-b { transform: none !important; padding: 9px 14px !important; border-radius: 22px !important; font: 800 13.5px/1 Heebo, sans-serif !important; white-space: nowrap; box-shadow: none !important; background: rgba(255,255,255,.92) !important; color: var(--ink) !important; }
+html.d5 body #shopHero .d6h .d6h-b.k { background: rgba(255,255,255,.92) !important; color: var(--ink) !important; }
+html.d5 body #shopHero .d6h-brand .d6h-b, html.d5 body #shopHero .d6h-brand .d6h-b.k, html.d5 body #shopHero .d6h-brand .d6h-b.w { background: var(--brand-ac, #fff) !important; color: var(--shop, #333) !important; }
+html.d5 body #shopHero .d6h-acts { bottom: 20px !important; gap: 10px !important; }
+html.d5 body #shopHero .d6h .d6h-a { min-height: 48px; display: inline-flex; align-items: center; gap: 8px; padding: 0 22px !important; border-radius: 26px !important; font: 800 16px Heebo, sans-serif !important; box-shadow: 0 8px 18px rgba(0,0,0,.18) !important; }
+html.d5 body #shopHero .d6h-brand .d6h-a { background: var(--brand-ac, #fff) !important; color: var(--shop, #333) !important; }
+html.d5 body #shopHero .d6h .d6h-b { padding: 8px 11px !important; font-size: 12.5px !important; gap: 5px !important; }
+html.d5 body #shopHero .d6h-bubs { gap: 6px !important; flex-wrap: nowrap !important; overflow: hidden; }
+html.d5 body #shopHero .d6h-brand .d6h-bline { white-space: normal !important; max-width: 46% !important; line-height: 1.5 !important; }
+html.d5 body #shopHero .d6h-brand { min-height: 500px !important; }
+html.d5 body #shopHero .d6h-brand .d6h-pic.cut { top: auto !important; bottom: 92px !important; }
+html.d5 body #shopHero .d6h-brand .d6-halo.h { top: auto !important; bottom: 86px !important; }
+html.d5 body #shopHero .d6h-brand .d6-ground.h { top: auto !important; bottom: 80px !important; }
+/* police du commerce (Rendez-Vous : Outfit pour le nom, DM Sans pour la phrase, Assistant en hébreu, comme sur son site) */
+html.d5 body #shopHero .d6h-brand .d6h-name { font-family: var(--brand-font), var(--K) !important; font-weight: 600 !important; letter-spacing: -.01em !important; line-height: .95 !important; }
+html[dir=rtl].d5 body #shopHero .d6h-brand .d6h-name { font-family: var(--brand-font-he), var(--brand-font), Heebo, sans-serif !important; font-weight: 800 !important; }
+html.d5 body #shopHero .d6h-brand .d6h-bline { font-family: var(--brand-font-line), Heebo, sans-serif !important; }
+html[dir=rtl].d5 body #shopHero .d6h-brand .d6h-bline { font-family: var(--brand-font-he), Heebo, sans-serif !important; }
+html.d5 body #shopHero .d6h-brand .d6h-bline span { white-space: nowrap; }
