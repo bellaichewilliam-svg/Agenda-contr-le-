@@ -4184,6 +4184,9 @@ const shopMods = p => {
   const kosher = isKosher(state.shop) || /casher|cacher|כשר/i.test((state.shop && state.shop.name) || "");
   return MODS.filter(k => MOD_RX[k].test(txt) && !(k === "cheese" && kosher));
 };
+// Restaurant casher de viande : le « fromage » de la vitrine est un cheddar végétal (patron 24/11)
+const kosherShop = () => isKosher(state.shop) || /casher|cacher|כשר/i.test((state.shop && state.shop.name) || "");
+const modLbl = k => (k === "cheese" && kosherShop() ? t("mod_cheeseVeg") : t("mod_" + k));
 const modsFor = p => /burger|royal|mac|chicken|cheese|steak|tortilla|wrap|sandwich|crunch|crispy|המבורגר|בורגר|טורטי|צ'יקן|רויאל|סנדוויץ/i.test(`${(p && p.name) || ""} ${(p && p.description) || ""}`);
 // Menus McDonald's : le client choisit sa boisson (comprise dans le menu, sans supplément)
 // Boissons avec supplément (Fuze Tea, jus d'orange) : un article caché du catalogue « Supplément boisson : … » est ajouté au panier
@@ -4239,7 +4242,7 @@ const modText = (id, lang) => {
   if (!m) return "";
   // Dans la commande (lue par le patron), toujours en français ; à l'écran, dans la langue du client
   const fr = { onion: "oignons", pickle: "cornichons", ketchup: "ketchup", mustard: "moutarde", sauce: "sauce", lettuce: "salade", tomato: "tomate", cheese: "fromage" };
-  const lab = k => (lang === "fr" ? "sans " + fr[k] : t("modNo") + " " + t("mod_" + k));
+  const lab = k => (lang === "fr" ? "sans " + (k === "cheese" && kosherShop() ? "cheddar végétal" : fr[k]) : t("modNo") + " " + modLbl(k));
   const drink = m.drink ? (lang === "fr" ? "boisson : " : t("drinkLbl") + " : ") + drinkName(m.drink, lang) : "";
   const fl = (m.flavors || []).filter(Boolean);
   const flavor = fl.length ? (lang === "fr" ? "goût : " : t("flavorLbl") + " : ") + fl.map(k => flavorName(k, lang)).join(" + ") : "";
@@ -4366,7 +4369,7 @@ function vtDish(i, instant) {
       const tap = g.off || g.add, el = document.createElement(tap ? "button" : "span"), xx = rtl ? -g.x : g.x;
       el.className = "vt-ing gone" + (g.front ? " f" : "") + (tap ? " tap" : "") + ((g.off && off.includes(g.off)) ? " x" : "") + ((g.add && add.includes(g.add)) ? " plus" : "");
       if (tap) { el.type = "button"; if (g.off) el.dataset.vtOff = g.off; else el.dataset.vtPlus = g.add;
-        el.setAttribute("aria-label", g.off ? `${t("modNo")} ${t("mod_" + g.off)}` : UI.bi((vtProd(g.add) || {}).name || "")); }
+        el.setAttribute("aria-label", g.off ? `${t("modNo")} ${modLbl(g.off)}` : UI.bi((vtProd(g.add) || {}).name || "")); }
       el.style.cssText = `width:${g.w}px;left:${cx + xx - g.w / 2}px;top:${cy + g.y - g.w / 2}px;--fx:${-xx}px;--fy:${-g.y}px;--r:${g.r || 0}deg`;
       el.innerHTML = `<img src="${UI.esc(g.img)}" alt="" />${tap ? `<i>${g.off ? "−" : "+"}</i>` : ""}`;
       plate.appendChild(el); setTimeout(() => el.classList.remove("gone"), 110 + k * 55);
@@ -4384,7 +4387,7 @@ function vtPicks() {
   const d = vt.cfg.dishes[vt.cur], p = vtProd(d.product), off = vt.off[d.product] || [], add = vt.add[d.product] || [];
   const adds = add.map(vtProd).filter(Boolean), total = Number(p.price) + adds.reduce((s, x) => s + Number(x.price), 0);
   const hasTap = (d.ing || []).some(g => g.off || g.add);
-  $("#vtPicks").innerHTML = (off.length || adds.length) ? off.map(k => `<span>${UI.esc(t("modNo"))} ${UI.esc(t("mod_" + k))}</span>`).join("") + adds.map(x => `<span class="plus">+ ${UI.esc(UI.bi(x.name))}</span>`).join("")
+  $("#vtPicks").innerHTML = (off.length || adds.length) ? off.map(k => `<span>${UI.esc(t("modNo"))} ${UI.esc(modLbl(k))}</span>`).join("") + adds.map(x => `<span class="plus">+ ${UI.esc(UI.bi(x.name))}</span>`).join("")
     : hasTap ? `<em>${UI.esc(t("vtHint"))}</em>` : "";
   $("#vtAdd").innerHTML = `${UI.esc(t("vtAdd"))} <b dir="ltr">${UI.esc(money(total))}</b>`;
 }
@@ -5090,7 +5093,7 @@ function itGroups(p) {
     opts: menuExtras().map(([k]) => { const a = addonOf(MENU_EXTRAS, k);
       return itbOpt({ attr: `data-it-extra="${k}"`, on: (item.extras || []).includes(k), img: ITB_IMG[k], emo: "➕", name: optName(MENU_EXTRAS, k), price: "+" + money(a.price) }); }) });
   if (modsFor(p)) g.push({ k: "mods", lbl: t("itbMods"), head: t("modTitle"), n: (item.off || []).length, ok: true, note: true,
-    opts: shopMods(p).map(k => itbOpt({ attr: `data-it-mod="${k}"`, x: true, on: (item.off || []).includes(k), emo: ITB_MOD[k], name: `${t("modNo")} ${t("mod_" + k)}` })) });
+    opts: shopMods(p).map(k => itbOpt({ attr: `data-it-mod="${k}"`, x: true, on: (item.off || []).includes(k), emo: ITB_MOD[k], name: `${t("modNo")} ${modLbl(k)}` })) });
   return g;
 }
 function itBuilder(p) {
