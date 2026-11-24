@@ -775,3 +775,83 @@ html.d5 body #ckTop .ck-card .ch-chip, html.d5 body #ckTop .ck-card button:not(.
 html.d5 body #ckTop .ck-card .ch-chip *, html.d5 body #ckTop .ck-card button:not(.ck-link) * { color: var(--ink) !important; }
 html.d5 body #ckTop .ck-card .ch-chip.on, html.d5 body #ckTop .ck-card .ch-chip:has(input:checked), html.d5 body #ckTop .ck-card button.on { background: var(--ink) !important; color: #fff !important; }
 html.d5 body #ckTop .ck-card .ch-chip.on *, html.d5 body #ckTop .ck-card button.on * { color: #fff !important; }
+
+/* =====================================================================================================================
+   (patron 24/11, 2e passage) « il y a encore pas mal de choses comme avant » : on enlève les derniers restes de l'ancien style
+   ===================================================================================================================== */
+/* barre de page (« ‹ Accueil · Ma commande ») : plus grande, titre en affiche */
+html.d5 body .view-bar { padding-top: 6px !important; padding-bottom: 12px !important; }
+html.d5 body .view-bar #viewTitle { font: 800 24px/1 var(--K) !important; letter-spacing: -.03em !important; }
+html.d5 body .view-bar .vb-back { min-height: 44px !important; padding: 0 18px !important; font: 800 16px Heebo !important; }
+/* tous les boutons à contour (ancien style) deviennent des boutons pleins */
+html.d5 body .btn-ghost, html.d5 body .btn:not(.btn-primary):not(.btn-wa):not(.btn-link):not(.lang-btn):not(#olLang) { background: #E3EFFA !important; color: var(--ink) !important; border: 0 !important; box-shadow: none !important; border-radius: 28px !important; font-weight: 800 !important; }
+html.d5 body .btn-link { background: none !important; color: var(--ink) !important; font-weight: 800 !important; }
+/* barre du bas : micro sur fond blanc net, plus d'anneau arc-en-ciel */
+html.d5 body .d3-nav .d3-mic i::before { background: #fff !important; -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px)) !important; mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px)) !important; animation: none !important; }
+/* pharmacie : plus d'encadrés dans le bloc vert, rayons sur une bande bleue */
+html.d5 body .ph-shell .ph-where { background: none !important; padding: 12px 0 0 !important; font: 600 16px/1.4 Heebo !important; }
+html.d5 body .ph-shell .ph-where b { font-weight: 800 !important; }
+html.d5 body .ph-shell .ph-meter { background: none !important; padding: 14px 0 0 !important; border-top: 2px solid rgba(11,74,111,.15) !important; border-radius: 0 !important; margin-top: 14px !important; }
+html.d5 body .ph-shell .ph-meter .pm-row { align-items: baseline !important; }
+html.d5 body .ph-shell .ph-meter .pm-row b { font: 800 24px/1 var(--K) !important; }
+html.d5 body .ph-shell .ph-meter .pm-row span { font: 800 22px/1 var(--K) !important; color: var(--ink) !important; white-space: nowrap; }
+html.d5 body .ph-shell .ph-meter .pm-bar { background: rgba(255,255,255,.65) !important; height: 12px !important; margin: 10px 0 !important; }
+html.d5 body .ph-shell .ph-meter small { font: 600 14px/1.4 Heebo !important; color: var(--ink) !important; }
+html.d5 body .ph-shell .ph-search { background: #E3EFFA !important; border: 0 !important; }
+html.d5 body .ph-shell .ph-cats { background: var(--c1) !important; margin: 12px -16px !important; padding: 14px 16px !important; }
+html.d5 body .ph-shell .ph-cat { background: #fff !important; border: 0 !important; }
+html.d5 body .ph-shell .ph-cat.on { background: var(--ink) !important; color: #fff !important; }
+/* panier : la liste des articles dans la couleur du magasin (plus de ticket blanc) */
+html.d5 body #cartSheet #cartBody, html.d5 body #cartSheet .cs-total { background: var(--shop, var(--c3)) !important; -webkit-mask: none !important; mask: none !important; box-shadow: none !important; color: #fff !important; }
+html.d5 body #cartSheet #cartBody { margin-top: -2px !important; padding: 4px 20px 0 !important; border-radius: 0 !important; }
+html.d5 body #cartSheet .cs-total { padding: 14px 20px 24px !important; border-radius: 0 0 var(--blk-r) var(--blk-r) !important; border-top: 2px solid rgba(255,255,255,.3) !important; }
+html.d5 body #cartSheet #cartBody .sw-fg, html.d5 body #cartSheet #cartBody .cs-row { background: transparent !important; border: 0 !important; color: #fff !important; }
+html.d5 body #cartSheet #cartBody .cs-row { border-bottom: 2px solid rgba(255,255,255,.22) !important; padding: 14px 0 !important; }
+html.d5 body #cartSheet #cartBody .cs-txt b, html.d5 body #cartSheet #cartBody .cs-txt bdi { font: 800 22px/1 var(--K) !important; letter-spacing: -.03em; color: #fff !important; }
+html.d5 body #cartSheet #cartBody .cs-txt small { font: 800 17px Heebo !important; color: #fff !important; opacity: .95; }
+html.d5 body #cartSheet #cartBody .cs-qty { background: #fff !important; border-radius: 24px !important; border: 0 !important; }
+html.d5 body #cartSheet #cartBody .cs-qty * { color: var(--ink) !important; stroke: var(--ink); }
+html.d5 body #cartSheet .cs-total, html.d5 body #cartSheet .cs-total * { color: #fff !important; font-family: var(--K) !important; }
+html.d5 body #cartSheet .cs-total b, html.d5 body #cartSheet .cs-total bdi { font: 800 36px/1 var(--K) !important; }
+html.d5 body #cartSheet .sw-acts { background: transparent !important; }
+/* fiche article sans photo : plus de bande vide, le nom du plat en haut */
+html.d5 body #itemSheet .it-pic:has(img[src*="items/plate"]) { display: none !important; }
+html.d5 body #itemSheet #itemBody:has(.it-pic img[src*="items/plate"]) .it-txt { padding-top: 64px !important; background: var(--shop, var(--c3)); margin: 0 -18px; padding-left: 18px !important; padding-right: 18px !important; }
+html.d5 body #itemSheet #itemBody:has(.it-pic img[src*="items/plate"]) .it-txt > h3, html.d5 body #itemSheet #itemBody:has(.it-pic img[src*="items/plate"]) .it-txt > h3 *,
+html.d5 body #itemSheet #itemBody:has(.it-pic img[src*="items/plate"]) .it-txt > .it-prow *, html.d5 body #itemSheet #itemBody:has(.it-pic img[src*="items/plate"]) .it-txt > p { color: #fff !important; opacity: 1; }
+html.d5 body #itemSheet #itemBody:has(.it-pic img[src*="items/plate"]) .it-txt > p { padding-bottom: 22px; margin-bottom: 0; }
+html.d5 body #itemSheet #itemBody:has(.it-pic img[src*="items/plate"]) .it-txt > .itb, html.d5 body #itemSheet #itemBody:has(.it-pic img[src*="items/plate"]) .it-txt > .itr { margin-left: -18px; margin-right: -18px; border-radius: 0 !important; }
+html.d5 body #itemSheet #itemBody:has(.it-pic img[src*="items/plate"]) .it-txt > .itr:last-child { border-radius: 0 0 var(--blk-r) var(--blk-r) !important; }
+html.d5 body #itemSheet .it-x { background: #fff !important; color: var(--ink) !important; border: 0 !important; z-index: 3; }
+html.d5 body #itemSheet .it-qty button, html.d5 body .it-qty button { background: #E3EFFA !important; color: var(--ink) !important; border: 0 !important; border-radius: 50% !important; width: 46px !important; height: 46px !important; font: 800 22px Heebo !important; box-shadow: none !important; }
+html.d5 body .it-qty { background: transparent !important; border: 0 !important; gap: 6px; }
+html.d5 body .it-qty b { font: 800 22px var(--K) !important; color: var(--ink) !important; min-width: 28px; text-align: center; }
+/* commande : on retire ce qui n'est pas proposé (Express grisé) et les petites icônes */
+html.d5 body #orderForm#orderForm .choice.disabled { display: none !important; }
+html.d5 body #orderForm#orderForm .choice > span > i:not(.bit-logo) { display: none !important; }
+html.d5 body #orderForm#orderForm .choices { gap: 8px !important; }
+html.d5 body #orderForm#orderForm .addr-tools a, html.d5 body #orderForm#orderForm .addr-tools .btn-link, html.d5 body #orderForm#orderForm [data-save-addr] { background: #fff !important; border-radius: 22px !important; padding: 10px 16px !important; text-decoration: none !important; font-weight: 800 !important; color: var(--ink) !important; }
+/* Mes courses : « Actualiser » en vrai bouton */
+html.d5 body #refreshMine { background: var(--ink) !important; color: #fff !important; border: 0 !important; border-radius: 22px !important; min-height: 42px; padding: 0 16px !important; font-weight: 800 !important; }
+/* magasins : un seul filtre = pas de filtre ; image du magasin sans cadre pâle */
+html.d5 body #d4Mag .d4m-chips:not(:has(button + button)) { display: none !important; }
+html.d5 body #d4Mag .d4m-card .d4m-ph { background: transparent !important; }
+html.d5 body #d4Mag .d4m-card.d4m-mako .d4m-ph img { height: 150px !important; width: auto !important; object-fit: contain !important; }
+/* « Ce qu'on livre » : étapes en grands chiffres, sans encadrés */
+html.d5 body .ol-steps li { background: none !important; padding: 8px 0 !important; font: 800 19px/1.25 Heebo !important; display: flex !important; align-items: center; gap: 14px; }
+html.d5 body .ol-steps li > :first-child { flex: 0 0 auto; width: 44px !important; height: 44px !important; border-radius: 22px !important; font: 800 22px/44px var(--K) !important; text-align: center; background: #fff !important; color: var(--c1) !important; }
+/* course libre : l'adresse dans un grand bloc bleu */
+html.d5 body .ch-route { background: var(--c1) !important; border: 0 !important; border-radius: var(--blk-r) !important; padding: 16px !important; box-shadow: none !important; }
+html.d5 body .ch-route .ch-line { background: #fff !important; border: 0 !important; border-radius: 20px !important; box-shadow: none !important; min-height: 60px; }
+html.d5 body .ch-route .ch-line small { font: 800 12px Heebo !important; color: var(--ink) !important; letter-spacing: .02em; }
+html.d5 body .ch-route .ch-line input { font: 700 17px Heebo !important; color: var(--ink) !important; border: 0 !important; background: transparent !important; box-shadow: none !important; outline: 0 !important; }
+html.d5 body .ch-route .ch-dot { background: var(--c3) !important; border-color: var(--c3) !important; }
+html.d5 body .ch-route .ch-dot.to { background: var(--ink) !important; border-color: var(--ink) !important; }
+html.d5 body .ch-route .ch-gps, html.d5 body .ch-route .ch-swap { background: #E3EFFA !important; color: var(--ink) !important; border: 0 !important; }
+/* suivi d'une course : blocs */
+html.d5 body .track-panel > .card:not(.hidden) { background: var(--c4) !important; border: 0 !important; border-radius: var(--blk-r) !important; padding: 22px 18px !important; box-shadow: none !important; }
+html.d5 body .track-panel > .card:nth-of-type(2n):not(.hidden) { background: var(--c2) !important; }
+html.d5 body .track-panel > .card h3 { font: 800 26px/1 var(--K) !important; letter-spacing: -.03em; color: var(--ink) !important; }
+html.d5 body .track-panel #chatBtn, html.d5 body .track-panel .btn-wa { background-color: var(--ink) !important; color: #fff !important; border-radius: 28px !important; min-height: 54px; font-weight: 800 !important; }
+html.d5 body .track-panel .eta { background: var(--c1) !important; color: #fff !important; border-radius: var(--blk-r) !important; padding: 22px 18px !important; }
+html.d5 body .track-panel .eta b { font: 800 30px/1 var(--K) !important; color: #fff !important; }
