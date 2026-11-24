@@ -21,9 +21,12 @@ import { SpotSac, SPOT_SAC_FRAMES, SpotSoda, SPOT_SODA_FRAMES, SpotPluie, SPOT_P
 import { Promos, PROMOS_FRAMES } from './Promos';
 import { Mezouzot, MEZOUZOT_FRAMES } from './Mezouzot';
 import { Mikve, MIKVE_FRAMES } from './Mikve';
+import { Revolution, REVO_FRAMES } from './Revolution';
 
 export const Root: React.FC = () => (
   <>
+    <Composition id="HopRevo" component={Revolution} durationInFrames={REVO_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'fr' as const }} />
+    <Composition id="HopRevoHe" component={Revolution} durationInFrames={REVO_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'he' as const }} />
     <Composition id="HopPromo" component={Promo} durationInFrames={totalFrames} fps={30} width={1080} height={1920} defaultProps={{ lang: 'fr' as const, music: true }} />
     <Composition id="HopPromoHe" component={Promo} durationInFrames={totalFrames} fps={30} width={1080} height={1920} defaultProps={{ lang: 'he' as const, music: true }} />
     <Composition id="HopReel" component={Reel} durationInFrames={REEL_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'fr' as const }} />

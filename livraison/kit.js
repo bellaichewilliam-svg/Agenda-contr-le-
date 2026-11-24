@@ -792,6 +792,8 @@ const CAMPS = [
 const FMT = { fiche: "🦘 Image officielle", detoure: "✂️ Sans fond (PNG)", post: "◻️ Post carré", story: "📱 Story", flyer: "🖨️ Flyer A5", g3: "1. Publier « P! »", g2: "2. Puis « O »", g1: "3. Puis « H »",
   g6: "1. « Pourquoi HOP! »", g5: "2. « Comment ça marche »", g4: "3. « Tout Netanya »" };
 const VIDEOS = [
+  // Nouveau (24/11) : « La révolution des courses à Netanya » : tous les magasins, comparateur, promos, Hoppy, livré (30 s, video/src/Revolution.tsx)
+  { id: "revolution", aud: "client", title: "🛒 Nouveau · La révolution des courses à Netanya : tous les magasins, le moins cher, livré (30 s)" },
   // Pub vidéo (video/pubs/monter.py)
   { id: "meme-la-haut", aud: "client", title: "🏙️ Nouveau · Trop haut ? Trop loin ? HOP! vous livre là où vous êtes (10 s)" },
   // Pub vidéo (video/pubs/monter.py)

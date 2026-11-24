@@ -1,0 +1,35 @@
+1
+00:00:00,400 --> 00:00:02,946
+Besoin de quelque chose à Netanya ?
+
+2
+00:00:03,600 --> 00:00:06,493
+Avec HOP!, on fait vos courses pour vous, au meilleur prix.
+
+3
+00:00:08,600 --> 00:00:11,228
+Votre liste est comparée dans tous nos magasins.
+
+4
+00:00:13,400 --> 00:00:16,132
+Un toucher sur « Tout ici » : tout chez le moins cher.
+
+5
+00:00:18,200 --> 00:00:20,643
+Toutes les promos, réunies au même endroit.
+
+6
+00:00:22,600 --> 00:00:25,140
+Pas envie d'écrire ? Dites-le à Hoppy.
+
+7
+00:00:27,000 --> 00:00:31,129
+Pharmacie, restos, colis : on livre tout, dès 25 ₪ en ville.
+
+8
+00:00:31,600 --> 00:00:34,072
+Et vous suivez votre livreur, en direct.
+
+9
+00:00:35,800 --> 00:00:37,372
+HOP! Et hop, c'est livré.

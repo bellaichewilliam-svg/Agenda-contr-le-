@@ -1,0 +1,92 @@
+[
+ {
+  "id": "v01",
+  "text": "Besoin de quelque chose à Netanya ?",
+  "voice": "ff_siwis",
+  "lang": "fr-fr",
+  "speed": 1.06,
+  "start": 0.4,
+  "sub": "Besoin de quelque chose à Netanya ?",
+  "he": "צריכים משהו בנתניה?"
+ },
+ {
+  "id": "v02",
+  "text": "Avec Hop, on fait vos courses pour vous, au meilleur prix.",
+  "voice": "ff_siwis",
+  "lang": "fr-fr",
+  "speed": 1.06,
+  "start": 3.6,
+  "sub": "Avec HOP!, on fait vos courses pour vous, au meilleur prix.",
+  "he": "עם HOP!, אנחנו עושים לכם את הקניות, במחיר הכי טוב."
+ },
+ {
+  "id": "v03",
+  "text": "Votre liste est comparée dans tous nos magasins.",
+  "voice": "ff_siwis",
+  "lang": "fr-fr",
+  "speed": 1.06,
+  "start": 8.6,
+  "sub": "Votre liste est comparée dans tous nos magasins.",
+  "he": "הרשימה שלכם מושווית בכל החנויות שלנו."
+ },
+ {
+  "id": "v04",
+  "text": "Un toucher sur « Tout ici » : tout chez le moins cher.",
+  "voice": "ff_siwis",
+  "lang": "fr-fr",
+  "speed": 1.06,
+  "start": 13.4,
+  "sub": "Un toucher sur « Tout ici » : tout chez le moins cher.",
+  "he": "נגיעה אחת על «הכול כאן»: הכול בחנות הזולה ביותר."
+ },
+ {
+  "id": "v05",
+  "text": "Toutes les promos, réunies au même endroit.",
+  "voice": "ff_siwis",
+  "lang": "fr-fr",
+  "speed": 1.06,
+  "start": 18.2,
+  "sub": "Toutes les promos, réunies au même endroit.",
+  "he": "כל המבצעים, במקום אחד."
+ },
+ {
+  "id": "v06",
+  "text": "Pas envie d'écrire ? Dites-le à Hoppy.",
+  "voice": "ff_siwis",
+  "lang": "fr-fr",
+  "speed": 1.06,
+  "start": 22.6,
+  "sub": "Pas envie d'écrire ? Dites-le à Hoppy.",
+  "he": "לא בא לכם לכתוב? תגידו להופי."
+ },
+ {
+  "id": "v07",
+  "text": "Pharmacie, restos, colis : on livre tout, dès vingt-cinq shekels en ville.",
+  "voice": "ff_siwis",
+  "lang": "fr-fr",
+  "speed": 1.06,
+  "start": 27.0,
+  "sub": "Pharmacie, restos, colis : on livre tout, dès 25 ₪ en ville.",
+  "he": "בית מרקחת, מסעדות, חבילות: מביאים הכול, החל מ-25 ₪ בעיר."
+ },
+ {
+  "id": "v08",
+  "text": "Et vous suivez votre livreur, en direct.",
+  "voice": "ff_siwis",
+  "lang": "fr-fr",
+  "speed": 1.06,
+  "start": 31.6,
+  "sub": "Et vous suivez votre livreur, en direct.",
+  "he": "ואתם עוקבים אחרי השליח בזמן אמת."
+ },
+ {
+  "id": "v09",
+  "text": "Hop ! Et hop, c'est livré.",
+  "voice": "ff_siwis",
+  "lang": "fr-fr",
+  "speed": 1.06,
+  "start": 35.8,
+  "sub": "HOP! Et hop, c'est livré.",
+  "he": "HOP! והופ, זה אצלכם."
+ }
+]
