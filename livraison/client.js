@@ -4744,11 +4744,53 @@ function cgShowPick() {
   clearTimeout(cgShowPick.t); cgShowPick.t = setTimeout(() => plus.forEach(x => x.classList.remove("cg-nudge")), 5000);
   toastCart(t("cgPickHint"), 3500);
 }
+// Restaurant casher avec un côté viande et un côté lait (Rendez-Vous, patron 24/11) : en arrivant sur la boutique, deux grands
+// blocs « Bassari » / « Halavi » ; on ne voit ensuite que les rubriques de ce côté (+ boissons, desserts…), « Tout voir » pour tout
+const KS_RX = { b: /bassari|בשרי/i, h: /halavi|חלבי/i };
+const KS_EXTRA = { RENDEZVOUS: { b: /entrées|מנות ראשונות|formules|קומבינציות/i, h: /nouveauté|החדש של הרגע|petit déjeuner|ארוחת בוקר/i } };
+function ksRender() {
+  const box = $("#catalogBox"), d5 = document.documentElement.classList.contains("d5");
+  let pick = document.getElementById("ksPick");
+  const cats = ((state.catalog && state.catalog.categories) || []).map(c => c.name || "");
+  const both = d5 && box && !box.classList.contains("hidden") && cats.some(n => KS_RX.b.test(n)) && cats.some(n => KS_RX.h.test(n));
+  if (!both) { if (pick) pick.remove(); if (box) delete box.dataset.ks; return; }
+  const code = (state.shop && state.shop.code) || "", he = I18N.lang === "he";
+  state.ksSide = state.ksSide || {};
+  const side = state.ksSide[code] || "";
+  // rubriques sans « bassari / halavi » dans le nom : le côté donné par le site du restaurant
+  const ex = KS_EXTRA[code] || {};
+  const secSide = t2 => (KS_RX.b.test(t2) || (ex.b && ex.b.test(t2)) ? "b" : KS_RX.h.test(t2) || (ex.h && ex.h.test(t2)) ? "h" : "");
+  box.querySelectorAll("h4.cg-sec").forEach(h => { const k = secSide(h.textContent); h.dataset.ksSec = k; const g = h.nextElementSibling; if (g && g.classList.contains("cg-grid")) g.dataset.ksSec = k; });
+  box.querySelectorAll(".cg-head-tabs button, .cg-head-tabs [data-cg-cat]").forEach(b => { b.dataset.ksSec = secSide(b.textContent); });
+  box.dataset.ks = side;
+  const picOf = k => { const cat = ((state.catalog && state.catalog.categories) || []).find(c => KS_RX[k].test(c.name || ""));
+    const p = cat && cgProducts().find(x => x.category_id === cat.id && x.photo); return p ? UI.safeImg(p.photo) : ""; };
+  const card = (k, bg, t1, t2, sub) => { const im = picOf(k);
+    return `<button type="button" class="ks-card ks-${k}${side === k ? " on" : ""}" data-ks-pick="${k}" style="--ksbg:${bg}">
+      <span class="ks-t"><small>${UI.esc(t1)}</small><b>${UI.esc(t2)}</b><em>${UI.esc(sub)}</em></span>${im ? `<img src="${im}" alt="" loading="lazy" />` : ""}</button>`; };
+  const html = `<h3 class="ks-h">${UI.esc(he ? "מה בא לכם היום?" : "Vous avez envie de quoi ?")}</h3>
+    <div class="ks-row">${card("b", "#FF5D73", he ? "בשרי" : "Côté viande", he ? "בשרי · Bassari" : "Bassari · בשרי", he ? "עוף, אסאדו, שניצל, נקניקים" : "Poulet, assado, shnitzel, charcuterie")}
+    ${card("h", "#1E9BF0", he ? "חלבי" : "Côté lait", he ? "חלבי · Halavi" : "Halavi · חלבי", he ? "סלמון, בוראטה, מוצרלה, טונה" : "Saumon, burrata, mozzarella, thon")}</div>
+    ${side ? `<button type="button" class="ks-all" data-ks-pick="">${UI.esc(he ? "להציג את כל התפריט" : "Voir tout le menu")}</button>` : ""}`;
+  if (!pick) { pick = document.createElement("section"); pick.id = "ksPick"; pick.className = "ks-pick"; box.parentNode.insertBefore(pick, box); }
+  if (pick.dataset.html !== html) { pick.innerHTML = html; pick.dataset.html = html; }
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-ks-pick]"); if (!b) return;
+  const code = (state.shop && state.shop.code) || ""; state.ksSide = state.ksSide || {};
+  state.ksSide[code] = b.dataset.ksPick; UI.track("ks_pick", { shop_code: code, side: b.dataset.ksPick || "all" });
+  ksRender();
+  const first = b.dataset.ksPick && document.querySelector(`#catalogBox h4.cg-sec[data-ks-sec="${b.dataset.ksPick}"]`);
+  const tgt = first || document.getElementById("ksPick");
+  if (tgt) { const bars = [...document.querySelectorAll(".topbar, .view-bar, #catalogBox .cg-head")].filter(x => getComputedStyle(x).position === "sticky" || getComputedStyle(x).position === "fixed").reduce((n, x) => n + x.offsetHeight, 0);
+    window.scrollTo({ top: Math.max(0, tgt.getBoundingClientRect().top + scrollY - bars - 8), behavior: "smooth" }); }
+});
 function renderCatalog() {
   try { viewTitle(); } catch (e) { /* titre */ }
   const box = $("#catalogBox"), on = catalogOn();
   box.classList.toggle("hidden", !on);
   vtRender();
+  requestAnimationFrame(ksRender);
   $("#shopOrderBox").classList.toggle("with-cg", on);
   document.body.classList.toggle("cg-cart-on", on && cartCount() > 0);
   goLabel();

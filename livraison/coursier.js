@@ -883,6 +883,13 @@ function card(o, kind) {
   // Course groupée avec une autre des miennes : dans quel ordre livrer
   const twin = kind === "mine" && ["confirmee", "recuperee"].includes(o.status) && mine().find(x => x.id !== o.id && Store.pairOk(x, o));
   if (twin) {
+    // (patron 24/11) commande groupée : le livreur peut s'en détacher (trop d'attente, un souci) tant qu'il n'a rien récupéré
+    const grpIds = [o, twin].filter(x => x.status === "confirmee").map(x => x.id);
+    if (o.status === "confirmee") extra += `<div class="grp-help"><b>Un souci avec ces courses groupées ?</b>
+      <small>Trop d'attente, un commerce en retard, un problème : retirez-vous, elles repartent tout de suite aux autres livreurs. Le client et le commerce sont prévenus.</small>
+      <span class="grp-btns">${grpIds.length > 1 ? `<button type="button" class="btn btn-sm btn-release" data-grp-release="${UI.esc(grpIds.join("|"))}">❌ Me retirer des 2 courses groupées</button>` : ""}
+        <button type="button" class="btn btn-sm" data-grp-release="${UI.esc(o.id)}">✂️ Garder l'autre, me retirer de celle-ci</button>
+        <button type="button" class="btn btn-sm" data-wait-tell="${UI.esc(o.id)}">📣 Prévenir HOP!</button></span></div>`;
     const d = x => Store.kmBetween(+o.pickup_lat, +o.pickup_lon, +x.dropoff_lat, +x.dropoff_lon);
     extra += `<div class="bag-line">🔗 Groupée avec la course n° ${UI.esc(twin.ref)} : récupérez les deux, puis livrez ${d(o) <= d(twin) ? "<b>celle-ci d'abord</b> (la plus proche)" : `d'abord la n° ${UI.esc(twin.ref)} (la plus proche)`}.</div>`;
   }
@@ -1670,7 +1677,7 @@ function renderFiche() {
       <div class="fi-foot">${act ? `<div class="fi-slide" data-fi-slide><span class="fi-knob">›</span><b>${UI.esc(act.label)}</b></div>`
         : wait ? `<p class="fi-wait">${pick ? "✅ Commande déjà récupérée" : "D'abord : récupérer la commande au départ"}</p>`
         : `<button type="button" class="btn btn-block" data-fi-close>Étape à finir dans la course (paiement, ticket…) ›</button>`}
-        ${o.status === "confirmee" ? `<button type="button" class="fi-release" data-fi-release="${UI.esc(o.id)}">❌ Annuler la course · trop d'attente, trop loin</button>` : ""}
+        ${fiHelp(o)}
         ${(() => { const st = fiStops(), k = st.findIndex(x => x.o.id === o.id && x.kind === fiche.which), nx = k >= 0 ? st[k + 1] : null;
           if (!nx) return "";
           const np = nx.kind === "pickup", nm = np ? (UI.bi(nx.o.shop_name || nx.o.pickup_place || "", "fr") || "Départ") : (nx.o.dropoff_contact || nx.o.contact_name || "Client");
@@ -1740,6 +1747,30 @@ document.addEventListener("click", e => {
   if (c) mineOpen = c.dataset.id;   // on agit sur cette course : elle reste ouverte
 }, true);
 document.addEventListener("keydown", e => { if (e.key === "Escape" && fiche) { fiche = null; renderFiche(); } });
+// Se détacher d'une commande groupée (patron, 24/11) : une seule course ou les deux, tant qu'elles ne sont pas récupérées
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-grp-release]"); if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  const ids = b.dataset.grpRelease.split("|"), list = ids.map(id => orders.find(x => x.id === id)).filter(x => x && x.status === "confirmee");
+  if (!list.length) return UI.alert("Ces courses sont déjà récupérées : livrez-les, ou appelez HOP! en cas de souci.");
+  const paid = list.filter(o => o.direct_pay && o.paid_to !== "hop" && (o.payment_status === "paye" || o.client_paid_at));
+  const two = list.length > 1;
+  if (!(await UI.confirm((paid.length ? `⚠️ Un client vous a déjà payé (ou dit l'avoir fait) : vous devrez le rembourser tout de suite par Bit / PayBox.\n\n` : "")
+    + (two ? "❌ Vous retirer des 2 courses groupées ?\n\nElles repartent tout de suite aux autres livreurs ; les clients et les commerces sont prévenus."
+      : "❌ Vous retirer de cette course et garder l'autre ?\n\nElle repart tout de suite aux autres livreurs ; le client et le commerce sont prévenus.")))) return;
+  const why = await UI.choose(two ? "Pourquoi vous retirez-vous de ces courses ?" : "Pourquoi vous retirez-vous de cette course ?",
+    [["Trop d'attente au départ", "⏳ Trop d'attente au départ"], ["Souci dans la commande groupée", "🔗 Souci dans la commande groupée"], ["Trop loin", "📍 Trop loin"], ["Panne ou souci", "🛵 Panne ou souci"], ["Autre raison", "Autre raison"]]);
+  if (!why) return;
+  b.disabled = true;
+  let ok = 0;
+  for (const o of list) {
+    const r = await Store.courierAction(o.id, "liberer").catch(err => { console.warn("grp release", err); return false; });
+    if (r) { ok++; Store.chatSend("c:" + me.id, "courier", me.name, `❌ Je me retire de la course n° ${o.ref}${o.shop_name ? " (" + UI.bi(o.shop_name, "fr") + ")" : ""}${two ? " (commande groupée)" : ""} : ${why}`).catch(() => {}); }
+  }
+  await load();
+  if (fiche && !mine().some(x => x.id === fiche.id)) { fiche = null; renderFiche(); }
+  if (ok < list.length) UI.alert(ok ? `Une course n'a pas pu être annulée (déjà récupérée ?). Appelez HOP! si besoin.` : "Annulation impossible pour le moment : réessayez ou appelez HOP!.");
+});
 // Longue attente au départ : « Prévenir HOP! » écrit au patron (le commerce, depuis combien de temps)
 document.addEventListener("click", async e => {
   const b = e.target.closest("[data-wait-tell]"); if (!b) return;
@@ -1750,6 +1781,21 @@ document.addEventListener("click", async e => {
   catch (ex) { b.disabled = false; await UI.alert("Message non envoyé, réessayez."); }
 });
 // Ouverte depuis la carte : « Mes courses » passe derrière la fiche, pour que le glissé trouve le bouton de la course
+// « Un souci avec la livraison ? » (patron, 24/11, comme les grandes applis) : se retirer de la course ou de toute la
+// commande groupée tant que rien n'est récupéré, écrire à HOP!, et les étapes qui restent dans l'ordre
+function fiHelp(o) {
+  const twin = mine().find(x => x.id !== o.id && Store.pairOk(x, o));
+  const grp = [o, twin].filter(x => x && x.status === "confirmee");
+  const stops = fiStops();
+  const stopName = st => st.kind === "pickup" ? (UI.bi(st.o.shop_name || st.o.pickup_place || "", "fr") || "Départ") : (st.o.dropoff_contact || st.o.contact_name || "Client");
+  const list = stops.length > 1 ? `<div class="fh-stops"><small>Vos étapes</small>${stops.map(st => `<p class="${st.kind}${st.o.id === o.id && st.kind === fiche.which ? " cur" : ""}"><i></i><b><bdi>${UI.esc(stopName(st))}</bdi></b><span><bdi>${UI.esc(st.o[st.kind === "pickup" ? "pickup_address" : "dropoff_address"] || "")}</bdi></span></p>`).join("")}</div>` : "";
+  const rel = o.status !== "confirmee" ? `<p class="fh-note">Commande déjà récupérée : livrez-la. En cas de souci, écrivez à HOP!.</p>`
+    : twin && grp.length > 1 ? `<button type="button" class="fh-btn red" data-grp-release="${UI.esc(grp.map(x => x.id).join("|"))}">Annuler cette commande groupée (2 courses)</button>
+        <button type="button" class="fh-btn" data-grp-release="${UI.esc(o.id)}">Me retirer seulement de celle-ci</button>`
+    : `<button type="button" class="fh-btn red" data-grp-release="${UI.esc(o.id)}">Annuler cette course · un autre livreur la prend</button>`;
+  return `<div class="fi-help"><h4>Un souci avec la livraison ?</h4>${rel}<button type="button" class="fh-btn link" data-fi-hop>💬 Contacter HOP!</button>${list}</div>`;
+}
+document.addEventListener("click", e => { if (e.target.closest("[data-fi-hop]")) { e.preventDefault(); openBossChat(); } });
 function ficheOpen(id, which) {
   const was = mineOpen;
   if (mine().some(o => o.id === id)) mineOpen = id;

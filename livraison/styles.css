@@ -7835,3 +7835,25 @@ html[dir=rtl] .vt-chip { padding: 5px 5px 5px 14px; }
 .vt-d { margin: 6px auto 0; max-width: 330px; font-size: 14px; font-weight: 600; opacity: .78; line-height: 1.35; min-height: 38px; }
 .vt-add { display: inline-flex; align-items: center; gap: 10px; margin-top: 12px; padding: 14px 26px; border: 0; border-radius: 30px; background: #111418; color: #fff; font: 800 16px Heebo, sans-serif; }
 .vt-add b { color: #FFB27F; }
+/* Livreur : se détacher d'une commande groupée (patron, 24/11) */
+.grp-help { margin: 10px 0 4px; padding: 14px; border-radius: 16px; background: #FFF1F0; display: flex; flex-direction: column; gap: 6px; }
+.grp-help b { font-size: 16px; color: #8A1C12; }
+.grp-help small { color: #5A3A36; line-height: 1.4; }
+.grp-help .grp-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.grp-help .btn { white-space: normal; text-align: start; }
+/* Fiche livreur : « Un souci avec la livraison ? » (patron, 24/11) */
+.fi-help { margin: 12px 0 0; padding: 14px; border-radius: 16px; background: #FFF4F2; color: #2A1A18; text-align: start; }
+.fi-help h4 { margin: 0 0 10px; font-size: 18px; font-weight: 800; color: #2A1A18; }
+.fi-help .fh-btn { display: block; width: 100%; margin: 0 0 8px; padding: 13px 14px; border: 0; border-radius: 26px; background: #fff; color: #2A1A18; font: inherit; font-size: 15px; font-weight: 800; text-align: center; cursor: pointer; }
+.fi-help .fh-btn.red { background: #FDE2DE; color: #9B1C12; }
+.fi-help .fh-btn.link { background: none; color: #0B6E8A; }
+.fi-help .fh-note { margin: 0 0 8px; font-size: 14px; color: #5A3A36; }
+.fi-help .fh-stops { margin-top: 6px; border-top: 1px solid #F1D9D5; padding-top: 10px; }
+.fi-help .fh-stops small { display: block; color: #7A5A55; font-size: 12px; margin-bottom: 6px; }
+.fi-help .fh-stops p { position: relative; margin: 0; padding: 6px 0 10px 26px; display: flex; flex-direction: column; }
+.fi-help .fh-stops p i { position: absolute; left: 2px; top: 9px; width: 12px; height: 12px; border-radius: 50%; border: 3px solid #4FB3E8; background: #fff; }
+.fi-help .fh-stops p.dropoff i { border-color: #5CC27A; }
+.fi-help .fh-stops p.cur b { text-decoration: underline; }
+.fi-help .fh-stops p b { font-size: 15px; }
+.fi-help .fh-stops p span { font-size: 13px; color: #6A5A57; }
+html[dir=rtl] .fi-help .fh-stops p { padding: 6px 26px 10px 0; } html[dir=rtl] .fi-help .fh-stops p i { left: auto; right: 2px; }
