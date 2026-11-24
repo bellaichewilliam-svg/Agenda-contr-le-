@@ -4286,7 +4286,7 @@ async function loadCatalogFor(shop) {
 // produit du catalogue, prix compris). Mise en scène dans la base (shop_vitrine) ; noms, prix, descriptions = le catalogue.
 // Pleine couleur (patron 24/11) : la page d'un commerce prend la couleur de son enseigne sur tout l'écran (réglée dans sa vitrine,
 // sinon une couleur par type de commerce) ; le texte passe en blanc ou en foncé selon la couleur
-const D6_KIND_COLOR = { restaurant: "#FF6B57", epicerie: "#1E9BF0", supermarche: "#1E9BF0", pharmacie: "#7ED9A6", boulangerie: "#FFE14A", fleurs: "#FF8FB1", cafe: "#C9874B" };
+const D6_KIND_COLOR = { restaurant: "#FF5D73", epicerie: "#1E9BF0", supermarche: "#1E9BF0", pharmacie: "#7ED9A6", boulangerie: "#FFE14A", fleurs: "#FF8FB1", cafe: "#8E6CEF" };
 // Le haut de page d'un commerce, version pleine couleur : grand nom, accroche, bulles (ouvert, livraison), la photo qui flotte,
 // boutons pilules (infos, WhatsApp, horaire choisi) — mêmes actions qu'avant (data-sh-info, data-sl-goto)
 function d6HeroHtml(s, logo, cover) {
@@ -4355,7 +4355,7 @@ function vtDish(i, instant) {
   const on = document.querySelector(`#vitrineBox .vt-chip[data-vt-dish="${i}"]`), row = on && on.parentElement;
   // (pas scrollIntoView : il fait aussi glisser la vitrine elle-même de côté, surtout en hébreu)
   if (on && row && !instant) row.scrollTo({ left: on.offsetLeft - (row.clientWidth - on.offsetWidth) / 2, behavior: "smooth" });
-  $("#vitrineBox .vt-stage").style.background = d.bg || "#F2B21B";
+  $("#vitrineBox .vt-stage").style.background = d.bg || "#FFE14A";
   const old = plate.querySelectorAll(".vt-dish, .vt-ing, .vt-tag");
   old.forEach(e => e.classList.add(e.classList.contains("vt-dish") ? "out" : "gone"));
   setTimeout(() => old.forEach(e => e.remove()), instant ? 0 : 320);
@@ -4421,11 +4421,15 @@ document.addEventListener("click", e => {
 // ===== Design 5 « affiche de quartier » (patron, 24/11) : l'affiche du haut de l'accueil et le ticket qui défile =====
 // (le reste du style est dans d5.css ; ici seulement ce qui n'existait pas dans la page : surtitre, grand titre, Hoppy, repères)
 const d6RestoList = () => (state.showcase || []).filter(x => /restaurant|resto|food|cafe/i.test(x.kind || "") && !x.paused).slice(0, 10);
-const d6RestoCards = list => list.map(x => { const pic = UI.safeImg(x.cover) || UI.safeImg(x.logo); return `<button type="button" class="d6-rc" data-d4-pro="${UI.esc(x.code)}"><span class="d6-rp"${pic ? ` style="background-image:url('${pic}')"` : ""}></span><b>${UI.esc(d4Nm(x))}</b><small>${UI.esc(I18N.lang === "he" ? "החל מ־25 ₪" : "dès 25 ₪")}</small></button>`; }).join("");
+const D6_CARD = ["#1E9BF0", "#0B4A6F", "#FF5D73", "#13A88A", "#7C5CE0"];
+const d6RestoCards = (list, tag) => list.map((x, k) => { const pic = UI.safeImg(x.cover) || UI.safeImg(x.logo), st = shopState(x), open = !x.paused && (!st || st.open);
+  return `<button type="button" class="d6-rc" data-d4-pro="${UI.esc(x.code)}" style="--rc:${D6_CARD[k % D6_CARD.length]}"><span class="d6-rp"${pic ? ` style="background-image:url('${pic}')"` : ""}></span>${tag ? `<span class="d6-st2">${UI.esc(tag)}</span>` : ""}<b>${UI.esc(d4Nm(x))}</b><small>${UI.esc(open ? (I18N.lang === "he" ? "פתוח · החל מ־25 ₪" : "Ouvert · dès 25 ₪") : (I18N.lang === "he" ? "סגור · אפשר לתזמן" : "Fermé · à programmer"))}</small></button>`; }).join("");
+const d6ShopList = () => (state.showcase || []).filter(x => !/restaurant|resto|food|cafe/i.test(x.kind || "") && !x.paused).slice(0, 12);
 // (les commerces arrivent après l'accueil : la rangée des restos et la bande de noms se remplissent quand ils sont là)
 function d6Fill() {
   const r = document.getElementById("d6RRow"); if (!r) return;
   const html = d6RestoCards(d6RestoList()); if (r.dataset.html !== html) { r.innerHTML = html; r.dataset.html = html; }
+  const m = document.getElementById("d6SRow"); if (m) { const h2 = d6RestoCards(d6ShopList()); if (m.dataset.html !== h2) { m.innerHTML = h2; m.dataset.html = h2; } }
   const b = document.getElementById("d5Tick"); if (b && !b.dataset.names && (state.showcase || []).length) { b.dataset.names = "1"; d5Home(); }
 }
 function d5Home() {
@@ -4486,6 +4490,12 @@ function d5Home() {
     <h2 class="d6-bt">${UI.esc(he ? "המסעדות של נתניה" : "Les restos de Netanya")}</h2><p class="d6-bs">${UI.esc(he ? "מזמינים, ואנחנו מביאים חם" : "Vous choisissez, on vous l'apporte chaud")}</p>
     <div class="d6-rrow" id="d6RRow">${d6RestoCards(restos)}</div>
     <button type="button" class="d6-btn light" data-d5go="kind:resto">${UI.esc(he ? "לכל המסעדות" : "Tous les restos")} <i>${A}</i></button>`;
+  let sh = document.getElementById("d6Shops");
+  if (!sh) { sh = document.createElement("section"); sh.id = "d6Shops"; sh.className = "d6-block d6-shops"; sheet.appendChild(sh); }
+  sh.innerHTML = `<svg class="d6-torn" viewBox="0 0 390 16" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0H390V6L374 14 360 5 346 13 330 6 316 15 300 7 286 14 270 5 256 13 240 6 226 15 210 7 196 14 180 5 166 13 150 6 136 15 120 7 106 14 90 5 76 13 60 6 46 15 30 7 16 14 0 6Z"/></svg>
+    <h2 class="d6-bt">${UI.esc(he ? "עושים קניות" : "Faites vos courses")}</h2><p class="d6-bs">${UI.esc(he ? "כל החנויות, הכי זול מנצח" : "Tous les magasins, le moins cher gagne")}</p>
+    <div class="d6-rrow" id="d6SRow">${d6RestoCards(d6ShopList())}</div>
+    <button type="button" class="d6-btn" data-d5go="d4:shops">${UI.esc(he ? "לכל החנויות" : "Tous les magasins")} ${A === "›" ? "<i>›</i>" : "<i>‹</i>"}</button>`;
   // 4. Le dernier bloc : partager HOP!, WhatsApp — en grosses pilules pleine couleur
   let en = document.getElementById("d6End");
   if (!en) { en = document.createElement("section"); en.id = "d6End"; en.className = "d6-block d6-end"; sheet.appendChild(en); }

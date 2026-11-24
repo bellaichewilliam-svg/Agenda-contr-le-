@@ -6,7 +6,7 @@
    Règles HOP! : pas d'émoji, pas de durée chiffrée, « dès 25 ₪ en ville », français et hébreu jamais coupés.
    ===================================================================================================================== */
 html.d5 {
-  --c1: #1E9BF0; --c2: #FFE14A; --c3: #FF6B57; --c4: #7ED9A6; --ink: #0B4A6F; --cream: #F4F9FF;
+  --c1: #1E9BF0; --c2: #FFE14A; --c3: #FF5D73; --c4: #7ED9A6; --ink: #0B4A6F; --cream: #F4F9FF;
   --navy: var(--ink); --navy2: #1F6A94; --paper: var(--cream); --paper2: #E3EFFA; --line5: rgba(15,31,61,.12); --mute5: #5A6270;
   --act: var(--ink); --act-fg: #FFFFFF; --act-deep: #06324C; --tag5: #FFE14A; --ok5: #1F9D57;
   --K: 'Bricolage Grotesque', Rubik, Heebo, sans-serif; --M: 'IBM Plex Mono', Heebo, monospace;
@@ -279,7 +279,7 @@ html.d5.d3 body #orderForm fieldset > legend, html.d5.d3 body fieldset legend { 
    PLEINE COULEUR (patron 24/11, palette B « Soleil de Netanya ») — l'accueil reconstruit en grands blocs
    ===================================================================================================================== */
 html.d5 body .topbar { background: var(--c1) !important; }
-html.d5 body .topbar .wordmark b i { color: var(--c2) !important; }
+html.d5 body .topbar .wordmark b i { color: #FF6A13 !important; }
 html.d5 body .topbar .tb-profile, html.d5 body .topbar .tb-cart { background: rgba(255,255,255,.18) !important; }
 html.d5 body .topbar .lang-btn { background: #fff !important; color: var(--ink) !important; }
 html.d5 body .topbar #tbCartN { background: var(--ink) !important; color: #fff !important; }
@@ -384,7 +384,7 @@ html.d5 body #cartSheet [class*=cs-more], html.d5 body #cartSheet .cs-cont, html
 html.d5 body #cartSheet button:not(.btn-primary):not([data-cs-cat]) { border-radius: 26px !important; }
 html.d5 body #cartSheet .btn-primary, html.d5 body #cartSheet #cartGo { background: var(--ink) !important; color: #fff !important; }
 
-html.d5 body.d6-shop .topbar .wordmark b i { color: var(--c3) !important; }
+
 html.d5 body .vt { width: 100vw !important; margin-inline: calc(50% - 50vw) !important; }
 html.d5 body #catalogBox .item-art img[src*="img/items/"] { opacity: .0 !important; } html.d5 body #catalogBox .item-art:has(img[src*="img/items/"]) { background: color-mix(in srgb, var(--shop, var(--c1)) 22%, #fff) !important; }
 
@@ -423,7 +423,7 @@ html.d5 body .nopay-mini { background: #fff !important; border: 0 !important; bo
 html.d5 body #shopHero .d6h .d6h-b.w, html.d5 body #shopHero .d6h .d6h-a { background: #fff !important; color: var(--ink) !important; }
 html.d5 body #shopHero .d6h .d6h-b.k, html.d5 body #shopHero .d6h .d6h-a.when { background: var(--ink) !important; color: #fff !important; }
 html.d5 body #shopHero .d6h .d6h-a.wa { background: #25D366 !important; color: #fff !important; }
-html.d5 body.d6-shop .topbar .wordmark b i { color: var(--c2) !important; }
+
 /* panier en pleine couleur : bandeau du haut à la couleur, ticket, gros boutons */
 html.d5 body #cartSheet .modal-box { padding-top: 0 !important; overflow-x: hidden; }
 html.d5 body #cartSheet .modal-box > :first-child { margin: 0 -18px 14px !important; padding: 22px 18px 18px !important; background: var(--shop, var(--c1)) !important; color: var(--shop-ink, #fff) !important; border-radius: 28px 28px 0 0 !important; }
@@ -487,3 +487,35 @@ html.d5 body #cartSheet #cartClose { width: 40px !important; height: 40px !impor
 html.d5 body #catalogBox .cg-info { display: flex !important; flex-direction: column !important; }
 html.d5 body #catalogBox .cg-info > b { order: 1; } html.d5 body #catalogBox .cg-info > small { order: 2; } html.d5 body #catalogBox .cg-info > .cg-price { order: 3; } html.d5 body #catalogBox .cg-info > * { order: 4; }
 html.d5 body #catalogBox .cg-info > b { order: 1 !important; } html.d5 body #catalogBox .cg-info > small { order: 2 !important; } html.d5 body #catalogBox .cg-info > .cg-price { order: 3 !important; }
+
+/* (patron 24/11) aucun orange sauf le « ! » du logo HOP! */
+html.d5 body .wordmark b i, html.d5 body .topbar .wordmark b i, html.d5 body.d6-shop .topbar .wordmark b i { color: #FF6A13 !important; }
+html.d5 body .vt-row span:nth-child(4n+1) { color: var(--c2) !important; } html.d5 body .vt-row span:nth-child(4n+3) { color: var(--c4) !important; } html.d5 body .vt-row span:nth-child(4n) { color: #FF9BAA !important; }
+html.d5 body .vt-add b { color: var(--c2) !important; }
+html.d5 body .d5-eyebrow i { background: var(--c2) !important; box-shadow: none !important; }
+html.d5 body .d5-fig svg path, html.d5 body .d5-arc path { stroke: var(--c2) !important; }
+
+/* ======================= RESTOS & MAGASINS v2 : affiches, plus de cartes blanches ======================= */
+html.d5 body .d6-rc { position: relative; width: 168px !important; height: 220px; border-radius: 24px !important; background: var(--rc, var(--c1)) !important; color: #fff !important; overflow: hidden; }
+html.d5 body .d6-rc .d6-rp { position: absolute; inset: 0 0 64px 0; height: auto !important; background-size: cover; border-radius: 0; }
+html.d5 body .d6-rc b { position: absolute; left: 0; right: 0; bottom: 26px; padding: 0 12px !important; font: 800 22px/1 var(--K) !important; color: #fff !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html.d5 body .d6-rc small { position: absolute; left: 0; right: 0; bottom: 8px; padding: 0 12px !important; color: rgba(255,255,255,.9) !important; opacity: 1 !important; }
+html.d5 body .d6-rc .d6-st2 { position: absolute; top: 10px; inset-inline-start: 10px; padding: 5px 10px; border-radius: 12px; background: #fff; color: var(--ink); font: 800 10px Heebo, sans-serif; text-transform: uppercase; transform: rotate(-5deg); }
+html.d5 body #homeSheet > #d4Shops { display: none !important; }
+html.d5 body .d6-shops { background: var(--c4); color: var(--ink); }
+html.d5 body .d6-shops .d6-rc b, html.d5 body .d6-shops .d6-rc small { color: #fff !important; }
+html.d5 body #homeSheet > #d6Shops { order: 7; }
+html.d5 body #homeSheet > #vitCourse { background: var(--c1) !important; }
+html.d5 body .d6-end { background: var(--c2) !important; color: var(--ink) !important; }
+html.d5 body .d6-end .d6-big { background: var(--ink); color: #fff; }
+/* autres services : pastilles de couleur, plus de carrés blancs */
+html.d5 body .d5-more { display: flex !important; flex-wrap: wrap; gap: 8px !important; }
+html.d5 body .d5-more-it { width: auto !important; min-height: 0 !important; padding: 12px 16px !important; border-radius: 26px !important; font-size: 14px !important; }
+html.d5 body .d5-more-it:nth-child(5n+1) { background: #DDF0FF !important; } html.d5 body .d5-more-it:nth-child(5n+2) { background: #FFF6C2 !important; } html.d5 body .d5-more-it:nth-child(5n+3) { background: #FFE1E6 !important; } html.d5 body .d5-more-it:nth-child(5n+4) { background: #DDF6E8 !important; } html.d5 body .d5-more-it:nth-child(5n) { background: #ECE6FF !important; }
+html.d5 body .d5-more-it i { color: var(--ink) !important; }
+/* les liens « Et aussi » (tarifs, pourquoi HOP!…) en lignes nettes */
+html.d5 body .ch-explore { background: transparent !important; }
+html.d5 body .ch-explore .xp { background: transparent !important; border-bottom: 1.5px dashed rgba(11,74,111,.18) !important; border-radius: 0 !important; padding-inline: 4px !important; }
+html.d5 body #homeSheet > #homeProBox { display: none !important; }
+html.d5 body #homeSheet > h3.ch-h, html.d5 body #homeSheet > .ch-explore { order: 25 !important; }
+html.d5 body #homeSheet > #d6End { order: 40 !important; }
