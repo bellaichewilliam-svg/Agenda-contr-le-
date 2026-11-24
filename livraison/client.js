@@ -35,6 +35,7 @@ function setView(v, push) {
   if (document.body.dataset.view) scrollMem[document.body.dataset.view] = window.scrollY;
   document.body.dataset.view = v;
   viewTitle();
+  try { d6ShopColor(); } catch (e) { /* design 5 */ }
   // Analytique : la commande ouverte (une fois par visite)
   if (v === "order") setTimeout(fillKnown, 0);
   if (v === "order") { let s = null; try { s = sessionStorage.getItem("hop.started"); sessionStorage.setItem("hop.started", "1"); } catch (e) { /* ignore */ } if (!s) UI.track("order_start"); }
@@ -4319,7 +4320,8 @@ function d6ShopColor() {
   const c = (cfg && cfg.colors && cfg.colors.page) || (s && D6_LOGO_COLOR[s.code]) || (s && D6_KIND_COLOR[s.kind]) || "#1E9BF0";
   const rgb = c.replace("#", "").match(/../g).map(x => parseInt(x, 16)), lum = (.299 * rgb[0] + .587 * rgb[1] + .114 * rgb[2]) / 255;
   document.body.style.setProperty("--shop", c); document.body.style.setProperty("--shop-ink", lum > .62 ? "#3A1E0E" : "#FFFFFF");
-  document.body.classList.toggle("d6-shop", !!s);
+  // (patron 24/11 : la couleur du magasin restait en haut de l'accueil) seulement sur la page du magasin et sa commande
+  document.body.classList.toggle("d6-shop", !!s && (document.body.dataset.view || "order") === "order");
 }
 // La couleur principale d'un logo (patron 24/11 : « faire ça pour toutes les boutiques ») : le logo réduit à 40 × 40, on garde
 // la teinte la plus présente parmi les pixels bien colorés (ni blancs, ni noirs, ni gris) ; logo noir et blanc → rien
@@ -4429,27 +4431,43 @@ function vtDish(i, instant) {
   old.forEach(e => e.classList.add(e.classList.contains("vt-dish") ? "out" : "gone"));
   setTimeout(() => old.forEach(e => e.remove()), instant ? 0 : 320);
   const build = () => {
-    const cx = plate.clientWidth / 2 || 190, cy = 170, off = vt.off[d.product] || [], add = vt.add[d.product] || [];
+    const cx = plate.clientWidth / 2 || 190, cy = (plate.clientHeight || 350) / 2 - 5, off = vt.off[d.product] || [], add = vt.add[d.product] || [];
     // (patron 24/11 : « la nourriture autour qui dépasse ») tout le plat rétrécit pour que chaque ingrédient reste dans l'écran
     const ext = Math.max(1, ...(d.ing || []).map(g => Math.abs(g.x) + g.w / 2)), sc = Math.min(1, (cx - 6) / ext);
     const im = new Image(); im.className = "vt-dish out"; im.src = d.img; im.alt = UI.bi(p.name); im.style.width = Math.round((d.w || 220) * sc) + "px"; plate.appendChild(im);
     (d.ing || []).map(g => Object.assign({}, g, { x: g.x * sc, y: g.y * sc, w: Math.round(g.w * sc) })).forEach((g, k) => {
       const tap = g.off || g.add, el = document.createElement(tap ? "button" : "span"), xx = rtl ? -g.x : g.x;
-      el.className = "vt-ing gone" + (g.front ? " f" : "") + (tap ? " tap" : "") + ((g.off && off.includes(g.off)) ? " x" : "") + ((g.add && add.includes(g.add)) ? " plus" : "");
+      el.className = "vt-ing gone" + (g.y < -20 ? " up" : "") + (g.front ? " f" : "") + (tap ? " tap" : "") + ((g.off && off.includes(g.off)) ? " x" : "") + ((g.add && add.includes(g.add)) ? " plus" : "");
       if (tap) { el.type = "button"; if (g.off) el.dataset.vtOff = g.off; else el.dataset.vtPlus = g.add;
         el.setAttribute("aria-label", g.off ? `${t("modNo")} ${modLbl(g.off)}` : UI.bi((vtProd(g.add) || {}).name || "")); }
       el.style.cssText = `width:${g.w}px;left:${cx + xx - g.w / 2}px;top:${cy + g.y - g.w / 2}px;--fx:${-xx}px;--fy:${-g.y}px;--r:${g.r || 0}deg`;
-      el.innerHTML = `<img src="${UI.esc(g.img)}" alt="" />${tap ? `<i>${g.off ? "−" : "+"}</i>` : ""}`;
+      el.innerHTML = `<img src="${UI.esc(g.img)}" alt="" />${tap ? `<i>${g.off ? "−" : "+"}</i>` : ""}${vtIngLbl(g) ? `<b class="vt-lbl">${UI.esc(vtIngLbl(g))}</b>` : ""}`;
       plate.appendChild(el); setTimeout(() => el.classList.remove("gone"), 110 + k * 55);
     });
     const tg = (d.tags || {})[I18N.lang] || (d.tags || {}).fr || [];
     tg.slice(0, 2).forEach((txt, k) => { const s = document.createElement("span"); s.className = "vt-tag gone" + (k ? " w" : ""); s.textContent = txt;
-      s.style.cssText = k ? `top:304px;${rtl ? "left" : "right"}:${cx - 128}px` : `top:44px;${rtl ? "right" : "left"}:${cx - 44}px`; plate.appendChild(s); setTimeout(() => s.classList.remove("gone"), 420); });
+      s.style.cssText = k ? `top:${cy + 134}px;${rtl ? "left" : "right"}:${cx - 128}px` : `top:${cy - 126}px;${rtl ? "right" : "left"}:${cx - 44}px`; plate.appendChild(s); setTimeout(() => s.classList.remove("gone"), 420); });
     requestAnimationFrame(() => requestAnimationFrame(() => im.classList.remove("out")));
+    // noms des ingrédients au bord : on les ramène dans l'écran une fois les ingrédients posés
+    setTimeout(() => { const P = plate.getBoundingClientRect(); plate.querySelectorAll(".vt-lbl").forEach(l => { l.style.marginLeft = "";
+      const r = l.getBoundingClientRect(), d = r.left < P.left + 4 ? P.left + 4 - r.left : r.right > P.right - 4 ? P.right - 4 - r.right : 0;
+      if (d) l.style.marginLeft = Math.round(d) + "px"; }); }, 1000);
     $("#vtN").textContent = UI.bi(p.name); $("#vtD").textContent = UI.bi(p.description || "");
     vtPicks();
   };
   instant ? build() : setTimeout(build, 260);
+}
+// (patron 24/11 : « que ça soit logique avec le sandwich ») chaque ingrédient porte son nom : celui du « sans … » s'il s'enlève,
+// la sauce vendue à part, sinon le nom de sa photo (img/<boutique>/<ingrédient>.webp) ; cfg.ing[].lbl {fr, he} pour un autre nom
+const VT_ING = { poulet: ["Poulet", "עוף"], saumon: ["Saumon", "סלמון"], charcuterie: ["Jambon de veau", "נקניק עגל"], mozzarella: ["Burrata", "בוראטה"],
+  huile: ["Huile d'olive", "שמן זית"], steak: ["Steak", "קציצה"], pain: ["Pain brioché", "לחמניית בריוש"], oignon: ["Oignon", "בצל"], thon: ["Thon", "טונה"], boeuf: ["Bœuf", "בקר"] };
+function vtIngLbl(g) {
+  const he = I18N.lang === "he";
+  if (g.lbl) return g.lbl[he ? "he" : "fr"] || g.lbl.fr || "";
+  if (g.off) { const l = modLbl(g.off); return l.charAt(0).toUpperCase() + l.slice(1); }
+  if (g.add) { const pr = vtProd(g.add); return pr ? UI.bi(pr.name) : ""; }
+  const k = String(g.img || "").split("/").pop().replace(/\.\w+$/, ""), v = VT_ING[k];
+  return v ? v[he ? 1 : 0] : "";
 }
 function vtPicks() {
   const d = vt.cfg.dishes[vt.cur], p = vtProd(d.product), off = vt.off[d.product] || [], add = vt.add[d.product] || [];
@@ -4525,17 +4543,27 @@ function d5Home() {
   const cross = `<span class="d6-cross"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/></svg></span>`;
   sl.innerHTML = `<div class="d6-track">${S.map(([c, tone, a, b, note, bubs, img, kind, go, btn], k) => `<article class="d6-slide ${tone} k-${kind}" style="--s:var(--${c})">
       <h2 class="d6-st"><span>${UI.esc(a)}</span><span>${UI.esc(b)}</span></h2><p class="d6-sn">${UI.esc(note)}</p>
-      ${bubs.map((x, n) => `<span class="d6-bub b${n}">${UI.esc(x)}</span>`).join("")}
-      ${img ? `<i class="d6-halo" aria-hidden="true"></i><i class="d6-ground" aria-hidden="true"></i><img class="d6-si" src="${img}" alt="" ${k ? 'loading="lazy"' : ""} />` : cross}
+      ${kind === "dish" && d6RestoList().length ? d6RestoList().slice(0, 3).map((x, n) => `<button type="button" class="d6-bub b${n}" data-d4-pro="${UI.esc(x.code)}">${UI.esc(d4Nm(x))}</button>`).join("") : bubs.map((x, n) => `<span class="d6-bub b${n}">${UI.esc(x)}</span>`).join("")}
+      ${img ? `<i class="d6-halo" aria-hidden="true"></i><i class="d6-ground" aria-hidden="true"></i><img class="d6-si" src="${img}" alt="" ${k ? 'loading="lazy"' : ""} />` : cross}${kind === "prod" ? `<span class="d6-pg" aria-hidden="true"></span>` : ""}
       <button type="button" class="d6-btn" data-d5go="${go}">${UI.esc(btn)} <i>${A}</i></button></article>`).join("")}</div>
     <div class="d6-dots">${S.map((_, k) => `<i class="${k ? "" : "on"}"></i>`).join("")}</div>
     <svg class="d6-wave" viewBox="0 0 390 36" preserveAspectRatio="none" aria-hidden="true"><path d="M0 22 C 100 0, 210 40, 390 8 L390 36 L0 36 Z"/></svg>`;
+  try { d6PromoFill(); } catch (e) { /* promos pas encore là */ }
   const tr = sl.querySelector(".d6-track"), dots = [...sl.querySelectorAll(".d6-dots i")];
   // (patron 24/11 : « pourquoi ça défile pas tout seul ») après un glissement du doigt, le défilement reprend tout seul 6 s plus tard
   let cur = 0, user = 0;
   const paint = () => dots.forEach((d, k) => d.classList.toggle("on", k === cur));
   tr.addEventListener("scroll", () => { const k = Math.round(Math.abs(tr.scrollLeft) / tr.clientWidth); if (k !== cur) { cur = k; paint(); } }, { passive: true });
   ["touchstart", "touchmove", "pointerdown"].forEach(ev => tr.addEventListener(ev, () => { user = Date.now(); }, { passive: true }));
+  // (patron 24/11 : « le scroll doit pouvoir ramener à la première image ») glisser encore après la dernière image revient
+  // à la première, et glisser en arrière sur la première va à la dernière
+  const go = k => { cur = (k + S.length) % S.length; tr.scrollTo({ left: (he ? -1 : 1) * cur * tr.clientWidth, behavior: "smooth" }); paint(); };
+  let x0 = null, k0 = 0;
+  tr.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; k0 = cur; }, { passive: true });
+  tr.addEventListener("touchend", e => {
+    if (x0 == null) return; const dx = (e.changedTouches[0].clientX - x0) * (he ? -1 : 1); x0 = null;
+    setTimeout(() => { if (cur !== k0) return; if (dx < -40 && k0 === S.length - 1) go(0); else if (dx > 40 && k0 === 0) go(S.length - 1); }, 260);
+  }, { passive: true });
   clearInterval(d5Home.t);
   d5Home.t = setInterval(() => { if (Date.now() - user < 6000 || document.hidden || (document.body.dataset.view || "home") !== "home") return; cur = (cur + 1) % S.length; tr.scrollTo({ left: (he ? -1 : 1) * cur * tr.clientWidth, behavior: "smooth" }); paint(); }, 4600);
   // 2. La bande de mots : ce qu'on fait + les restos et magasins qu'il y a
@@ -4602,12 +4630,25 @@ function d5Kinds() {
     return `<button type="button" class="d5-poster${dark ? " dark" : ""}" data-d5go="${go}" style="--pbg:${bg}"><span class="d5-pn" dir="ltr">0${i + 1}</span>
       ${img ? `<img src="${img}" alt="" loading="lazy" />` : k === "pharma" ? cross : `<span class="d5-pw2">${UI.esc(w.slice(0, 1))}</span>`}
       <b style="--fs:${fit(w, 172, 60)}px">${UI.esc(w)}</b><span class="d5-pf"><span>${UI.esc(sub)}</span><i>${he ? "‹" : "›"}</i></span></button>`; }).join("");
-  const more = D5_MORE.map(k => { const b = document.querySelector(`#homeKinds .ch-kind[data-kind="${k}"] b`); return b ? `<button type="button" class="d5-more-it" data-d5go="kind:${k}"><span>${UI.esc(b.textContent)}</span><i>${he ? "‹" : "›"}</i></button>` : ""; }).join("");
+  const more = D5_MORE.map(k => { const b = document.querySelector(`#homeKinds .ch-kind[data-kind="${k}"] b`); return b ? `<button type="button" class="d5-more-it" data-d5go="kind:${k}" style="--d:${D5_MORE.indexOf(k) * 70}ms"><span>${UI.esc(b.textContent)}</span><img class="d5-mi" src="img/k2/c-${k}.webp" alt="" loading="lazy" decoding="async" /><i>${he ? "‹" : "›"}</i></button>` : ""; }).join("");
   const html = `<h2 class="d5-h2">${UI.esc(he ? "הכול, עד הבית." : "Tout, livré.")}<em>${UI.esc(he ? "בוחרים, ואנחנו הולכים בשבילכם" : "choisissez, on y va pour vous")}</em></h2>
     <div class="d5-posters">${posters}</div>
     ${more ? `<h3 class="d5-h3">${UI.esc(he ? "שירותים נוספים" : "Autres services")}</h3><div class="d5-more">${more}</div>` : ""}`;
-  if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
+  if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; d5MoreIn(box); }
 }
+// les cartes « Autres services » arrivent l'une après l'autre quand on descend jusqu'à elles
+function d5MoreIn(box) {
+  const m = box.querySelector(".d5-more"); if (!m) return;
+  if (!window.IntersectionObserver) { m.classList.add("in"); return; }
+  const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { m.classList.add("in"); io.disconnect(); } }, { threshold: .2 });
+  io.observe(m);
+}
+// (patron 24/11 : « on doit pouvoir cliquer sur les slides ») toucher n'importe où sur une grande image = son bouton ;
+// les noms de restos dessus ouvrent ce resto (data-d4-pro)
+document.addEventListener("click", e => {
+  const sl = e.target.closest && e.target.closest(".d6-slide"); if (!sl || e.target.closest("button, a")) return;
+  const b = sl.querySelector(".d6-btn"); if (b) b.click();
+});
 document.addEventListener("click", e => {
   const g = e.target.closest && e.target.closest("[data-d5go]"); if (!g) return;
   const [kind, id] = g.dataset.d5go.split(":");
@@ -4618,6 +4659,8 @@ document.addEventListener("click", e => {
   if (id === "promo") return openPromosAll("");
   if (id === "shops") return d4MagOpen();
   if (id === "mikve") return mikveOpen();
+  // (patron 24/11 : « Tous les restos ne fonctionne pas ») la liste des restaurants, directement
+  if (id === "resto") { d4m.f = "k:restaurant"; d4m.q = ""; return d4MagOpen(); }
   const kb = document.querySelector(`#homeKinds .ch-kind[data-kind="${id}"], #homeKinds [data-kind="${id}"]`);
   if (kb) return kb.click();
   const t4 = document.querySelector(`#d4Tiles [data-d4="${id}"], #d4Shops [data-d4="${id}"]`);
@@ -4899,7 +4942,7 @@ function renderCatalog() {
       `<button type="button" class="cg-tab" data-cg-cat="${UI.esc(x.id)}">${UI.esc(x.title)}</button>`).join("")}</div>` : ""}`;
   // Le champ de recherche est posé une seule fois par commerce (il garde le clavier et ce qui est tapé)
   if (box.dataset.shell !== state.shop.code + I18N.lang) {
-    box.innerHTML = `<div class="cg-stores-w"></div><div class="cg-head"><div class="cg-srow"><button type="button" class="cg-shopsw hidden" data-cg-sw aria-expanded="false"></button><label class="cg-search"><span aria-hidden="true">🔍</span><input type="search" data-cg-q enterkeyhint="search" autocomplete="off" /></label></div><div class="cg-swlist hidden"></div><button type="button" class="cg-voice" data-cg-mic><span class="cv-ic">${HV_MIC}</span><span class="cv-t"><b>${UI.esc(t("cgVoice"))}</b><small>${UI.esc(t("cgVoiceS"))}</small></span><i aria-hidden="true">›</i></button><div class="cg-head-tabs"></div></div><div class="cg-body"></div>`;
+    box.innerHTML = `<div class="cg-stores-w"></div><div class="cg-head"><div class="cg-srow"><button type="button" class="cg-shopsw hidden" data-cg-sw aria-expanded="false"></button><label class="cg-search"><span aria-hidden="true">🔍</span><input type="search" data-cg-q enterkeyhint="search" autocomplete="off" /><button type="button" class="cg-qmic" data-cg-mic aria-label="${UI.esc(t("cgVoice"))}">${HV_MIC}</button></label></div><div class="cg-swlist hidden"></div><button type="button" class="cg-voice" data-cg-mic><span class="cv-ic">${HV_MIC}</span><span class="cv-t"><b>${UI.esc(t("cgVoice"))}</b><small>${UI.esc(t("cgVoiceS"))}</small></span><i aria-hidden="true">›</i></button><div class="cg-head-tabs"></div></div><div class="cg-body"></div>`;
     box.dataset.shell = state.shop.code + I18N.lang; box.dataset.html = ""; box.dataset.head = "";
     state.cgQ = state.cgQNext || ""; state.cgQNext = ""; state.cgQPre = !!state.cgQ; state.cgQPreFilled = false;
     if (state.cgQ) box.querySelector("[data-cg-q]").value = state.cgQ;
@@ -5405,7 +5448,9 @@ const TRASH_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" s
 function renderCart() {
   const lines = cartLines();
   if (!lines.length) { $("#cartSheet").classList.add("hidden"); return; }
-  $("#cartTitle").textContent = t("csTitle", { name: state.shop ? UI.bi(state.shop.name) : "" });
+  // (patron 24/11 : « très moche ») « Ma commande » en gros, le nom du magasin dessous (plus de « · » coupé en début de ligne)
+  { const tt = t("csTitle", { name: state.shop ? UI.bi(state.shop.name) : "" }), i = tt.indexOf(" · ");
+    $("#cartTitle").innerHTML = i > 0 ? `${UI.esc(tt.slice(0, i))}<small class="ct-shop">${UI.esc(tt.slice(i + 3))}</small>` : UI.esc(tt); }
   $("#cartBody").innerHTML = lines.map(({ p, qty }) => {
     const photo = UI.safeImg(p.photo);
     const id = UI.esc(p.id);
@@ -10096,8 +10141,21 @@ function hpShops() {
   all.forEach(x => { by[x.code] = (by[x.code] || 0) + 1; });
   return { total: all.length, shops: Object.entries(by).sort((a, b) => b[1] - a[1]) };
 }
+// (patron 24/11 : « je veux plus de produits, ça fait vide ») la grande image des promos montre 4 vrais produits en promo
+// (photo + prix), pris dans les promos de l'accueil ; sans promos chargées, la Bamba reste seule
+function d6PromoFill() {
+  const g = document.querySelector(".d6-slide.k-prod .d6-pg"); if (!g) return;
+  let list = []; try { list = hpList().filter(x => x.ph && !pzSlow(x)).slice(0, 4); } catch (e) { list = []; }
+  if (list.length < 3) { g.closest(".d6-slide").classList.remove("has-pg"); return; }
+  const html = list.map((x, k) => `<span class="d6-pi p${k}"><img src="${UI.esc(x.ph)}" alt="" loading="lazy" decoding="async" /><b dir="ltr">${UI.esc(money(x.p))}</b>${x.f ? `<em dir="ltr">−${Number(x.f)}%</em>` : ""}</span>`).join("");
+  if (g.dataset.html !== html) { g.innerHTML = html; g.dataset.html = html; }
+  // photo qui ne charge pas : sa carte disparaît (jamais de cadre vide)
+  if (!g.dataset.err) { g.dataset.err = "1"; g.addEventListener("error", e => { const c = e.target.closest && e.target.closest(".d6-pi"); if (c) c.remove(); }, true); }
+  g.closest(".d6-slide").classList.add("has-pg");
+}
 function renderPromos() {
   try { d4Tiles(); } catch (e) { /* ignore */ }
+  try { d6PromoFill(); } catch (e) { /* design 5 */ }
   const box = $("#homePromos");
   if (!box) return;
   const list = hpList();

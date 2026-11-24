@@ -7863,3 +7863,12 @@ html[dir=rtl] .fi-help .fh-stops p { padding: 6px 26px 10px 0; } html[dir=rtl] .
 .pay-top p { margin: 0; display: flex; gap: 10px; align-items: flex-start; font-size: 15px; font-weight: 600; line-height: 1.35; color: #111418; }
 .pay-top p i { flex: none; width: 24px; height: 24px; border-radius: 12px; background: #111418; color: #fff; font: 800 13px/24px Heebo, sans-serif; text-align: center; font-style: normal; }
 .cs-ridepay { margin: 8px 2px 0; font-size: 15px; font-weight: 800; color: #111418; }
+/* nom de l'ingrédient sous sa photo (vitrine « menu éclaté ») */
+.vt-ing .vt-lbl { position: absolute; left: 50%; top: 100%; transform: translate(-50%, 2px) rotate(calc(-1 * var(--r))); width: max-content; max-width: 88px; text-align: center; padding: 3px 9px; border-radius: 11px; background: rgba(255,255,255,.95); color: #111418; font: 800 11.5px/1.2 Heebo, sans-serif; box-shadow: 0 3px 8px rgba(0,0,0,.18); pointer-events: none; }
+.vt-ing.x .vt-lbl { text-decoration: line-through; }
+/* noms des ingrédients : au-dessus de la photo pour ceux du haut (jamais sous le plat), la scène un peu plus haute */
+.vt-plate:has(.vt-lbl) { height: 392px; }
+.vt-ing.up .vt-lbl { top: auto; bottom: 100%; transform: translate(-50%, -2px) rotate(calc(-1 * var(--r))); }
+/* micro dans la barre de recherche du catalogue (design 5 seulement : il remplace le gros bouton « Commander à la voix ») */
+.cg-qmic { display: none; }
+#cartTitle .ct-shop { display: block; margin-top: 4px; font-size: .62em; font-weight: 700; opacity: .85; }
