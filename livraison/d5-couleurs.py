@@ -65,6 +65,25 @@ for m in re.finditer(r"([^{}@;]+)\{([^{}]*)\}", css):
     if decls:
         rules.append(f"{s5} {{ {'; '.join(decls)}; }}")
 
+# 2) les règles communes (sans html.d3) qui ont un fond orange écrit en dur : fond --ink aussi (le « ! » du logo est du texte, pas touché)
+seen = set()
+for m in re.finditer(r"([^{}@;]+)\{([^{}]*)\}", css):
+    sel, body = m.group(1).strip(), m.group(2)
+    if "html.d" in sel or sel.startswith(("from", "to", "@")) or re.match(r"^[\d.%, ]+$", sel) or is_logo(sel):
+        continue
+    if not re.search(rf"background(-color)?\s*:[^;]*({ORANGE})(?![0-9a-fA-F])", body, re.I):
+        continue
+    parts = []
+    for part in sel.split(","):
+        part = part.strip()
+        if not part or part.startswith((":root", "html")):
+            continue
+        part = re.sub(r"^body\b", "", part).strip()
+        parts.append(f"html:where(.d5) body {part}".strip())  # plus faible que les règles html.d3 qui ont déjà changé ce fond
+    if parts and sel not in seen:
+        seen.add(sel)
+        rules.append(f"{', '.join(parts)} {{ background-color: var(--ink) !important; }}")
+
 head = ("/* Fichier fabriqué par d5-couleurs.py à partir de styles.css : ne pas modifier à la main.\n"
         "   Design 5 : les couleurs noires, bleu nuit et orange de l'ancien design deviennent la couleur --ink de la palette. */\n")
 (here / "d5-auto.css").write_text(head + "\n".join(rules) + "\n")

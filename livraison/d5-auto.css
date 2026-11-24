@@ -237,3 +237,72 @@ html.d5 body #catalogBox .cg-n, html.d5 body #catalogBox .cg-n bdi { color: var(
 html.d5 body #cartSheet .cs-nav .btn-sm, html.d5 body #cartSheet [data-cs-addbtn] { background-color: var(--ink) !important; border-color: var(--ink) !important; }
 html.d5 body #cartSheet .cs-steps i { background-color: var(--ink) !important; }
 html.d5 body #cartSheet .cs-qty button { color: var(--ink) !important; }
+html:where(.d5) body .rd-card.hot { background-color: var(--ink) !important; }
+html:where(.d5) body .add-qty button { background-color: var(--ink) !important; }
+html:where(.d5) body .today-chart i.hi { background-color: var(--ink) !important; }
+html:where(.d5) body .mini-bars i.hi { background-color: var(--ink) !important; }
+html:where(.d5) body .today-legend .lg { background-color: var(--ink) !important; }
+html:where(.d5) body .sl-cover { background-color: var(--ink) !important; }
+html:where(.d5) body .sl-item em { background-color: var(--ink) !important; }
+html:where(.d5) body .ch-mapbtn { background-color: var(--ink) !important; }
+html:where(.d5) body .ol-steps b { background-color: var(--ink) !important; }
+html:where(.d5) body .kit-seg button.on { background-color: var(--ink) !important; }
+html:where(.d5) body .camp-new { background-color: var(--ink) !important; }
+html:where(.d5) body .bdg-go { background-color: var(--ink) !important; }
+html:where(.d5) body .direct-tip .dt-tag { background-color: var(--ink) !important; }
+html:where(.d5) body .gm-badge { background-color: var(--ink) !important; }
+html:where(.d5) body .cg-head .cg-tab.on { background-color: var(--ink) !important; }
+html:where(.d5) body .fn-bar i { background-color: var(--ink) !important; }
+html:where(.d5) body .it-size em { background-color: var(--ink) !important; }
+html:where(.d5) body .it-drinks .it-mod.on { background-color: var(--ink) !important; }
+html:where(.d5) body .nopay-ready .npr-chips .ch-chip.on { background-color: var(--ink) !important; }
+html:where(.d5) body .buy-live .bl-bar i { background-color: var(--ink) !important; }
+html:where(.d5) body .bs-btns .btn-primary { background-color: var(--ink) !important; }
+html:where(.d5) body .order-who .ow-call { background-color: var(--ink) !important; }
+html:where(.d5) body .tour-no { background-color: var(--ink) !important; }
+html:where(.d5) body .ready-chips .ch-chip.on { background-color: var(--ink) !important; }
+html:where(.d5) body .num-chips .ch-chip.on { background-color: var(--ink) !important; }
+html:where(.d5) body .inapp-bar .btn { background-color: var(--ink) !important; }
+html:where(.d5) body .cs-closed .cs-notify { background-color: var(--ink) !important; }
+html:where(.d5) body .slot-pick .sl-chip.on { background-color: var(--ink) !important; }
+html:where(.d5) body .shop-hero .sh-sched .sh-sched-go { background-color: var(--ink) !important; }
+html:where(.d5) body .wk-lang .btn.on { background-color: var(--ink) !important; }
+html:where(.d5) body #cartNav .cn-add .btn { background-color: var(--ink) !important; }
+html:where(.d5) body .what-chip.on { background-color: var(--ink) !important; }
+html:where(.d5) body .itb-tab i { background-color: var(--ink) !important; }
+html:where(.d5) body .itb-pic em { background-color: var(--ink) !important; }
+html:where(.d5) body .itr-add { background-color: var(--ink) !important; }
+html:where(.d5) body .pm .pm-go { background-color: var(--ink) !important; }
+html:where(.d5) body .pa-cat.on { background-color: var(--ink) !important; }
+html:where(.d5) body .pa-add { background-color: var(--ink) !important; }
+html:where(.d5) body .cg-tip-go { background-color: var(--ink) !important; }
+html:where(.d5) body .note-link { background-color: var(--ink) !important; }
+html:where(.d5) body .sc-mic { background-color: var(--ink) !important; }
+html:where(.d5) body .hv-msg.me { background-color: var(--ink) !important; }
+html:where(.d5) body .hv-mic { background-color: var(--ink) !important; }
+html:where(.d5) body .vit-voice .vv-ic { background-color: var(--ink) !important; }
+html:where(.d5) body .buy-list li em { background-color: var(--ink) !important; }
+html:where(.d5) body .vit-voice .vv-wave { background-color: var(--ink) !important; }
+html:where(.d5) body .hd-me { background-color: var(--ink) !important; }
+html:where(.d5) body .hv-call { background-color: var(--ink) !important; }
+html:where(.d5) body .vit-voice .vv-dot { background-color: var(--ink) !important; }
+html:where(.d5) body .hv-keep .hk-go { background-color: var(--ink) !important; }
+html:where(.d5) body .cg-search .cg-mic { background-color: var(--ink) !important; }
+html:where(.d5) body .cg-voice .cv-ic { background-color: var(--ink) !important; }
+html:where(.d5) body .ph-src-tabs button.on { background-color: var(--ink) !important; }
+html:where(.d5) body #formError .soft-go { background-color: var(--ink) !important; }
+html:where(.d5) body .vit-inst .vi-go { background-color: var(--ink) !important; }
+html:where(.d5) body .it-promo { background-color: var(--ink) !important; }
+html:where(.d5) body .hv-su-pin i { background-color: var(--ink) !important; }
+html:where(.d5) body .hv-su .hv-su-pin i { background-color: var(--ink) !important; }
+html:where(.d5) body .hv-su .hv-su-pin::before { background-color: var(--ink) !important; }
+html:where(.d5) body .vit-myshop .vms-go { background-color: var(--ink) !important; }
+html:where(.d5) body .mk-go { background-color: var(--ink) !important; }
+html:where(.d5) body .pz .pz-add { background-color: var(--ink) !important; }
+html:where(.d5) body .rd-dest small { background-color: var(--ink) !important; }
+html:where(.d5) body .hop-dlg-btn.main { background-color: var(--ink) !important; }
+html:where(.d5) body .fi-pill { background-color: var(--ink) !important; }
+html:where(.d5) body .d4m-go { background-color: var(--ink) !important; }
+html:where(.d5) body .rs-go { background-color: var(--ink) !important; }
+html:where(.d5) body .pa .pa-bar-go { background-color: var(--ink) !important; }
+html:where(.d5) body .pz .pz-end-in i { background-color: var(--ink) !important; }

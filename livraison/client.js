@@ -4301,7 +4301,7 @@ function d6HeroHtml(s, logo, cover) {
     <div class="d6h-bubs">${st ? `<span class="d6h-b ${st.open ? "on" : "off"}"><i></i>${UI.esc(openLabel(st))}</span>` : ""}<span class="d6h-b w">${UI.esc(s.shop_pays ? t("scGift") : t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) }))}</span>${isKosher(s) ? `<span class="d6h-b k">${UI.esc(he ? "כשר" : "Casher")}</span>` : ""}</div>
     <h1 class="d6h-name">${UI.esc(UI.bi(s.name))}</h1>
     <p class="d6h-tag">${UI.esc(UI.shopText(s, "tagline") || (t("shKinds") || {})[s.kind] || "")}</p>
-    ${pic ? `<img class="d6h-pic${dish ? " cut" : ""}" src="${UI.esc(pic)}" alt="" />` : logo ? `<img class="d6h-logo" src="${UI.esc(logo)}" alt="" />` : ""}
+    ${pic ? `${dish ? `<i class="d6-halo h" aria-hidden="true"></i><i class="d6-ground h" aria-hidden="true"></i>` : ""}<img class="d6h-pic${dish ? " cut" : ""}" src="${UI.esc(pic)}" alt="" />` : logo ? `<img class="d6h-logo" src="${UI.esc(logo)}" alt="" />` : ""}
     <div class="d6h-acts"><button type="button" class="d6h-a" data-sh-info="1">${UI.esc(t("shInfoBtn"))}</button>${wa ? `<a class="d6h-a wa" href="https://wa.me/${UI.esc(wa)}?text=${encodeURIComponent(t("shWaHello", { name: UI.bi(s.name) }))}" target="_blank" rel="noopener">WhatsApp</a>` : ""}${at ? `<button type="button" class="d6h-a when" data-sl-goto>${UI.esc(vitWhenLong(at))} · ${UI.esc(t("slChange"))}</button>` : ""}</div>
   </div>${shopSheet(s)}`;
 }
@@ -4460,17 +4460,18 @@ function d5Home() {
   sl.innerHTML = `<div class="d6-track">${S.map(([c, tone, a, b, note, bubs, img, kind, go, btn], k) => `<article class="d6-slide ${tone} k-${kind}" style="--s:var(--${c})">
       <h2 class="d6-st"><span>${UI.esc(a)}</span><span>${UI.esc(b)}</span></h2><p class="d6-sn">${UI.esc(note)}</p>
       ${bubs.map((x, n) => `<span class="d6-bub b${n}">${UI.esc(x)}</span>`).join("")}
-      ${img ? `<img class="d6-si" src="${img}" alt="" ${k ? 'loading="lazy"' : ""} />` : cross}
+      ${img ? `<i class="d6-halo" aria-hidden="true"></i><i class="d6-ground" aria-hidden="true"></i><img class="d6-si" src="${img}" alt="" ${k ? 'loading="lazy"' : ""} />` : cross}
       <button type="button" class="d6-btn" data-d5go="${go}">${UI.esc(btn)} <i>${A}</i></button></article>`).join("")}</div>
     <div class="d6-dots">${S.map((_, k) => `<i class="${k ? "" : "on"}"></i>`).join("")}</div>
     <svg class="d6-wave" viewBox="0 0 390 36" preserveAspectRatio="none" aria-hidden="true"><path d="M0 22 C 100 0, 210 40, 390 8 L390 36 L0 36 Z"/></svg>`;
   const tr = sl.querySelector(".d6-track"), dots = [...sl.querySelectorAll(".d6-dots i")];
-  let cur = 0, user = false;
+  // (patron 24/11 : « pourquoi ça défile pas tout seul ») après un glissement du doigt, le défilement reprend tout seul 6 s plus tard
+  let cur = 0, user = 0;
   const paint = () => dots.forEach((d, k) => d.classList.toggle("on", k === cur));
   tr.addEventListener("scroll", () => { const k = Math.round(Math.abs(tr.scrollLeft) / tr.clientWidth); if (k !== cur) { cur = k; paint(); } }, { passive: true });
-  tr.addEventListener("touchstart", () => { user = true; }, { passive: true });
+  ["touchstart", "touchmove", "pointerdown"].forEach(ev => tr.addEventListener(ev, () => { user = Date.now(); }, { passive: true }));
   clearInterval(d5Home.t);
-  d5Home.t = setInterval(() => { if (user || document.hidden || (document.body.dataset.view || "home") !== "home") return; cur = (cur + 1) % S.length; tr.scrollTo({ left: (he ? -1 : 1) * cur * tr.clientWidth, behavior: "smooth" }); paint(); }, 4600);
+  d5Home.t = setInterval(() => { if (Date.now() - user < 6000 || document.hidden || (document.body.dataset.view || "home") !== "home") return; cur = (cur + 1) % S.length; tr.scrollTo({ left: (he ? -1 : 1) * cur * tr.clientWidth, behavior: "smooth" }); paint(); }, 4600);
   // 2. La bande de mots : ce qu'on fait + les restos et magasins qu'il y a
   const names = (state.showcase || []).filter(x => !x.paused).map(x => d4Nm(x)).filter(Boolean).slice(0, 10);
   const words = (he ? ["קניות", "מסעדות", "בית מרקחת", "חבילות", "פרחים", "מאפייה", "הכי מהר"] : ["Courses", "Restos", "Pharmacie", "Colis", "Fleurs", "Boulangerie", "Au plus vite"]);

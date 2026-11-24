@@ -319,7 +319,7 @@ html.d5 body .d6-si { position: absolute; z-index: 2; inset-inline-end: -10px; b
 html.d5 body .k-dish .d6-si { height: 210px; bottom: 60px; } html.d5 body .k-prod .d6-si { height: 230px; transform: rotate(8deg); }
 @keyframes d6float { 0%, 100% { translate: 0 0; } 50% { translate: 0 -12px; } }
 html.d5 body .d6-cross { position: absolute; inset-inline-end: 30px; bottom: 90px; width: 150px; height: 150px; border-radius: 38px; background: #fff; transform: rotate(10deg); display: flex; align-items: center; justify-content: center; box-shadow: 0 18px 30px rgba(0,0,0,.14); animation: d6float 4.4s ease-in-out infinite; }
-html.d5 body .d6-cross svg { width: 80px; height: 80px; fill: #E2471B; }
+html.d5 body .d6-cross svg { width: 80px; height: 80px; fill: #FF5D73; }
 html.d5 body .d6-btn { position: relative; z-index: 4; display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; border: 0; border-radius: 30px; background: var(--ink); color: #fff; font: 800 15px Heebo, sans-serif; }
 html.d5 body .d6-slide .d6-btn { position: absolute; inset-inline-start: 22px; bottom: 60px; background: #fff; color: var(--ink); }
 html.d5 body .d6-slide.dark .d6-btn { background: var(--ink); color: #fff; }
@@ -929,3 +929,30 @@ html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-info { align-items: flex-s
 html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-pic:not(.photo)::before, html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-pic:not(.photo)::after { display: none !important; }
 html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-pic:not(.photo) > img, html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-pic:not(.photo) > span:not(.cg-qty) { display: none !important; }
 html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-pic:not(.photo) { aspect-ratio: auto !important; overflow: visible !important; }
+
+/* =====================================================================================================================
+   (patron 24/11, 4e passage) « le trait blanc au-dessus », « les images ont l'air trop collées »
+   ===================================================================================================================== */
+/* plus de bande claire entre le haut bleu et les grandes diapos */
+html.d5 body #homeSheet > #d6Slides { margin-top: -14px !important; }
+html.d5 body #vitTop #homeFind, html.d5 body #vitTop .sc-find, html.d5 body #vitTop .vit-find, html.d5 body #homeFind { box-shadow: none !important; }
+html.d5 body #vitTop { box-shadow: none !important; border-bottom: 0 !important; }
+/* les images détourées sont posées DANS le bloc : un halo plus clair derrière, une ombre au sol, jamais coupées au bord */
+html.d5 body .d6-halo { position: absolute; z-index: 1; inset-inline-end: 6px; bottom: 58px; width: 236px; height: 236px; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255,255,255,.42), rgba(255,255,255,.16) 62%, rgba(255,255,255,0) 100%); pointer-events: none; }
+html.d5 body .d6-ground { position: absolute; z-index: 1; inset-inline-end: 34px; bottom: 50px; width: 180px; height: 26px; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0,0,0,.26), rgba(0,0,0,0)); pointer-events: none; animation: d6shadow 4.4s ease-in-out infinite; }
+@keyframes d6shadow { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(.86); opacity: .7; } }
+html.d5 body .d6-si { inset-inline-end: 14px !important; bottom: 66px !important; height: 214px !important; max-width: 58% !important; object-fit: contain;
+  filter: drop-shadow(0 6px 4px rgba(0,0,0,.18)) drop-shadow(0 22px 22px rgba(0,0,0,.22)) !important; }
+html.d5 body .k-dish .d6-si { height: 196px !important; bottom: 72px !important; }
+html.d5 body .k-prod .d6-si { height: 204px !important; }
+html.d5 body .d6-halo.h { inset-inline-end: -4px; bottom: auto; top: 64px; width: 230px; height: 230px; }
+html.d5 body .d6-ground.h { inset-inline-end: 22px; bottom: auto; top: 270px; }
+html.d5 body .d6h-pic.cut { inset-inline-end: 4px !important; width: 210px !important; height: 210px !important; z-index: 2;
+  filter: drop-shadow(0 6px 4px rgba(0,0,0,.18)) drop-shadow(0 22px 22px rgba(0,0,0,.24)) !important; }
+/* promos qui défilent et produits : ombre douce au sol au lieu d'un détourage plat */
+html.d5 body .d6-promo img, html.d5 body .d6-row img { filter: drop-shadow(0 4px 3px rgba(0,0,0,.16)) drop-shadow(0 16px 14px rgba(0,0,0,.2)) !important; }
+html.d5 body #vitAddr#vitAddr > i::before { background: #fff !important; }
+html.d5 body #vitAddr#vitAddr > i::after { background: var(--c2) !important; }
+html.d5 body #vitAddr#vitAddr > i { background: rgba(255,255,255,.6) !important; }
