@@ -1,0 +1,210 @@
+/* =====================================================================================================================
+   HOP! — design 5 « affiche de quartier » (patron, 24/11 : « tout doit être dans ce style, cohérent, jusqu'à la commande »).
+   Par-dessus styles.css, seulement quand <html class="d5"> (par défaut ; ?design=4 garde le design précédent sur un téléphone,
+   ?design=5 revient au nouveau). Bleu nuit = la marque, papier crème = les pages, --act = la couleur des boutons d'action
+   (choisie par le patron : un seul réglage ici), titres Karantina (FR + HE), prix et tickets en IBM Plex Mono, notes Caveat.
+   Règles HOP! : pas d'émoji, pas de durée chiffrée, « dès 25 ₪ en ville », français et hébreu jamais coupés.
+   ===================================================================================================================== */
+html.d5 {
+  --navy: #0F1F3D; --navy2: #1A2E57; --paper: #F4ECDD; --paper2: #EADFCB; --line5: rgba(15,31,61,.12); --mute5: #5A6270;
+  --act: #FF6A13; --act-fg: #FFFFFF; --act-deep: #D9520A; --tag5: #FFE14A; --ok5: #1F9D57;
+  --K: Karantina, Heebo, sans-serif; --M: 'IBM Plex Mono', Heebo, monospace;
+  /* les anciennes variables du site prennent les nouvelles couleurs */
+  --orange: var(--act); --accent: var(--act); --bg: var(--paper); --panel: var(--paper);
+}
+html.d5 body { background: var(--paper) !important; color: var(--navy); font-family: Heebo, system-ui, sans-serif; }
+html.d5 body, html.d5 body .wrap { --ink: #0F1F3D; }
+
+/* ---------- typographie : titres en affiche ---------- */
+html.d5 body h2, html.d5 body h3:not(.vt-n), html.d5 body legend, html.d5 body .d4-h, html.d5 body h3.ch-h, html.d5 body #viewTitle, html.d5 body .cg-sec-h, html.d5 body .modal-box h3 {
+  font-family: var(--K) !important; font-weight: 700 !important; text-transform: uppercase; letter-spacing: 0 !important; line-height: .9 !important; color: var(--navy);
+}
+html.d5 body h3.ch-h, html.d5 body .d4-h, html.d5 body #d4KindsH { font-size: 40px !important; padding-top: 8px; }
+html.d5 body h3.ch-h::before, html.d5 body .d4-h::before { display: none !important; }
+html.d5 body legend { font-size: 30px !important; }
+
+/* ---------- barre du haut (bleu nuit) ---------- */
+html.d5 body .topbar { background: var(--navy) !important; border: 0 !important; box-shadow: none !important; }
+html.d5 body .topbar .wordmark, html.d5 body .topbar .logo-name { color: #fff !important; }
+html.d5 body .topbar .wordmark b { color: #fff !important; font-family: Heebo, sans-serif !important; font-weight: 900 !important; letter-spacing: -.04em !important; }
+html.d5 body .topbar .wordmark b i { color: #FF6A13 !important; }
+html.d5 body .topbar .tb-profile, html.d5 body .topbar .tb-cart, html.d5 body .topbar .lang-btn { background: rgba(255,255,255,.1) !important; color: #fff !important; border: 0 !important; box-shadow: none !important; }
+html.d5 body .topbar .tb-profile svg, html.d5 body .topbar .tb-cart svg { stroke: #fff !important; color: #fff !important; }
+html.d5 body .topbar .lang-btn { background: var(--paper) !important; color: var(--navy) !important; font-weight: 900 !important; }
+html.d5 body .topbar #tbCartN { background: var(--act) !important; color: var(--act-fg) !important; }
+html.d5 body .view-bar { background: var(--navy) !important; color: #fff !important; border: 0 !important; }
+html.d5 body .view-bar #viewTitle { color: #fff !important; font-size: 28px !important; }
+html.d5 body .view-bar .vb-back { background: var(--paper) !important; color: var(--navy) !important; border: 0 !important; border-radius: 22px !important; font-weight: 800; }
+
+/* ---------- boutons ---------- */
+html.d5 body .btn-primary, html.d5 body .btn.primary, html.d5 body button.btn-primary, html.d5 body a.btn-primary, html.d5 body .mb-go, html.d5 body #mobileGo {
+  background: var(--act) !important; color: var(--act-fg) !important; border: 0 !important; border-radius: 32px !important; box-shadow: none !important; font-weight: 800 !important; background-image: none !important;
+}
+html.d5 body .btn-primary:active, html.d5 body #mobileGo:active { background: var(--act-deep) !important; }
+html.d5 body .btn:not(.btn-primary):not(.btn-sm) { border-radius: 30px !important; }
+html.d5 body .btn-sm { border-radius: 22px !important; }
+html.d5 body .btn-ghost, html.d5 body .btn-light, html.d5 body .btn-outline { background: #fff !important; color: var(--navy) !important; border: 2px solid var(--navy) !important; }
+
+/* ---------- champs ---------- */
+html.d5 body input[type=text], html.d5 body input[type=search], html.d5 body input[type=tel], html.d5 body input:not([type]), html.d5 body textarea, html.d5 body select {
+  background: #fff !important; border: 1.5px solid var(--line5) !important; border-radius: 18px !important; color: var(--navy) !important;
+}
+html.d5 body input:focus, html.d5 body textarea:focus { border-color: var(--navy) !important; box-shadow: 0 0 0 3px rgba(15,31,61,.12) !important; outline: 0 !important; }
+
+/* ---------- puces / onglets ---------- */
+html.d5 body .cg-tab, html.d5 body .chip, html.d5 body .cs-cat, html.d5 body [data-cs-cat] { border-radius: 22px !important; border: 0 !important; background: rgba(15,31,61,.07) !important; color: var(--navy) !important; font-weight: 800 !important; }
+html.d5 body .cg-tab.on, html.d5 body .chip.on, html.d5 body .cg-tab[aria-selected=true] { background: var(--navy) !important; color: #fff !important; }
+
+/* ---------- barre du bas (bleu nuit, Hoppy au milieu) ---------- */
+html.d5 body .d3-nav { left: 12px !important; right: 12px !important; bottom: 10px !important; width: auto !important; border-radius: 30px !important; background: var(--navy) !important; border: 0 !important; box-shadow: 0 16px 40px rgba(5,11,23,.4) !important; padding: 6px 8px !important; }
+html.d5 body .d3-nav button { color: #9FB3D9 !important; } html.d5 body .d3-nav button svg { stroke: currentColor !important; }
+html.d5 body .d3-nav button.on { color: #fff !important; } html.d5 body .d3-nav button.on svg { stroke: var(--act) !important; }
+html.d5 body .d3-nav button.on::after { background: var(--act) !important; }
+html.d5 body .d3-nav .d3-mic i { background: var(--act) !important; border: 0 !important; box-shadow: 0 0 0 5px var(--navy) !important; }
+html.d5 body .d3-nav .d3-mic i svg { stroke: #fff !important; fill: none !important; } html.d5 body .d3-nav .d3-mic i svg rect { fill: #fff !important; }
+html.d5 body .d3-nav .d3-mic i::after { display: none !important; }
+html.d5 body .d3-nav .d3-mic span { color: #fff !important; background: transparent !important; }
+html.d5 body .wa-fab { background: var(--navy) !important; }
+
+/* ---------- barre du total (en bas des pages de commande) ---------- */
+html.d5 body .mobile-bar { background: var(--navy) !important; color: #fff !important; border: 0 !important; border-radius: 26px 26px 0 0 !important; box-shadow: 0 -10px 30px rgba(5,11,23,.25) !important; }
+html.d5 body .mobile-bar small { color: #9FB3D9 !important; }
+html.d5 body .mobile-bar #mobileTotal { font-family: var(--K) !important; font-weight: 700 !important; font-size: 40px !important; line-height: .85 !important; color: #fff !important; }
+
+/* ======================= ACCUEIL ======================= */
+html.d5.vit body #accueil, html.d5.vit body #homeSheet { background: var(--paper) !important; }
+html.d5 body #homeSheet { box-shadow: none !important; }
+html.d5 body #vitTop { position: relative; margin: -20px -16px 0 !important; padding: 14px 16px 0 !important; background: var(--navy) !important; color: #fff; border-radius: 0 !important; overflow: hidden; }
+html.d5 body #vitTop .vit-row > * { background: rgba(255,255,255,.09) !important; color: #fff !important; border: 0 !important; box-shadow: none !important; }
+html.d5 body #vitTop .vit-row small, html.d5 body #vitTop .vit-row .muted { color: #9FB3D9 !important; }
+html.d5 body #vitTop .vit-row b, html.d5 body #vitTop .vit-row strong, html.d5 body #vitTop .vit-row span { color: #fff !important; }
+html.d5 body #vitStatus { background: rgba(255,255,255,.08) !important; color: #CFE0FF !important; border: 0 !important; }
+html.d5 body #vitHero { position: relative; display: block !important; padding: 0 !important; margin: 0 !important; background: none !important; }
+html.d5 body #vitHero .vit-share { display: none !important; }
+html.d5 body #vitHero .vit-ask { display: none !important; }
+/* l'affiche : surtitre, grand titre, Hoppy, recherche, trois repères (ajoutés par d5Home dans client.js) */
+html.d5 body .d5-hero { position: relative; padding: 6px 0 0; }
+html.d5 body .d5-ghost { position: absolute; left: -16px; right: -16px; top: 26px; text-align: center; font: 700 170px/.82 var(--K); color: transparent; -webkit-text-stroke: 1.5px rgba(244,236,221,.09); white-space: nowrap; pointer-events: none; text-transform: uppercase; }
+html.d5 body .d5-eyebrow { position: relative; display: flex; align-items: center; gap: 10px; font: 600 12px var(--M); letter-spacing: .14em; color: #AFC0DE; text-transform: uppercase; }
+html.d5 body .d5-eyebrow i { width: 9px; height: 9px; border-radius: 5px; background: var(--act); box-shadow: 0 0 0 4px rgba(255,106,19,.25); }
+html.d5 body .d5-title { position: relative; margin: 12px 0 0 !important; font-family: var(--K) !important; font-weight: 700 !important; font-size: 76px !important; line-height: .86 !important; letter-spacing: 0 !important; text-transform: uppercase; color: #fff !important; }
+html.d5 body .d5-title span, html.d5 body .d5-title b { display: block; font-family: var(--K) !important; font-weight: 700 !important; } html.d5 body .d5-title b { color: var(--act) !important; }
+html.d5 body .d5-row { position: relative; display: flex; align-items: flex-end; justify-content: space-between; margin-top: -6px; }
+html.d5 body .d5-note { display: flex; align-items: flex-end; gap: 6px; padding-bottom: 14px; max-width: 180px; font: 700 23px/1.05 Caveat, cursive; color: #CFE0FF; }
+html[dir=rtl].d5 body .d5-note { font: 800 15px/1.3 Heebo, sans-serif; } html[dir=rtl].d5 body .d5-note svg { transform: scaleX(-1); }
+html.d5 body .d5-fig { position: relative; width: 140px; flex: none; }
+html.d5 body .d5-fig img { position: relative; z-index: 2; width: 140px; filter: drop-shadow(0 22px 20px rgba(0,0,0,.45)); animation: d5jump 3.4s cubic-bezier(.45, 0, .35, 1) infinite; }
+@keyframes d5jump { 0%, 100% { transform: translateY(0); } 45% { transform: translateY(-10px) rotate(2deg); } }
+html.d5 body .d5-fig svg { position: absolute; z-index: 1; width: 190px; height: 110px; top: 6px; inset-inline-end: 80px; } html[dir=rtl].d5 body .d5-fig svg { transform: scaleX(-1); }
+html.d5 body .d5-fig svg path, html.d5 body .d5-arc path { fill: none; stroke: var(--act); stroke-width: 3; stroke-dasharray: 2 11; stroke-linecap: round; animation: d5dash 1.4s linear infinite; }
+@keyframes d5dash { to { stroke-dashoffset: -26; } }
+html.d5 body #vitHero .sc-find { margin-top: 16px !important; }
+html.d5 body #vitHero .sc-find input { background: var(--paper) !important; border: 0 !important; border-radius: 30px !important; height: 52px !important; font-weight: 600 !important; }
+html.d5 body .d5-facts { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 18px; border-top: 1px solid rgba(255,255,255,.14); }
+html.d5 body .d5-facts div { padding: 12px 4px 16px; text-align: center; } html.d5 body .d5-facts div + div { border-inline-start: 1px solid rgba(255,255,255,.14); }
+html.d5 body .d5-facts b { display: block; font: 700 28px/.9 var(--K); color: #fff; text-transform: uppercase; }
+html.d5 body .d5-facts small { display: block; margin-top: 4px; font-size: 11px; font-weight: 700; color: #9FB3D9; }
+html.d5 body .d5-zig { display: block; width: calc(100% + 32px); height: 14px; margin: 0 -16px -1px; }
+/* le ticket qui défile */
+html.d5 body .d5-tick { margin: 0 -16px; overflow: hidden; border-bottom: 1.5px dashed var(--line5); background: var(--paper); }
+html.d5 body .d5-tick div { display: flex; gap: 24px; width: max-content; padding: 9px 0; font: 600 13px var(--M); color: var(--navy); animation: d5slide 32s linear infinite; }
+html.d5 body .d5-tick b { color: var(--act); } @keyframes d5slide { to { transform: translateX(-50%); } }
+html[dir=rtl].d5 body .d5-tick div { animation-name: d5slideR; } @keyframes d5slideR { to { transform: translateX(50%); } }
+/* les tuiles de l'accueil deviennent des affiches */
+html.d5 body #d4Tiles .d4t { border-radius: 26px !important; box-shadow: none !important; border: 0 !important; }
+html.d5 body #d4Tiles .d4t b, html.d5 body #d4Tiles .d4-sls b, html.d5 body #d4Tiles .d4t > span:not(.d4-bgs):not(.d4-blob):not(.d4-shadow):not(.d4-btn) { font-family: var(--K) !important; font-weight: 700 !important; text-transform: uppercase; letter-spacing: 0 !important; line-height: .88 !important; }
+html.d5 body #d4Tiles .d4-svc span:not(.d4-blob) { font-size: 26px !important; color: var(--navy) !important; }
+html.d5 body #d4Tiles .d4-svc small, html.d5 body #d4Tiles .d4t small { font-family: Heebo, sans-serif !important; text-transform: none; font-size: 12px !important; letter-spacing: 0 !important; }
+html.d5 body #d4Tiles .d4-promo { background: var(--navy) !important; }
+html.d5 body #d4Tiles .d4-promo .d4-bgs { opacity: .35; }
+html.d5 body #d4Tiles .d4-promo, html.d5 body #d4Tiles .d4-promo * { color: #fff !important; }
+html.d5 body #d4Tiles .d4-promo .d4-sls b { color: #FFB27F !important; font-size: 36px !important; }
+html.d5 body #d4Tiles .d4-btn { background: var(--act) !important; color: var(--act-fg) !important; border-radius: 22px !important; }
+html.d5 body #d4Tiles .d4-again { background: #fff !important; }
+html.d5 body #d4Tiles .d4-again b { font-size: 34px !important; color: var(--navy) !important; }
+html.d5 body #homeKinds .ch-kind { border-radius: 22px !important; border: 0 !important; box-shadow: none !important; }
+html.d5 body #homeKinds .ch-kind b { font-family: var(--K) !important; font-weight: 700 !important; font-size: 22px !important; line-height: .9 !important; text-transform: uppercase; color: var(--navy) !important; }
+html.d5 body #d4Shops .d4-sh { border-radius: 24px !important; border: 0 !important; box-shadow: 0 10px 24px rgba(15,31,61,.08) !important; background: #fff !important; }
+html.d5 body #d4Shops .d4-sh b, html.d5 body #d4Shops .d4-sh strong { font-family: var(--K) !important; font-weight: 700 !important; font-size: 28px !important; line-height: .9 !important; text-transform: uppercase; }
+html.d5 body #vitCourse { background: var(--navy) !important; color: #fff !important; border: 0 !important; border-radius: 26px !important; box-shadow: none !important; }
+html.d5 body #vitCourse b, html.d5 body #vitCourse .vc-txt b { font-family: var(--K) !important; font-weight: 700 !important; font-size: 30px !important; line-height: .9 !important; text-transform: uppercase; color: #fff !important; }
+html.d5 body #vitCourse small, html.d5 body #vitCourse .vc-txt span { color: #CFE0FF !important; }
+html.d5 body #vitCourse .vc-tag { background: var(--act) !important; color: var(--act-fg) !important; border: 0 !important; }
+html.d5 body .ch-explore .xp { background: #fff !important; border: 0 !important; border-radius: 20px !important; box-shadow: none !important; }
+html.d5 body .ch-explore .xp b { font-weight: 900 !important; color: var(--navy) !important; }
+html.d5 body .app-share { background: #fff !important; border: 0 !important; border-radius: 22px !important; }
+
+/* ======================= PAGE D'UN MAGASIN ======================= */
+html.d5 body #commander, html.d5 body #commander .wrap { background: var(--paper) !important; }
+html.d5 body #shopHero { background: transparent !important; border: 0 !important; box-shadow: none !important; }
+html.d5 body #shopHero .sh-row b, html.d5 body #shopHero .sh-name, html.d5 body #shopHero h2 { font-family: var(--K) !important; font-weight: 700 !important; font-size: 46px !important; line-height: .88 !important; text-transform: uppercase; color: var(--navy) !important; }
+html.d5 body #shopHero .sh-sched { background: #fff !important; border: 0 !important; border-radius: 20px !important; }
+html.d5 body #catalogBox .cg-item, html.d5 body #catalogBox .cg-card { background: #fff !important; border: 0 !important; border-radius: 22px !important; box-shadow: 0 8px 20px rgba(15,31,61,.06) !important; }
+html.d5 body #catalogBox .cg-price, html.d5 body #catalogBox .cg-item .pr, html.d5 body #catalogBox [class*=price] { font-family: var(--K) !important; font-weight: 700 !important; font-size: 28px !important; line-height: .9 !important; color: var(--navy) !important; }
+html.d5 body #catalogBox .cg-add, html.d5 body #catalogBox .cg-plus, html.d5 body #catalogBox [data-cg-add] { background: var(--navy) !important; color: #fff !important; border: 0 !important; }
+html.d5 body #catalogBox h4, html.d5 body #catalogBox .cg-sec > h3, html.d5 body #catalogBox .cg-sec-title { font-family: var(--K) !important; font-weight: 700 !important; font-size: 40px !important; text-transform: uppercase; line-height: .9 !important; color: var(--navy) !important; }
+html.d5 body fieldset { background: #fff !important; border: 0 !important; border-radius: 24px !important; box-shadow: none !important; }
+
+/* ======================= PANIER = TICKET DE CAISSE ======================= */
+html.d5 body #cartSheet .modal-box { background: var(--paper) !important; }
+html.d5 body #cartSheet .modal-box h3, html.d5 body #cartSheet .cs-head b { font-size: 34px !important; }
+html.d5 body #cartSheet .cs-line, html.d5 body #cartSheet .cs-item { font-family: var(--M) !important; }
+html.d5 body #cartSheet .cs-total { background: #FFFDF8 !important; border: 0 !important; font-family: var(--M) !important; font-weight: 600 !important; box-shadow: 0 14px 30px rgba(15,31,61,.12) !important;
+  -webkit-mask: radial-gradient(7px at 50% 100%, #0000 98%, #000) 50% 100% / 14px 100% repeat-x !important; mask: radial-gradient(7px at 50% 100%, #0000 98%, #000) 50% 100% / 14px 100% repeat-x !important; padding-bottom: 18px !important; }
+html.d5 body #cartSheet .cs-total b, html.d5 body #cartSheet .cs-total strong { color: var(--act) !important; }
+html.d5 body .cart-toast { background: var(--navy) !important; color: #fff !important; border-radius: 20px !important; }
+
+/* ======================= DIVERS ======================= */
+html.d5 body .modal-box { border-radius: 28px 28px 0 0 !important; }
+html.d5 body .muted { color: var(--mute5) !important; }
+
+/* ---------- accueil en affiches ---------- */
+html.d5 body #d4Tiles, html.d5 body #homeKinds, html.d5 body #d4KindsH { display: none !important; }
+html.d5 body .d5-kinds { margin: 0 -16px; padding: 22px 0 6px; }
+html.d5 body .d5-h2 { padding: 0 18px; font-size: 54px !important; } html.d5 body .d5-h2 em { display: block; margin-top: 4px; font: 700 26px/1 Caveat, cursive; text-transform: none; color: var(--act); }
+html[dir=rtl].d5 body .d5-h2 em { font: 800 17px/1.2 Heebo, sans-serif; }
+html.d5 body .d5-posters { display: flex; gap: 12px; overflow-x: auto; padding: 16px 18px 8px; scroll-snap-type: x mandatory; scrollbar-width: none; } html.d5 body .d5-posters::-webkit-scrollbar { display: none; }
+html.d5 body .d5-poster { position: relative; flex: none; width: 200px; height: 262px; border: 0; border-radius: 26px; overflow: hidden; scroll-snap-align: start; padding: 14px; text-align: start; background: var(--pbg); color: var(--navy); }
+html.d5 body .d5-poster.dark { color: #fff; }
+html.d5 body .d5-pn { font: 600 12px var(--M); opacity: .55; }
+html.d5 body .d5-poster img { position: absolute; z-index: 2; left: 50%; top: 26px; height: 140px; transform: translateX(-50%) rotate(-6deg); filter: drop-shadow(0 14px 12px rgba(0,0,0,.25)); }
+html.d5 body .d5-poster.dark img { height: 170px; top: 18px; transform: translateX(-30%); }
+html.d5 body .d5-poster b { position: absolute; z-index: 1; left: 0; right: 0; bottom: 50px; text-align: center; white-space: nowrap; font: 700 84px/.82 var(--K); text-transform: uppercase; }
+html.d5 body .d5-poster.dark b { color: #FFB27F; z-index: 3; }
+html.d5 body .d5-pf { position: absolute; z-index: 3; left: 14px; right: 14px; bottom: 14px; display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 13px; }
+html.d5 body .d5-pf i { font-style: normal; width: 32px; height: 32px; border-radius: 16px; background: var(--navy); color: #fff; display: flex; align-items: center; justify-content: center; }
+html.d5 body .d5-poster.dark .d5-pf i { background: var(--act); }
+html.d5 body .d5-cross { position: absolute; left: 50%; top: 34px; width: 112px; height: 112px; margin-left: -56px; border-radius: 28px; background: #fff; transform: rotate(10deg); display: flex; align-items: center; justify-content: center; box-shadow: 0 14px 26px rgba(15,31,61,.18); }
+html.d5 body .d5-cross svg { width: 60px; height: 60px; fill: #E2471B; }
+html.d5 body .d5-pw2 { position: absolute; left: 0; right: 0; top: 10px; text-align: center; font: 700 170px/1 var(--K); color: rgba(255,255,255,.45); text-transform: uppercase; }
+html.d5 body .d5-h3 { padding: 18px 18px 0; font-size: 34px !important; }
+html.d5 body .d5-more { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px 16px 6px; }
+html.d5 body .d5-more-it { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 52px; padding: 10px 14px; border: 0; border-radius: 18px; background: #fff; color: var(--navy); font-weight: 800; font-size: 13px; line-height: 1.2; text-align: start; }
+html.d5 body .d5-more-it i { font-style: normal; color: var(--act); font-weight: 900; }
+/* nos magasins en affiches */
+html.d5 body #d4Shops .d4-sh-row { gap: 12px !important; }
+html.d5 body #d4Shops .d4-sh { padding: 0 !important; overflow: hidden !important; }
+html.d5 body #d4Shops .d4-sh-pic { border-radius: 0 !important; }
+html.d5 body #d4Shops .d4-sh-n, html.d5 body #d4Shops .d4-sh small { padding: 0 12px !important; }
+html.d5 body #d4Shops .d4-sh-any .d4-sh-pic { background: var(--navy) !important; }
+/* (patron 24/11 : « ces logos non plus ») plus d'anciennes tuiles ni d'icônes dessinées */
+html.d5.d3 body #homeSheet #homeKinds#homeKinds, html.d5.d3 body #homeSheet #d4Tiles#d4Tiles, html.d5.d3 body #homeSheet #d4KindsH#d4KindsH { display: none !important; }
+html.d5 body #d4Shops .d4-sh-any .d4-blob, html.d5 body #vitCourse .vc-ic, html.d5 body .ch-explore .xp::before, html.d5 body .ch-explore .xp > i, html.d5 body .ch-explore .xp > svg { display: none !important; }
+html.d5 body #d4Shops .d4-sh-any .d4-sh-pic { position: relative; }
+html.d5 body #d4Shops .d4-sh-any .d4-sh-pic::after { content: "?"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 700 120px/1 var(--K); color: var(--act); }
+/* ordre des blocs de l'accueil */
+html.d5 body #homeSheet > * { order: 5; }
+html.d5 body #homeSheet > #vitTop { order: 1; } html.d5 body #homeSheet > #d5Tick { order: 2; } html.d5 body #homeSheet > #d5Kinds { order: 3; }
+html.d5 body #homeSheet > #d4Shops { order: 4; } html.d5 body #homeSheet > #vitCourse { order: 4; margin-top: 8px !important; }
+html.d5 body .d5-poster b { font-size: var(--fs, 84px) !important; }
+/* la course libre : bandeau bleu nuit propre */
+html.d5 body #vitCourse { display: flex !important; align-items: center !important; gap: 12px !important; padding: 18px !important; min-height: 0 !important; }
+html.d5 body #vitCourse .vc-txt { flex: 1 !important; min-width: 0 !important; white-space: normal !important; }
+html.d5 body #vitCourse .vc-txt b, html.d5 body #vitCourse .vc-txt strong { display: block !important; white-space: normal !important; overflow: visible !important; text-overflow: clip !important; font-size: 32px !important; }
+html.d5 body #vitCourse .vc-txt small, html.d5 body #vitCourse .vc-txt span, html.d5 body #vitCourse .vc-txt em { white-space: normal !important; overflow: visible !important; display: block !important; -webkit-line-clamp: unset !important; font-size: 13px !important; }
+html.d5 body #vitCourse .vc-tag { flex: none !important; width: auto !important; height: auto !important; padding: 10px 12px !important; border-radius: 16px !important; font-size: 11px !important; line-height: 1.1 !important; text-align: center !important; }
+html.d5 body #vitCourse .vc-tag b { font: 700 28px/.85 var(--K) !important; }
+html.d5 body .d5-poster b, html.d5 body .d5-pw2, html.d5 body .d5-facts b, html.d5 body .d5-ghost { font-family: var(--K) !important; font-weight: 700 !important; letter-spacing: 0 !important; }
+html.d5 body .d5-pn { font-family: var(--M) !important; }
+html.d5 body .d5-tick div { font-family: var(--M) !important; }
+html.d5 body #vitStatus { color: #FFD9C2 !important; font-weight: 700 !important; }

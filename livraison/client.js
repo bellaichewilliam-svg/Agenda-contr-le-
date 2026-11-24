@@ -11173,3 +11173,74 @@ document.addEventListener("submit", async e => {
 });
 
 })();
+
+// ===== Design 5 « affiche de quartier » (patron, 24/11) : l'affiche du haut de l'accueil et le ticket qui défile =====
+// (le reste du style est dans d5.css ; ici seulement ce qui n'existait pas dans la page : surtitre, grand titre, Hoppy, repères)
+function d5Home() {
+  if (!document.documentElement.classList.contains("d5")) return;
+  const hero = document.getElementById("vitHero"), top = document.getElementById("vitTop");
+  if (!hero || !top) return;
+  const he = I18N.lang === "he", T5 = he
+    ? { eb: "משלוחים בנתניה", a: "עושים", b: "לכם את", c: "הקניות.", note: "במחיר הכי טוב, מבטיחים", city: "נתניה",
+        f: [["הכול", "חנויות, מסעדות, בית מרקחת"], ["הכי זול", "משווים בשבילכם"], ["25 ₪", "בעיר, הכי מהר"]],
+        tick: [["חלב 1 ל׳", "✓"], ["לחם", "✓"], ["חיתולים", "✓"], ["פיצה", "חמה"], ["מרשם", "מוכן"], ["פרחים", "לאמא"], ["חבילה", "נאספה"], ["במבה", "✓"]] }
+    : { eb: "Livraison à Netanya", a: "On fait vos", b: "courses", c: "pour vous.", note: "au meilleur prix, promis", city: "Netanya",
+        f: [["Tout", "magasins, restos, pharmacie"], ["Moins cher", "on compare pour vous"], ["25 ₪", "en ville, au plus vite"]],
+        tick: [["LAIT 1 L", "✓"], ["PAIN", "✓"], ["COUCHES", "✓"], ["PIZZA", "CHAUDE"], ["ORDONNANCE", "PRÊTE"], ["FLEURS", "POUR MAMAN"], ["COLIS", "RÉCUPÉRÉ"], ["BAMBA", "✓"]] };
+  let h = hero.querySelector(".d5-hero");
+  if (!h) { h = document.createElement("div"); h.className = "d5-hero"; hero.insertBefore(h, hero.firstChild); }
+  h.innerHTML = `<div class="d5-ghost" aria-hidden="true" dir="ltr">${UI.esc(T5.city)}</div>
+    <div class="d5-eyebrow"><i></i><span>${UI.esc(T5.eb)}</span></div>
+    <h1 class="d5-title"><span>${UI.esc(T5.a)}</span><span>${UI.esc(T5.b)}</span><b>${UI.esc(T5.c)}</b></h1>
+    <div class="d5-row"><div class="d5-note"><svg width="30" height="26" viewBox="0 0 34 30" fill="none" stroke="#FF6A13" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M4 4c2 12 10 20 24 20"/><path d="M22 18l6 6-7 4"/></svg><span>${UI.esc(T5.note)}</span></div>
+      <div class="d5-fig"><svg viewBox="0 0 200 120" aria-hidden="true"><path d="M-40 110 C 10 -10, 120 -20, 190 60"/></svg><img src="img/v4/hoppy.webp" alt="Hoppy" /></div></div>`;
+  let f = hero.querySelector(".d5-facts");
+  if (!f) { f = document.createElement("div"); f.className = "d5-facts"; hero.appendChild(f); }
+  f.innerHTML = T5.f.map(([a, b]) => `<div><b${/₪/.test(a) ? ' dir="ltr"' : ""}>${UI.esc(a)}</b><small>${UI.esc(b)}</small></div>`).join("");
+  if (!top.querySelector(".d5-zig")) top.insertAdjacentHTML("beforeend", `<svg class="d5-zig" viewBox="0 0 390 14" preserveAspectRatio="none" aria-hidden="true"><path fill="#F4ECDD" d="M0 14V7L10 0l10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7 10 7 10-7V14z"/></svg>`);
+  let tk = document.getElementById("d5Tick");
+  if (!tk) { tk = document.createElement("div"); tk.id = "d5Tick"; tk.className = "d5-tick"; tk.setAttribute("aria-hidden", "true"); top.after(tk); }
+  tk.innerHTML = `<div>${T5.tick.map(([a, b]) => `<span>${UI.esc(a)} ········ <b>${UI.esc(b)}</b></span>`).join("").repeat(4)}</div>`;
+}
+d5Home(); window.addEventListener("hop:lang", d5Home);
+// Accueil en affiches (patron, 24/11 : « on ne fait plus ces tuiles ») : les rubriques en affiches de couleur, mot géant + vraie
+// photo ; les autres services en liste nette. Chaque affiche déclenche le bouton d'origine (même parcours qu'avant).
+const D5_POSTERS = [
+  ["promo", "d4:promo", "#0F1F3D", "img/v4/hoppy.webp", ["Promos", "Les vraies promos"], ["מבצעים", "המבצעים האמיתיים"], 1],
+  ["courses", "d4:shops", "#9CD8A8", "img/v4/lait.webp", ["Courses", "Le moins cher"], ["קניות", "הכי זול"]],
+  ["restos", "kind:resto", "#FFB283", "img/smashit/frites.webp", ["Restos", "Bien chaud"], ["מסעדות", "חם"]],
+  ["pharma", "d4:pharm", "#A9D0FF", "", ["Pharmacie", "Sans ordonnance"], ["בית מרקחת", "ללא מרשם"]],
+  ["makolet", "kind:shop", "#FFD54F", "img/v4/bamba.webp", ["Makolet", "Tout de suite"], ["מכולת", "מיד"]],
+  ["boulange", "d4:bakery", "#EAD2A8", "img/v4/baguette.webp", ["Boulange", "Baguette, challah"], ["מאפייה", "באגט, חלה"]],
+  ["colis", "d4:poste", "#C9B8FF", "img/v4/sac.webp", ["Colis", "Envoi et retrait"], ["חבילות", "שליחה ואיסוף"]],
+  ["mezouza", "d4:mezouza", "#BFE3C5", "", ["Mezouzot", "Au sofer et retour"], ["מזוזות", "לסופר וחזרה"]],
+  ["mikve", "d4:mikve", "#CFE3FF", "", ["Mikvé", "Vaisselle trempée"], ["טבילת כלים", "הלוך וחזור"]],
+];
+const D5_MORE = ["tabac", "baby", "pets", "home", "gift", "pressing", "docs", "yad2", "keys"];
+function d5Kinds() {
+  if (!document.documentElement.classList.contains("d5")) return;
+  const tiles = document.querySelector("#d4Tiles"); if (!tiles) return;
+  const he = I18N.lang === "he";
+  let box = document.querySelector("#d5Kinds");
+  if (!box) { box = document.createElement("section"); box.id = "d5Kinds"; box.className = "d5-kinds"; tiles.before(box); }
+  const fit = (s, w, mx) => Math.min(mx, Math.floor(w / (Math.max(1, [...s].length) * (he ? .5 : .44))));
+  const cross = `<span class="d5-cross"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/></svg></span>`;
+  const posters = D5_POSTERS.map(([k, go, bg, img, fr, hb, dark], i) => { const [w, sub] = he ? hb : fr;
+    return `<button type="button" class="d5-poster${dark ? " dark" : ""}" data-d5go="${go}" style="--pbg:${bg}"><span class="d5-pn" dir="ltr">0${i + 1}</span>
+      ${img ? `<img src="${img}" alt="" loading="lazy" />` : k === "pharma" ? cross : `<span class="d5-pw2">${UI.esc(w.slice(0, 1))}</span>`}
+      <b style="--fs:${fit(w, 168, 84)}px">${UI.esc(w)}</b><span class="d5-pf"><span>${UI.esc(sub)}</span><i>${he ? "‹" : "›"}</i></span></button>`; }).join("");
+  const more = D5_MORE.map(k => { const b = document.querySelector(`#homeKinds .ch-kind[data-kind="${k}"] b`); return b ? `<button type="button" class="d5-more-it" data-d5go="kind:${k}"><span>${UI.esc(b.textContent)}</span><i>${he ? "‹" : "›"}</i></button>` : ""; }).join("");
+  const html = `<h2 class="d5-h2">${UI.esc(he ? "הכול, עד הבית." : "Tout, livré.")}<em>${UI.esc(he ? "בוחרים, ואנחנו הולכים בשבילכם" : "choisissez, on y va pour vous")}</em></h2>
+    <div class="d5-posters">${posters}</div>
+    ${more ? `<h3 class="d5-h3">${UI.esc(he ? "שירותים נוספים" : "Autres services")}</h3><div class="d5-more">${more}</div>` : ""}`;
+  if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
+}
+document.addEventListener("click", e => {
+  const g = e.target.closest && e.target.closest("[data-d5go]"); if (!g) return;
+  const [kind, id] = g.dataset.d5go.split(":");
+  const el = kind === "d4" ? document.querySelector(`#d4Tiles [data-d4="${id}"], #d4Shops [data-d4="${id}"]`) : document.querySelector(`#homeKinds .ch-kind[data-kind="${id}"]`);
+  if (el) { e.preventDefault(); el.click(); }
+});
+(() => { const run = () => { try { d5Kinds(); } catch (e) { console.warn("d5Kinds", e); } };
+  if (window.MutationObserver) { const sheet = document.getElementById("homeSheet"); if (sheet) new MutationObserver(() => { clearTimeout(run.t); run.t = setTimeout(run, 60); }).observe(sheet, { childList: true }); }
+  run(); window.addEventListener("hop:lang", () => setTimeout(run, 80)); })();
