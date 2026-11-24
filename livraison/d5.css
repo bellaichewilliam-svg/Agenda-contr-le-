@@ -262,3 +262,14 @@ html.d5 body #olH1 { font-size: 56px !important; color: var(--navy) !important; 
 html.d5 body .ol, html.d5 body main, html.d5 body .bv { background: var(--paper) !important; }
 html.d5 body header.topbar .logo img { display: none !important; }
 html.d5 body .ol h2, html.d5 body .bv h2, html.d5 body main h2 { font-family: var(--K) !important; font-weight: 700 !important; font-size: 38px !important; letter-spacing: 0 !important; line-height: .9 !important; }
+
+/* ======================= FICHE PRODUIT ======================= */
+html.d5 body #itemSheet .modal-box { background: var(--paper) !important; }
+html.d5 body #itemSheet h3, html.d5 body #itemSheet .it-name { font: 700 40px/.9 var(--K) !important; text-transform: uppercase; letter-spacing: 0 !important; color: var(--navy) !important; }
+html.d5 body #itemSheet .it-price, html.d5 body #itemSheet [class*=price] { font-family: var(--K) !important; font-weight: 700 !important; font-size: 30px !important; color: var(--navy) !important; }
+html.d5 body #itemSheet .itb-opt:not(:has(img)) .itb-pic { display: none !important; }
+html.d5 body #itemSheet .itb-opt:not(:has(img)) { flex-direction: row !important; width: auto !important; min-width: 0 !important; padding: 10px 16px !important; border-radius: 22px !important; background: #fff !important; border: 2px solid transparent !important; }
+html.d5 body #itemSheet .itb-opt:not(:has(img)) b { font-size: 14px !important; font-weight: 800 !important; color: var(--navy) !important; white-space: nowrap; }
+html.d5 body #itemSheet .itb-opt.on:not(:has(img)) { border-color: var(--navy) !important; }
+html.d5 body #itemSheet .itb-opt.on.x:not(:has(img)) { background: var(--navy) !important; } html.d5 body #itemSheet .itb-opt.on.x:not(:has(img)) b { color: #fff !important; text-decoration: line-through; }
+html.d5.d3 body #orderForm fieldset > legend, html.d5.d3 body fieldset legend { font-family: var(--K) !important; font-size: 34px !important; font-weight: 700 !important; letter-spacing: 0 !important; text-transform: uppercase; color: var(--navy) !important; }
