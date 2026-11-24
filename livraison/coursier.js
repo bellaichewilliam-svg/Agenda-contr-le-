@@ -887,8 +887,8 @@ function card(o, kind) {
     const grpIds = [o, twin].filter(x => x.status === "confirmee").map(x => x.id);
     if (o.status === "confirmee") extra += `<div class="grp-help"><b>Un souci avec ces courses groupées ?</b>
       <small>Trop d'attente, un commerce en retard, un problème : retirez-vous, elles repartent tout de suite aux autres livreurs. Le client et le commerce sont prévenus.</small>
-      <span class="grp-btns">${grpIds.length > 1 ? `<button type="button" class="btn btn-sm btn-release" data-grp-release="${UI.esc(grpIds.join("|"))}">❌ Me retirer des 2 courses groupées</button>` : ""}
-        <button type="button" class="btn btn-sm" data-grp-release="${UI.esc(o.id)}">✂️ Garder l'autre, me retirer de celle-ci</button>
+      <span class="grp-btns">${[o, twin].filter(x => x.status === "confirmee").map(x => `<button type="button" class="btn btn-sm btn-release" data-grp-release="${UI.esc(x.id)}">❌ Lâcher la n° ${UI.esc(x.ref)} · <bdi>${UI.esc(x.dropoff_contact || x.contact_name || "client")}</bdi>, garder l'autre</button>`).join("")}
+        ${grpIds.length > 1 ? `<button type="button" class="btn btn-sm" data-grp-release="${UI.esc(grpIds.join("|"))}">Lâcher les 2 courses</button>` : ""}
         <button type="button" class="btn btn-sm" data-wait-tell="${UI.esc(o.id)}">📣 Prévenir HOP!</button></span></div>`;
     const d = x => Store.kmBetween(+o.pickup_lat, +o.pickup_lon, +x.dropoff_lat, +x.dropoff_lon);
     extra += `<div class="bag-line">🔗 Groupée avec la course n° ${UI.esc(twin.ref)} : récupérez les deux, puis livrez ${d(o) <= d(twin) ? "<b>celle-ci d'abord</b> (la plus proche)" : `d'abord la n° ${UI.esc(twin.ref)} (la plus proche)`}.</div>`;
@@ -1790,8 +1790,9 @@ function fiHelp(o) {
   const stopName = st => st.kind === "pickup" ? (UI.bi(st.o.shop_name || st.o.pickup_place || "", "fr") || "Départ") : (st.o.dropoff_contact || st.o.contact_name || "Client");
   const list = stops.length > 1 ? `<div class="fh-stops"><small>Vos étapes</small>${stops.map(st => `<p class="${st.kind}${st.o.id === o.id && st.kind === fiche.which ? " cur" : ""}"><i></i><b><bdi>${UI.esc(stopName(st))}</bdi></b><span><bdi>${UI.esc(st.o[st.kind === "pickup" ? "pickup_address" : "dropoff_address"] || "")}</bdi></span></p>`).join("")}</div>` : "";
   const rel = o.status !== "confirmee" ? `<p class="fh-note">Commande déjà récupérée : livrez-la. En cas de souci, écrivez à HOP!.</p>`
-    : twin && grp.length > 1 ? `<button type="button" class="fh-btn red" data-grp-release="${UI.esc(grp.map(x => x.id).join("|"))}">Annuler cette commande groupée (2 courses)</button>
-        <button type="button" class="fh-btn" data-grp-release="${UI.esc(o.id)}">Me retirer seulement de celle-ci</button>`
+    : twin && grp.length > 1 ? `<p class="fh-note">Commande groupée : choisissez la course à lâcher, vous gardez l'autre.</p>
+        ${grp.map(x => `<button type="button" class="fh-btn red" data-grp-release="${UI.esc(x.id)}">Me retirer de la course n° ${UI.esc(x.ref)} · <bdi>${UI.esc(x.dropoff_contact || x.contact_name || "client")}</bdi></button>`).join("")}
+        <button type="button" class="fh-btn" data-grp-release="${UI.esc(grp.map(x => x.id).join("|"))}">Lâcher les 2 courses</button>`
     : `<button type="button" class="fh-btn red" data-grp-release="${UI.esc(o.id)}">Annuler cette course · un autre livreur la prend</button>`;
   return `<div class="fi-help"><h4>Un souci avec la livraison ?</h4>${rel}<button type="button" class="fh-btn link" data-fi-hop>💬 Contacter HOP!</button>${list}</div>`;
 }
