@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HOP! · maquette « vitrine » (v4)</title>
+<meta name="theme-color" content="#0F1F3D">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@500;600;700;800;900&family=Caveat:wght@700&display=swap" rel="stylesheet">
+<style>
+/* Maquette de l'accueil « vitrine » (proposition au patron, 24/11) : le style de la page Smash It appliqué à tout HOP!.
+   Bleu nuit = la marque (pas de brun), crème, un seul orange pour l'action ; une couleur franche par rubrique ;
+   photos détourées qui flottent ; bords de papier déchiré ; bande de mots. Aucun commerce mis en avant, jamais « partenaire ». */
+:root { --navy: #0F1F3D; --cream: #F6EEDF; --or: #FF6A13; }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { overflow-x: clip; } body { font-family: Heebo, system-ui, sans-serif; background: var(--navy); color: #fff; overflow-x: clip; }
+img { display: block; user-select: none; }
+html[dir=rtl] .ltr { direction: ltr; unicode-bidi: isolate; }
+.top { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--navy); }
+.logo { font-weight: 900; font-size: 28px; letter-spacing: -.03em; } .logo i { font-style: normal; color: var(--or); }
+.addr { flex: 1; min-width: 0; padding: 8px 14px; border-radius: 22px; background: rgba(255,255,255,.1); font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.addr small { display: block; font-size: 11px; font-weight: 600; color: #AFC0DE; }
+.round { width: 40px; height: 40px; border-radius: 20px; background: #fff; color: var(--navy); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px; flex: none; }
+
+.hero { position: relative; padding: 18px 20px 110px; overflow: hidden; }
+.hero h1 { font-weight: 900; font-size: 44px; line-height: .98; letter-spacing: -.035em; max-width: 340px; position: relative; z-index: 3; }
+.hero h1 em { display: block; margin-top: 6px; font-family: Caveat, cursive; font-style: normal; font-size: 42px; letter-spacing: 0; color: var(--or); }
+html[dir=rtl] .hero h1 em { font-family: Heebo; font-weight: 800; font-size: 32px; }
+.search { position: relative; z-index: 4; display: flex; align-items: center; gap: 10px; margin-top: 18px; padding: 15px 18px; border-radius: 30px; background: #fff; color: #5A6270; font-weight: 600; font-size: 15px; }
+.search b { margin-inline-start: auto; width: 34px; height: 34px; border-radius: 17px; background: var(--or); display: flex; align-items: center; justify-content: center; }
+.stage { position: relative; height: 300px; margin-top: 10px; }
+.stage .h { position: absolute; left: 50%; bottom: 0; height: 290px; transform: translateX(-50%); filter: drop-shadow(0 24px 24px rgba(0,0,0,.45)); animation: bob 3.6s ease-in-out infinite; }
+.fl { position: absolute; filter: drop-shadow(0 14px 14px rgba(0,0,0,.4)); animation: drift 5s ease-in-out infinite; }
+@keyframes bob { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, -10px); } }
+@keyframes drift { 0%, 100% { transform: translateY(0) rotate(var(--r)); } 50% { transform: translateY(-10px) rotate(calc(var(--r) + 7deg)); } }
+.tag { position: absolute; z-index: 4; padding: 7px 13px; border-radius: 20px; font-weight: 800; font-size: 12px; white-space: nowrap; box-shadow: 0 8px 18px rgba(0,0,0,.3); }
+.tag.or { background: var(--or); color: #fff; transform: rotate(-6deg); } .tag.w { background: #fff; color: var(--navy); transform: rotate(5deg); }
+.wave { position: absolute; left: 0; right: 0; bottom: -1px; height: 80px; z-index: 5; }
+
+.cream { background: var(--cream); color: var(--navy); padding: 26px 20px 60px; }
+.cream h2 { font-weight: 900; font-size: 32px; line-height: 1.02; letter-spacing: -.03em; text-align: center; }
+.cream .sc { text-align: center; margin-top: 8px; font-family: Caveat, cursive; font-size: 24px; color: #6B5A48; }
+html[dir=rtl] .cream .sc { font-family: Heebo; font-size: 17px; font-weight: 600; }
+.kinds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 18px; }
+.kind { position: relative; height: 112px; border-radius: 22px; padding: 10px; overflow: hidden; font-weight: 900; font-size: 15px; color: var(--navy); }
+.kind img { position: absolute; right: -6px; bottom: -8px; height: 78px; filter: drop-shadow(0 8px 8px rgba(0,0,0,.25)); }
+html[dir=rtl] .kind img { right: auto; left: -6px; }
+.kind small { display: block; font-weight: 700; font-size: 11px; opacity: .65; margin-top: 1px; }
+
+.band { position: relative; z-index: 6; background: var(--navy); padding: 12px 0; transform: rotate(-3deg) scale(1.08); margin-top: -26px; overflow: hidden; }
+.band .row { display: flex; gap: 18px; white-space: nowrap; font-weight: 900; font-size: 26px; width: max-content; animation: slide 24s linear infinite; }
+.band .row.r2 { animation-direction: reverse; margin-top: 2px; }
+.band span:nth-child(4n+1) { color: var(--or); } .band span:nth-child(4n+2) { color: #fff; } .band span:nth-child(4n+3) { color: #8FD3A0; } .band span:nth-child(4n) { color: #9EC2FF; }
+@keyframes slide { to { transform: translateX(-50%); } } html[dir=rtl] .band .row { animation-name: slideR; } @keyframes slideR { to { transform: translateX(50%); } }
+
+.sec { position: relative; color: var(--navy); padding: 60px 0 64px; margin-top: -14px; transition: background .6s; }
+.torn { position: absolute; left: 0; right: 0; height: 24px; z-index: 2; } .torn.t { top: -1px; } .torn.b { bottom: -1px; transform: scaleY(-1); }
+.sec h3 { text-align: center; font-weight: 900; font-size: 34px; letter-spacing: -.03em; }
+.sec .sub { text-align: center; font-weight: 700; font-size: 15px; opacity: .75; margin-top: 2px; }
+.plate { position: relative; height: 300px; }
+.wm { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-8deg); font-family: Caveat, cursive; font-size: 130px; color: rgba(255,255,255,.25); white-space: nowrap; }
+.p { position: absolute; filter: drop-shadow(0 18px 18px rgba(0,0,0,.3)); animation: drift 5.5s ease-in-out infinite; }
+.bub { position: absolute; z-index: 4; padding: 6px 12px; border-radius: 16px; background: var(--navy); color: #fff; font-weight: 800; font-size: 11px; text-transform: uppercase; white-space: nowrap; }
+.bub.w { background: #fff; color: var(--navy); }
+.go { display: flex; width: max-content; margin: 6px auto 0; align-items: center; gap: 10px; padding: 14px 26px; border-radius: 30px; background: var(--navy); color: #fff; font-weight: 800; font-size: 16px; text-decoration: none; }
+.go b { color: var(--or); }
+.go.or { background: var(--or); } .go.or b { color: #fff; }
+
+.shops { background: var(--cream); color: var(--navy); padding: 50px 16px 60px; margin-top: -14px; position: relative; }
+.shops h3 { font-weight: 900; font-size: 30px; letter-spacing: -.03em; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+.shop { border-radius: 22px; overflow: hidden; background: #fff; }
+.shop .ph { height: 96px; background-size: cover; background-position: center; }
+.shop .t { padding: 9px 12px 12px; font-weight: 900; font-size: 15px; } .shop .t small { display: block; font-weight: 600; font-size: 12px; color: #6B7280; }
+
+.hoppy { position: relative; background: var(--navy); padding: 50px 20px 40px; overflow: hidden; }
+.hoppy h3 { font-weight: 900; font-size: 34px; line-height: 1; letter-spacing: -.03em; max-width: 230px; }
+.hoppy h3 em { display: block; font-family: Caveat, cursive; font-style: normal; color: var(--or); font-size: 34px; letter-spacing: 0; }
+html[dir=rtl] .hoppy h3 em { font-family: Heebo; font-size: 26px; font-weight: 800; }
+.hoppy .mic { display: flex; align-items: center; gap: 12px; margin-top: 18px; width: 230px; padding: 10px 16px 10px 10px; border-radius: 30px; background: #fff; color: var(--navy); font-weight: 800; font-size: 14px; }
+.hoppy .mic i { width: 40px; height: 40px; border-radius: 20px; background: var(--or); flex: none; }
+.hoppy img { position: absolute; inset-inline-end: -10px; bottom: 0; height: 250px; }
+.foot { text-align: center; padding: 30px 20px 50px; background: var(--navy); color: #AFC0DE; font-weight: 600; font-size: 14px; }
+</style>
+</head>
+<body>
+<header class="top"><div class="logo ltr">HOP<i>!</i></div><div class="addr"><small data-t="to"></small><span data-t="addr"></span></div><a class="round" id="lang" href="#"></a></header>
+
+<section class="hero">
+  <h1><span data-t="h1"></span><em data-t="h1b"></em></h1>
+  <div class="search"><span data-t="search"></span><b><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></b></div>
+  <div class="stage">
+    <img class="fl" src="img/v4/pommes.webp" style="height:70px;left:6px;top:20px;--r:-14deg" alt="">
+    <img class="fl" src="img/v4/coca.webp" style="height:120px;right:22px;top:4px;--r:12deg;animation-delay:-1.6s" alt="">
+    <img class="fl" src="img/smashit/frites.webp" style="height:80px;left:0;top:180px;--r:10deg;animation-delay:-2.4s" alt="">
+    <img class="fl" src="img/v4/lait.webp" style="height:96px;right:6px;top:170px;--r:-8deg;animation-delay:-.8s" alt="">
+    <img class="h" src="img/v4/hoppy.webp" alt="Hoppy">
+    <span class="tag or" style="left:58px;top:110px" data-t="tagA"></span>
+    <span class="tag w" style="right:50px;top:128px" data-t="tagB"></span>
+  </div>
+  <svg class="wave" viewBox="0 0 390 80" preserveAspectRatio="none"><path d="M0 50 C 100 5, 210 85, 390 18 L390 80 L0 80 Z" fill="#F6EEDF"/></svg>
+</section>
+
+<section class="cream">
+  <h2 data-t="h2"></h2>
+  <div class="sc" data-t="script"></div>
+  <div class="kinds" id="kinds"></div>
+</section>
+
+<div class="band"><div class="row" id="w1"></div><div class="row r2" id="w2"></div></div>
+
+<section class="sec" id="sec">
+  <svg class="torn t" viewBox="0 0 390 24" preserveAspectRatio="none"><path class="tp" fill="#0F1F3D"/></svg>
+  <h3 id="sT"></h3><div class="sub" id="sS"></div>
+  <div class="plate" id="plate"><div class="wm ltr">HOP!</div></div>
+  <a class="go" id="sGo" href="#"></a>
+  <svg class="torn b" viewBox="0 0 390 24" preserveAspectRatio="none"><path class="tp" fill="#F6EEDF"/></svg>
+</section>
+
+<section class="shops"><h3 data-t="shopsT"></h3><div class="grid" id="grid"></div></section>
+
+<section class="hoppy">
+  <svg class="torn t" viewBox="0 0 390 24" preserveAspectRatio="none" style="position:absolute;left:0;right:0;top:-1px;height:24px"><path class="tp" fill="#F6EEDF"/></svg>
+  <h3><span data-t="hopT"></span><em data-t="hopE"></em></h3>
+  <div class="mic"><i></i><span data-t="hopS"></span></div>
+  <img src="img/v4/hoppy.webp" alt="Hoppy">
+</section>
+<div class="foot" data-t="foot"></div>
+
+<script>
+const T = {
+  fr: { to: 'Livrer à', addr: 'Maison · Rehov Herzl, Netanya', h1: 'Netanya,', h1b: 'on fait vos courses pour vous.', search: 'Lait, pizza, pharmacie…', tagA: 'Au plus vite', tagB: 'Dès 25 ₪ en ville',
+    h2: 'Tout ce que vous voulez, livré.', script: 'On y va pour vous, vous restez tranquille.', words: ['Courses', 'Restos', 'Pharmacie', 'Colis', 'Fleurs', 'Boulangerie', 'Promos', 'Au plus vite', 'Netanya'],
+    kinds: [['Courses', 'Le moins cher', 'lait', '#BFE3C5'], ['Restos', 'Chaud', 'frites', '#FFD0B0'], ['Makolet', 'Tout de suite', 'bamba', '#FFE69A'], ['Pharmacie', 'Ordonnance', '', '#C9DBFF'], ['Boulangerie', 'Frais', 'baguette', '#F0DFC2'], ['Colis', 'Dépôt, retrait', 'sac', '#DCD0FF']],
+    secs: [['Courses', 'Votre liste, au meilleur prix', '#8FD3A0', ['lait', 'pommes', 'baguette', 'chips'], 'Le moins cher', 'Tout ici', 'Comparer'], ['Restos', 'Votre plat arrive chaud', '#FF9A5C', ['frites', 'onion-rings', 'aioli', 'chili'], 'Bien chaud', 'Au plus vite', 'Voir les restos'], ['Makolet', 'Le dépanneur du quartier', '#FFD24D', ['coca', 'bamba', 'chips', 'lait'], 'Tout de suite', '24 h / 24', 'Commander']],
+    shopsT: 'Faites vos courses', shops: [['Carrefour', 'Supermarché', 'market/carrefour-cover.webp'], ['Rami Lévy', 'Supermarché', 'market/ramilevy-cover.webp'], ['Golda', 'Glaces', 'golda/cover.webp'], ['Roladin', 'Pâtisserie', 'roladin/cover.webp']],
+    hopT: 'Pas envie d\'écrire ?', hopE: 'Dites-le à Hoppy.', hopS: '« Du lait et du pain »', foot: 'HOP! · livraison à Netanya · dès 25 ₪ en ville', lang: 'עב' },
+  he: { to: 'משלוח אל', addr: 'הבית · רחוב הרצל, נתניה', h1: 'נתניה,', h1b: 'עושים לכם את הקניות.', search: 'חלב, פיצה, בית מרקחת…', tagA: 'הכי מהר', tagB: 'החל מ־25 ₪ בעיר',
+    h2: 'כל מה שתרצו, עד הבית.', script: 'אנחנו הולכים בשבילכם, אתם נשארים רגועים.', words: ['קניות', 'מסעדות', 'בית מרקחת', 'חבילות', 'פרחים', 'מאפייה', 'מבצעים', 'הכי מהר', 'נתניה'],
+    kinds: [['קניות', 'הכי זול', 'lait', '#BFE3C5'], ['מסעדות', 'חם', 'frites', '#FFD0B0'], ['מכולת', 'מיד', 'bamba', '#FFE69A'], ['בית מרקחת', 'מרשם', '', '#C9DBFF'], ['מאפייה', 'טרי', 'baguette', '#F0DFC2'], ['חבילות', 'מסירה, איסוף', 'sac', '#DCD0FF']],
+    secs: [['קניות', 'הרשימה שלכם, במחיר הכי טוב', '#8FD3A0', ['lait', 'pommes', 'baguette', 'chips'], 'הכי זול', 'הכול כאן', 'להשוואה'], ['מסעדות', 'האוכל מגיע חם', '#FF9A5C', ['frites', 'onion-rings', 'aioli', 'chili'], 'חם', 'הכי מהר', 'למסעדות'], ['מכולת', 'המכולת של השכונה', '#FFD24D', ['coca', 'bamba', 'chips', 'lait'], 'מיד', '24/7', 'להזמנה']],
+    shopsT: 'עושים קניות', shops: [['Carrefour', 'סופרמרקט', 'market/carrefour-cover.webp'], ['רמי לוי', 'סופרמרקט', 'market/ramilevy-cover.webp'], ['גולדה', 'גלידה', 'golda/cover.webp'], ['רולדין', 'קונדיטוריה', 'roladin/cover.webp']],
+    hopT: 'לא בא לכתוב?', hopE: 'תגידו להופי.', hopS: '«חלב ולחם»', foot: 'HOP! · משלוחים בנתניה · החל מ־25 ₪ בעיר', lang: 'FR' },
+};
+const SRC = k => (['frites', 'onion-rings', 'aioli', 'chili'].includes(k) ? `img/smashit/${k}.webp` : `img/v4/${k}.webp`);
+let L = new URLSearchParams(location.search).get('lang') === 'he' ? 'he' : 'fr', cur = 0;
+const $ = s => document.querySelector(s);
+function torn(seed) { let d = 'M0 0 L390 0 L390 12 ', x = 390, r = seed; while (x > 0) { r = (r * 9301 + 49297) % 233280; x -= 6 + (r / 233280) * 12; d += `L${Math.max(0, x).toFixed(1)} ${(7 + (r / 233280) * 15).toFixed(1)} `; } return d + 'L0 12 Z'; }
+document.querySelectorAll('.tp').forEach((p, i) => p.setAttribute('d', torn(7 + i * 13)));
+const POS = [[118, -112, -60, -14], [96, 112, -70, 12], [88, -110, 80, 10], [100, 112, 76, -10]];
+function sec(i) {
+  const s = T[L].secs[i], pl = $('#plate'), cx = pl.clientWidth / 2, rtl = L === 'he';
+  $('#sec').style.background = s[2]; $('#sT').textContent = s[0]; $('#sS').textContent = s[1];
+  $('#sGo').innerHTML = `${s[6]} <b>›</b>`;
+  pl.querySelectorAll('.p, .bub').forEach(e => e.remove());
+  s[3].forEach((k, j) => { const [h, x, y, r] = POS[j], im = new Image(); im.className = 'p'; im.src = SRC(k); im.style.cssText = `height:${h + (j === 0 ? 60 : 30)}px;left:${cx + (rtl ? -x : x) - 50}px;top:${140 + y - 50}px;--r:${r}deg;animation-delay:${-j * 1.3}s`; pl.appendChild(im); });
+  const b1 = document.createElement('span'); b1.className = 'bub'; b1.textContent = s[4]; b1.style.cssText = `top:40px;${rtl ? 'right' : 'left'}:${cx - 30}px;transform:rotate(-6deg)`;
+  const b2 = document.createElement('span'); b2.className = 'bub w'; b2.textContent = s[5]; b2.style.cssText = `top:250px;${rtl ? 'left' : 'right'}:${cx - 110}px;transform:rotate(5deg)`;
+  pl.append(b1, b2);
+}
+function apply() {
+  const t = T[L]; document.documentElement.lang = L; document.documentElement.dir = L === 'he' ? 'rtl' : 'ltr';
+  document.querySelectorAll('[data-t]').forEach(e => { e.textContent = t[e.dataset.t]; }); $('#lang').textContent = t.lang;
+  const w = t.words.map(x => `<span>${x}</span>`).join(''); $('#w1').innerHTML = w.repeat(4); $('#w2').innerHTML = [...t.words].reverse().map(x => `<span>${x}</span>`).join('').repeat(4);
+  $('#kinds').innerHTML = t.kinds.map(([n, s, im, bg]) => `<div class="kind" style="background:${bg}">${n}<small>${s}</small>${im ? `<img src="${SRC(im)}" alt="">` : ''}</div>`).join('');
+  $('#grid').innerHTML = t.shops.map(([n, s, ph]) => `<div class="shop"><div class="ph" style="background-image:url(img/${ph})"></div><div class="t">${n}<small>${s}</small></div></div>`).join('');
+  sec(cur);
+}
+$('#lang').addEventListener('click', e => { e.preventDefault(); L = L === 'fr' ? 'he' : 'fr'; apply(); });
+setInterval(() => { cur = (cur + 1) % 3; sec(cur); }, 3200);
+apply();
+</script>
+</body>
+</html>
