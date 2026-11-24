@@ -6,9 +6,9 @@
    Règles HOP! : pas d'émoji, pas de durée chiffrée, « dès 25 ₪ en ville », français et hébreu jamais coupés.
    ===================================================================================================================== */
 html.d5 {
-  --c1: #FF6A13; --c2: #FFC93C; --c3: #13A8A0; --c4: #FFB3C7; --ink: #3A1E0E; --cream: #FFF6E8;
-  --navy: var(--ink); --navy2: #5A3420; --paper: var(--cream); --paper2: #F6E6CC; --line5: rgba(15,31,61,.12); --mute5: #5A6270;
-  --act: var(--ink); --act-fg: #FFFFFF; --act-deep: #24120A; --tag5: #FFE14A; --ok5: #1F9D57;
+  --c1: #1E9BF0; --c2: #FFE14A; --c3: #FF6B57; --c4: #7ED9A6; --ink: #0B4A6F; --cream: #F4F9FF;
+  --navy: var(--ink); --navy2: #1F6A94; --paper: var(--cream); --paper2: #E3EFFA; --line5: rgba(15,31,61,.12); --mute5: #5A6270;
+  --act: var(--ink); --act-fg: #FFFFFF; --act-deep: #06324C; --tag5: #FFE14A; --ok5: #1F9D57;
   --K: 'Bricolage Grotesque', Rubik, Heebo, sans-serif; --M: 'IBM Plex Mono', Heebo, monospace;
   /* les anciennes variables du site prennent les nouvelles couleurs */
   --orange: var(--act); --accent: var(--act); --bg: var(--paper); --panel: var(--paper);
@@ -287,7 +287,7 @@ html.d5 body .view-bar { background: var(--c1) !important; }
 html.d5 body .view-bar .vb-back { background: #fff !important; color: var(--ink) !important; }
 html.d5 body #vitTop { background: var(--c1) !important; padding-bottom: 10px !important; }
 html.d5 body #vitTop .vit-row > * { background: rgba(255,255,255,.18) !important; }
-html.d5 body #vitTop .vit-row small { color: #FFE7D6 !important; }
+html.d5 body #vitTop .vit-row small { color: #DDF0FF !important; }
 html.d5 body #vitStatus { background: rgba(255,255,255,.18) !important; color: #fff !important; }
 html.d5 body #vitHero .sc-find input { background: #fff !important; }
 html.d5 body .d5-hero, html.d5 body .d5-facts, html.d5 body .d5-zig { display: none !important; }
@@ -330,7 +330,7 @@ html.d5 body .d6-wave { position: absolute; z-index: 6; left: 0; right: 0; botto
 html.d5 body .d6-band { margin: 4px -16px 0; overflow: hidden; background: var(--ink); transform: rotate(-1.5deg); padding: 9px 0; }
 html.d5 body .d6-band div { display: flex; gap: 18px; width: max-content; font: 800 22px var(--K) !important; letter-spacing: -.02em; white-space: nowrap; animation: d5slide 34s linear infinite; }
 html[dir=rtl].d5 body .d6-band div { animation-name: d5slideR; }
-html.d5 body .d6-band span:nth-child(4n+1) { color: var(--c1); } html.d5 body .d6-band span:nth-child(4n+2) { color: #fff; } html.d5 body .d6-band span:nth-child(4n+3) { color: var(--c2); } html.d5 body .d6-band span:nth-child(4n) { color: #7FE3D9; }
+html.d5 body .d6-band span:nth-child(4n+1) { color: var(--c1); } html.d5 body .d6-band span:nth-child(4n+2) { color: #fff; } html.d5 body .d6-band span:nth-child(4n+3) { color: var(--c2); } html.d5 body .d6-band span:nth-child(4n) { color: var(--c4); }
 /* les blocs pleine couleur */
 html.d5 body .d6-block { position: relative; margin: 26px -16px 0; padding: 40px 22px 34px; text-align: center; overflow: hidden; }
 html.d5 body .d6-torn { position: absolute; left: 0; right: 0; top: -1px; width: 100%; height: 16px; } html.d5 body .d6-torn path { fill: var(--cream); }
@@ -356,3 +356,134 @@ html.d5 body .d5-h2 em { color: var(--c1) !important; }
 html.d5 body #vitCourse { background: var(--c3) !important; }
 html.d5 body .d3-nav .d3-mic i { background: var(--c1) !important; box-shadow: 0 0 0 5px var(--ink) !important; }
 html.d5 body .d3-nav button.on svg { stroke: var(--c2) !important; } html.d5 body .d3-nav button.on::after { background: var(--c2) !important; }
+
+/* ---------- la page d'un commerce : sa couleur sur tout le haut de page ---------- */
+html.d5 body #shopHero { margin: -48px -16px 0 !important; padding: 56px 18px 26px !important; background: var(--shop, var(--c1)) !important; color: var(--shop-ink, #fff) !important; border-radius: 0 !important; position: relative; }
+html.d5 body #shopHero::after { content: ""; position: absolute; left: 0; right: 0; bottom: -15px; height: 16px; background: var(--shop, var(--c1)); -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 390 16' preserveAspectRatio='none'%3E%3Cpath d='M0 0H390V7L378 14 364 6 350 15 334 7 320 14 304 5 290 13 274 6 260 15 244 7 230 14 214 5 200 13 184 6 170 15 154 7 140 14 124 5 110 13 94 6 80 15 64 7 50 14 34 5 20 13 0 6Z'/%3E%3C/svg%3E") center/100% 100% no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 390 16' preserveAspectRatio='none'%3E%3Cpath d='M0 0H390V7L378 14 364 6 350 15 334 7 320 14 304 5 290 13 274 6 260 15 244 7 230 14 214 5 200 13 184 6 170 15 154 7 140 14 124 5 110 13 94 6 80 15 64 7 50 14 34 5 20 13 0 6Z'/%3E%3C/svg%3E") center/100% 100% no-repeat; z-index: 2; }
+html.d5 body #shopHero, html.d5 body #shopHero * { color: var(--shop-ink, #fff) !important; }
+html.d5 body #shopHero .sh-txt b, html.d5 body #shopHero .sh-row b { font-family: var(--K) !important; font-weight: 800 !important; font-size: 44px !important; letter-spacing: -.035em !important; line-height: .92 !important; text-transform: none !important; }
+html.d5 body #shopHero .sh-cover { border-radius: 24px !important; overflow: hidden; }
+html.d5 body #shopHero .sh-cover.empty { display: none !important; }
+html.d5 body #shopHero .sh-logo { background: rgba(255,255,255,.22) !important; border: 0 !important; color: var(--shop-ink, #fff) !important; }
+html.d5 body #shopHero .sh-sched, html.d5 body #shopHero .sh-meta > *, html.d5 body #shopHero button:not(.btn) { background: rgba(255,255,255,.2) !important; border: 0 !important; }
+html.d5 body #shopHero .btn, html.d5 body #shopHero .sh-sched .btn { background: var(--shop-ink, #fff) !important; color: var(--shop, var(--c1)) !important; }
+html.d5 body.d6-shop .view-bar { background: var(--shop, var(--c1)) !important; }
+html.d5 body.d6-shop .view-bar, html.d5 body.d6-shop .view-bar #viewTitle { color: var(--shop-ink, #fff) !important; }
+html.d5 body .vt { margin-top: 26px !important; border-radius: 0 !important; }
+html.d5 body.d6-shop .topbar { background: var(--shop, var(--c1)) !important; }
+html.d5 body.d6-shop .topbar .wordmark b, html.d5 body.d6-shop .topbar svg { color: var(--shop-ink, #fff) !important; stroke: var(--shop-ink, #fff) !important; }
+html.d5 body.d6-shop .topbar .tb-profile, html.d5 body.d6-shop .topbar .tb-cart { background: rgba(255,255,255,.25) !important; }
+html.d5 body #shopOrderBox, html.d5 body #shopOrderBox.with-cg { background: transparent !important; border: 0 !important; box-shadow: none !important; padding-top: 0 !important; }
+html.d5 body.d6-shop .mobile-bar { background: var(--shop, var(--c1)) !important; } html.d5 body.d6-shop .mobile-bar, html.d5 body.d6-shop .mobile-bar * { color: var(--shop-ink, #fff) !important; }
+html.d5 body.d6-shop .mobile-bar #mobileGo { background: var(--ink) !important; color: #fff !important; }
+html.d5 body .mobile-bar { background: var(--c1) !important; } html.d5 body .mobile-bar small { color: #DDF0FF !important; }
+html.d5 body .mobile-bar #mobileGo { background: #fff !important; color: var(--ink) !important; }
+/* le panier : fond crème, blocs nets */
+html.d5 body #cartSheet .modal-box > * { border: 0 !important; box-shadow: none !important; }
+html.d5 body #cartSheet [class*=cs-more], html.d5 body #cartSheet .cs-cont, html.d5 body #cartSheet .cs-box { background: #fff !important; border-radius: 22px !important; }
+html.d5 body #cartSheet button:not(.btn-primary):not([data-cs-cat]) { border-radius: 26px !important; }
+html.d5 body #cartSheet .btn-primary, html.d5 body #cartSheet #cartGo { background: var(--ink) !important; color: #fff !important; }
+
+html.d5 body.d6-shop .topbar .wordmark b i { color: var(--c3) !important; }
+html.d5 body .vt { width: 100vw !important; margin-inline: calc(50% - 50vw) !important; }
+html.d5 body #catalogBox .item-art img[src*="img/items/"] { opacity: .0 !important; } html.d5 body #catalogBox .item-art:has(img[src*="img/items/"]) { background: color-mix(in srgb, var(--shop, var(--c1)) 22%, #fff) !important; }
+
+/* ---------- page commerce v2 : le haut pleine couleur (comme la page Smash It) ---------- */
+html.d5 body #shopHero .d6h { position: relative; min-height: 360px; padding: 4px 4px 70px; }
+html.d5 body .d6h-bubs { display: flex; flex-wrap: wrap; gap: 6px; }
+html.d5 body .d6h-b { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 15px; background: rgba(255,255,255,.25); font: 800 12px Heebo, sans-serif; }
+html.d5 body .d6h-b i { width: 8px; height: 8px; border-radius: 4px; background: #2BD47A; } html.d5 body .d6h-b.off i { background: #FF5A4A; }
+html.d5 body .d6h-b.w { background: #fff; color: var(--ink) !important; transform: rotate(-3deg); }
+html.d5 body .d6h-b.k { background: var(--ink); color: #fff !important; transform: rotate(4deg); }
+html.d5 body .d6h-name { margin: 18px 0 0 !important; font: 800 58px/.9 var(--K) !important; letter-spacing: -.04em !important; text-transform: none !important; max-width: 62%; }
+html.d5 body .d6h-tag { margin-top: 8px; font: 700 24px/1.05 Caveat, cursive !important; max-width: 55%; opacity: .95; }
+html[dir=rtl].d5 body .d6h-tag { font: 800 16px/1.3 Rubik, sans-serif !important; }
+html.d5 body .d6h-pic { position: absolute; inset-inline-end: -14px; top: 70px; width: 200px; height: 200px; object-fit: cover; border-radius: 28px; transform: rotate(5deg); box-shadow: 0 18px 30px rgba(0,0,0,.2); }
+html.d5 body .d6h-pic.cut { object-fit: contain; border-radius: 0; box-shadow: none; filter: drop-shadow(0 20px 18px rgba(0,0,0,.3)); width: 230px; height: 230px; animation: d6float 4.4s ease-in-out infinite; }
+html.d5 body .d6h-logo { position: absolute; inset-inline-end: 6px; top: 80px; width: 110px; height: 110px; border-radius: 30px; object-fit: cover; background: #fff; }
+html.d5 body .d6h-acts { position: absolute; left: 4px; right: 4px; bottom: 18px; display: flex; flex-wrap: wrap; gap: 8px; }
+html.d5 body .d6h-a { padding: 11px 16px; border: 0; border-radius: 24px; background: #fff; color: var(--ink) !important; font: 800 13px Heebo, sans-serif; text-decoration: none; }
+html.d5 body .d6h-a.wa { background: #25D366; color: #fff !important; } html.d5 body .d6h-a.when { background: var(--ink); color: #fff !important; }
+html.d5 body #shopHero .d6h * { color: inherit; }
+/* la vitrine continue la couleur de l'enseigne */
+html.d5 body .vt { --vt-dark: var(--shop, var(--c1)); margin-top: 0 !important; color: var(--shop-ink, #fff); }
+html.d5 body .vt .vt-band { background: var(--ink) !important; transform: rotate(-1.5deg) scale(1.06); }
+html.d5 body .vt .vt-chip { background: rgba(255,255,255,.28) !important; color: var(--shop-ink, #fff) !important; }
+html.d5 body .vt .vt-chip.on { background: #fff !important; color: var(--ink) !important; }
+html.d5 body .vt .vt-add { background: var(--ink) !important; }
+/* le menu : chaque rubrique ouvre sur une bande de couleur */
+html.d5 body #catalogBox .cg-head { background: var(--cream) !important; }
+html.d5 body #catalogBox h4.cg-sec { margin: 22px -16px 12px !important; padding: 18px 20px 14px !important; background: var(--c4); color: var(--ink) !important; font: 800 32px/.95 var(--K) !important; letter-spacing: -.03em !important; text-transform: none !important; border: 0 !important; }
+html.d5 body #catalogBox h4.cg-sec:nth-of-type(4n+2) { background: var(--c2); } html.d5 body #catalogBox h4.cg-sec:nth-of-type(4n+3) { background: var(--c3); color: #fff !important; } html.d5 body #catalogBox h4.cg-sec:nth-of-type(4n) { background: var(--c1); color: #fff !important; }
+html.d5 body #catalogBox .cg-item { border-radius: 22px !important; }
+html.d5 body #catalogBox .cg-plus { background: var(--ink) !important; color: #fff !important; }
+html.d5 body #catalogBox .cg-voice { background: var(--ink) !important; color: #fff !important; border: 0 !important; border-radius: 24px !important; }
+html.d5 body #catalogBox .cg-voice * { color: #fff !important; }
+html.d5 body .nopay-mini { background: #fff !important; border: 0 !important; border-radius: 20px !important; }
+html.d5 body #shopHero .d6h .d6h-b.w, html.d5 body #shopHero .d6h .d6h-a { background: #fff !important; color: var(--ink) !important; }
+html.d5 body #shopHero .d6h .d6h-b.k, html.d5 body #shopHero .d6h .d6h-a.when { background: var(--ink) !important; color: #fff !important; }
+html.d5 body #shopHero .d6h .d6h-a.wa { background: #25D366 !important; color: #fff !important; }
+html.d5 body.d6-shop .topbar .wordmark b i { color: var(--c2) !important; }
+/* panier en pleine couleur : bandeau du haut à la couleur, ticket, gros boutons */
+html.d5 body #cartSheet .modal-box { padding-top: 0 !important; overflow-x: hidden; }
+html.d5 body #cartSheet .modal-box > :first-child { margin: 0 -18px 14px !important; padding: 22px 18px 18px !important; background: var(--shop, var(--c1)) !important; color: var(--shop-ink, #fff) !important; border-radius: 28px 28px 0 0 !important; }
+html.d5 body #cartSheet .modal-box > :first-child * { color: var(--shop-ink, #fff) !important; }
+html.d5 body #cartSheet .modal-box h3 { font: 800 26px/1 var(--K) !important; letter-spacing: -.03em !important; }
+html.d5 body #cartSheet button { font-weight: 800 !important; }
+html.d5 body #cartSheet [data-cs-shops], html.d5 body #cartSheet .cs-more button, html.d5 body #cartSheet button.btn:not(.btn-primary) { background: #fff !important; color: var(--ink) !important; border: 2px solid var(--ink) !important; border-radius: 26px !important; }
+
+/* ======================= PANIER v2 (ticket) — mise en page refaite ======================= */
+html.d5 body #cartSheet .modal-box { display: flex !important; flex-direction: column !important; gap: 0 !important; background: var(--cream) !important; padding: 0 18px 24px !important; }
+html.d5 body #cartSheet .modal-box > * { order: 9; }
+html.d5 body #cartSheet .modal-box > :first-child { all: unset; }
+html.d5 body #cartSheet #cartClose { order: 0; position: absolute !important; top: 16px; inset-inline-end: 16px; z-index: 3; width: 40px; height: 40px; border-radius: 20px; background: rgba(255,255,255,.3) !important; color: var(--shop-ink, #fff) !important; border: 0 !important; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+html.d5 body #cartSheet #cartTitle { order: 1; margin: 0 -18px 0 !important; padding: 26px 70px 44px 20px !important; background: var(--shop, var(--c1)) !important; color: var(--shop-ink, #fff) !important; font: 800 30px/1 var(--K) !important; letter-spacing: -.03em !important; border-radius: 28px 28px 0 0; }
+html[dir=rtl].d5 body #cartSheet #cartTitle { padding: 26px 20px 44px 70px !important; }
+html.d5 body #cartSheet #cartBody { order: 2; position: relative; margin: -26px 4px 0 !important; padding: 18px 16px 6px !important; background: #fff !important; border-radius: 4px 4px 0 0 !important; box-shadow: 0 14px 30px rgba(11,74,111,.12) !important; transform: rotate(-.6deg); }
+html.d5 body #cartSheet .cs-row { display: flex !important; align-items: center !important; gap: 10px !important; padding: 12px 0 !important; border: 0 !important; border-bottom: 1.5px dashed rgba(11,74,111,.2) !important; background: transparent !important; }
+html.d5 body #cartSheet .cs-pic:not(:has(img)) { display: none !important; }
+html.d5 body #cartSheet .cs-pic img { width: 54px; height: 54px; object-fit: cover; border-radius: 14px; }
+html.d5 body #cartSheet .cs-txt b { font: 800 16px/1.2 Heebo, sans-serif !important; color: var(--ink) !important; }
+html.d5 body #cartSheet .cs-txt small { font: 800 18px/1 var(--K) !important; color: var(--c3) !important; letter-spacing: -.02em; }
+html.d5 body #cartSheet .cs-mods { display: block; margin-top: 3px; font-style: normal; font-size: 12px; font-weight: 700; color: var(--c1) !important; }
+html.d5 body #cartSheet .cs-qty { background: var(--cream) !important; border: 0 !important; border-radius: 20px !important; }
+html.d5 body #cartSheet .cs-qty button { background: transparent !important; color: var(--ink) !important; border: 0 !important; }
+html.d5 body #cartSheet .sw-hint { display: none !important; }
+html.d5 body #cartSheet .cs-total, html.d5 body #cartSheet #cartGrand { order: 3; margin: 0 4px 0 !important; padding: 14px 16px 22px !important; background: #fff !important; box-shadow: 0 14px 30px rgba(11,74,111,.12) !important; transform: rotate(-.6deg); display: flex; justify-content: space-between; align-items: center; font: 800 15px Heebo, sans-serif !important; color: var(--ink) !important; border-radius: 0 !important;
+  -webkit-mask: radial-gradient(7px at 50% 100%, #0000 98%, #000) 50% 100% / 14px 100% repeat-x !important; mask: radial-gradient(7px at 50% 100%, #0000 98%, #000) 50% 100% / 14px 100% repeat-x !important; }
+html.d5 body #cartSheet .cs-total b, html.d5 body #cartSheet #cartSum { font: 800 30px/1 var(--K) !important; color: var(--ink) !important; letter-spacing: -.03em; }
+html.d5 body #cartSheet .cs-total.hidden, html.d5 body #cartSheet #cartGrand.hidden { display: none !important; }
+html.d5 body #cartSheet #cartRest { order: 4; margin-top: 14px !important; }
+html.d5 body #cartSheet #cartNote { order: 5; margin: 18px 4px 0 !important; font-size: 14px !important; font-weight: 600; color: var(--ink) !important; }
+html.d5 body #cartSheet .cs-steps i { background: var(--c1) !important; color: #fff !important; }
+html.d5 body #cartSheet .cs-btns { order: 6; margin-top: 16px !important; }
+html.d5 body #cartSheet #cartGo { width: 100%; padding: 18px !important; background: var(--ink) !important; color: #fff !important; border: 0 !important; border-radius: 32px !important; font: 800 17px Heebo, sans-serif !important; }
+html.d5 body #cartSheet #cartMore { color: var(--ink) !important; font-weight: 800 !important; }
+html.d5 body #cartSheet #cartNav { order: 7; margin-top: 18px !important; }
+html.d5 body #cartSheet .cs-nav { background: transparent !important; border: 0 !important; padding: 0 !important; }
+html.d5 body #cartSheet .cn-t { font: 800 20px/1.1 var(--K) !important; letter-spacing: -.02em; color: var(--ink) !important; }
+html.d5 body #cartSheet .cn-cat { background: #fff !important; border: 0 !important; color: var(--ink) !important; border-radius: 20px !important; }
+html.d5 body #cartSheet .cn-all, html.d5 body #cartSheet .cn-shop { background: transparent !important; border: 2px solid var(--ink) !important; color: var(--ink) !important; border-radius: 26px !important; }
+html.d5 body #cartSheet .cn-add input { background: #fff !important; border: 0 !important; border-radius: 24px !important; }
+html.d5 body #cartSheet .cn-add button { background: var(--c1) !important; color: #fff !important; border: 0 !important; border-radius: 22px !important; }
+html.d5 body #cartSheet #cartKeep { order: 8; margin-top: 10px !important; display: flex; flex-direction: column; gap: 8px; }
+html.d5 body #cartSheet .cs-keep { background: transparent !important; border: 0 !important; color: var(--ink) !important; text-decoration: underline; font-weight: 700 !important; }
+html.d5 body #cartSheet .cs-clear { color: var(--c3) !important; font-weight: 800 !important; }
+/* ======================= LISTE DES PLATS v2 : lignes nettes, photo seulement si elle existe ======================= */
+html.d5 body #catalogBox .cg-grid { display: flex !important; flex-direction: column !important; gap: 0 !important; margin: 0 -16px !important; padding: 0 16px !important; background: #fff; }
+html.d5 body #catalogBox .cg-item { display: flex !important; flex-direction: row !important; align-items: center !important; gap: 14px !important; min-height: 0 !important; padding: 16px 0 !important; background: transparent !important; border: 0 !important; border-bottom: 1.5px dashed rgba(11,74,111,.15) !important; border-radius: 0 !important; box-shadow: none !important; }
+html.d5 body #catalogBox .cg-info { order: 1; flex: 1 !important; min-width: 0; padding: 0 !important; }
+html.d5 body #catalogBox .cg-info b { font: 800 17px/1.2 Heebo, sans-serif !important; color: var(--ink) !important; }
+html.d5 body #catalogBox .cg-info small { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-top: 3px; font-size: 13px !important; color: #4F6B80 !important; }
+html.d5 body #catalogBox .cg-price { display: block; margin-top: 6px; font: 800 20px/1 var(--K) !important; color: var(--c3) !important; letter-spacing: -.02em; }
+html.d5 body #catalogBox .cg-pic { order: 2; position: relative; flex: none !important; width: 96px !important; height: 96px !important; border-radius: 22px !important; overflow: visible !important; background: var(--cream) !important; }
+html.d5 body #catalogBox .cg-pic img { width: 100%; height: 100%; object-fit: cover; border-radius: 22px; }
+html.d5 body #catalogBox .cg-item.nopic .cg-pic { width: 44px !important; height: 44px !important; background: transparent !important; }
+html.d5 body #catalogBox .cg-plus { position: absolute !important; inset-inline-end: -6px !important; bottom: -6px !important; top: auto !important; width: 40px !important; height: 40px !important; border-radius: 20px !important; background: var(--ink) !important; color: #fff !important; font-size: 24px !important; border: 3px solid #fff !important; }
+html.d5 body #catalogBox .cg-item.nopic .cg-plus { position: static !important; border: 0 !important; }
+html.d5 body #catalogBox h4.cg-sec { margin-bottom: 0 !important; }
+html.d5 body #cartSheet .cs-pic:has(img[src*="img/items/"]) { display: none !important; }
+html.d5 body #cartSheet #cartClose { width: 40px !important; height: 40px !important; min-width: 0 !important; padding: 0 !important; border-radius: 20px !important; font-size: 16px !important; }
+html.d5 body #catalogBox .cg-info { display: flex !important; flex-direction: column !important; }
+html.d5 body #catalogBox .cg-info > b { order: 1; } html.d5 body #catalogBox .cg-info > small { order: 2; } html.d5 body #catalogBox .cg-info > .cg-price { order: 3; } html.d5 body #catalogBox .cg-info > * { order: 4; }
+html.d5 body #catalogBox .cg-info > b { order: 1 !important; } html.d5 body #catalogBox .cg-info > small { order: 2 !important; } html.d5 body #catalogBox .cg-info > .cg-price { order: 3 !important; }

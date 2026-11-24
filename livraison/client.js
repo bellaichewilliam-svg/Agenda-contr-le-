@@ -4284,6 +4284,32 @@ async function loadCatalogFor(shop) {
 // Ses plats vedettes détourés au centre, leurs ingrédients qui s'envolent autour, une couleur par plat, les couleurs de l'enseigne.
 // Le client touche un ingrédient pour l'enlever (« sans oignons » → même note que la fiche produit) ou ajoute une sauce (un vrai
 // produit du catalogue, prix compris). Mise en scène dans la base (shop_vitrine) ; noms, prix, descriptions = le catalogue.
+// Pleine couleur (patron 24/11) : la page d'un commerce prend la couleur de son enseigne sur tout l'écran (réglée dans sa vitrine,
+// sinon une couleur par type de commerce) ; le texte passe en blanc ou en foncé selon la couleur
+const D6_KIND_COLOR = { restaurant: "#FF6B57", epicerie: "#1E9BF0", supermarche: "#1E9BF0", pharmacie: "#7ED9A6", boulangerie: "#FFE14A", fleurs: "#FF8FB1", cafe: "#C9874B" };
+// Le haut de page d'un commerce, version pleine couleur : grand nom, accroche, bulles (ouvert, livraison), la photo qui flotte,
+// boutons pilules (infos, WhatsApp, horaire choisi) — mêmes actions qu'avant (data-sh-info, data-sl-goto)
+function d6HeroHtml(s, logo, cover) {
+  const st = UI.openState(s.hours), wa = shopWa(s), he = I18N.lang === "he";
+  const dish = typeof vt !== "undefined" && vt && vt.cfg && vt.code === s.code && vt.cfg.dishes && vt.cfg.dishes[0] ? vt.cfg.dishes[0].img : "";
+  const pic = dish || cover || "";
+  const at = (() => { try { return val("urgency") === "programmee" && (state.shopSched || form.classList.contains("no-now")) && pickupDate(); } catch (e) { return null; } })();
+  return `<div class="d6h">
+    <div class="d6h-bubs">${st ? `<span class="d6h-b ${st.open ? "on" : "off"}"><i></i>${UI.esc(openLabel(st))}</span>` : ""}<span class="d6h-b w">${UI.esc(s.shop_pays ? t("scGift") : t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) }))}</span>${isKosher(s) ? `<span class="d6h-b k">${UI.esc(he ? "כשר" : "Casher")}</span>` : ""}</div>
+    <h1 class="d6h-name">${UI.esc(UI.bi(s.name))}</h1>
+    <p class="d6h-tag">${UI.esc(UI.shopText(s, "tagline") || (t("shKinds") || {})[s.kind] || "")}</p>
+    ${pic ? `<img class="d6h-pic${dish ? " cut" : ""}" src="${UI.esc(pic)}" alt="" />` : logo ? `<img class="d6h-logo" src="${UI.esc(logo)}" alt="" />` : ""}
+    <div class="d6h-acts"><button type="button" class="d6h-a" data-sh-info="1">${UI.esc(t("shInfoBtn"))}</button>${wa ? `<a class="d6h-a wa" href="https://wa.me/${UI.esc(wa)}?text=${encodeURIComponent(t("shWaHello", { name: UI.bi(s.name) }))}" target="_blank" rel="noopener">WhatsApp</a>` : ""}${at ? `<button type="button" class="d6h-a when" data-sl-goto>${UI.esc(vitWhenLong(at))} · ${UI.esc(t("slChange"))}</button>` : ""}</div>
+  </div>${shopSheet(s)}`;
+}
+function d6ShopColor() {
+  if (!document.documentElement.classList.contains("d5")) return;
+  const s = state.shop, cfg = typeof vt !== "undefined" && vt && vt.cfg && vt.code === (s && s.code) ? vt.cfg : null;
+  const c = (cfg && cfg.colors && cfg.colors.page) || (s && D6_KIND_COLOR[s.kind]) || "#1E9BF0";
+  const rgb = c.replace("#", "").match(/../g).map(x => parseInt(x, 16)), lum = (.299 * rgb[0] + .587 * rgb[1] + .114 * rgb[2]) / 255;
+  document.body.style.setProperty("--shop", c); document.body.style.setProperty("--shop-ink", lum > .62 ? "#3A1E0E" : "#FFFFFF");
+  document.body.classList.toggle("d6-shop", !!s);
+}
 var vt = { cfg: null, code: "", cur: 0, off: {}, add: {}, auto: true, timer: 0 };
 async function vtLoad(code, seq) {
   vt.cfg = null; vt.code = code; vt.cur = 0; vt.off = {}; vt.add = {}; vt.auto = true; vtRender();
@@ -4295,7 +4321,8 @@ async function vtLoad(code, seq) {
   if (!cfg.dishes.length) return;
   if (!document.getElementById("vtFonts")) { const l = document.createElement("link"); l.id = "vtFonts"; l.rel = "stylesheet";
     l.href = "https://fonts.googleapis.com/css2?family=Karantina:wght@700&family=Caveat:wght@700&display=swap"; document.head.appendChild(l); }
-  vt.cfg = cfg; vtRender(true);
+  vt.cfg = cfg; vtRender(true); d6ShopColor();
+  try { const h = $("#shopHero"); if (h && document.documentElement.classList.contains("d5") && state.shop) { const html = d6HeroHtml(state.shop, UI.safeImg(state.shop.logo), UI.safeImg(state.shop.cover)); h.innerHTML = html; h.dataset.html = html; } } catch (e) { /* le haut reste */ }
 }
 const vtProd = id => cgProducts().find(p => p.id === id);
 function vtTorn(seed) { let d = "M0 0 L390 0 L390 10 ", x = 390, r = seed; while (x > 0) { r = (r * 9301 + 49297) % 233280; x -= 6 + (r / 233280) * 12; d += `L${Math.max(0, x).toFixed(1)} ${(6 + (r / 233280) * 14).toFixed(1)} `; } return d + "L0 10 Z"; }
@@ -4778,9 +4805,9 @@ function renderCatalog() {
       // Taille ou boisson à choisir : le « + » ouvre la fiche de l'article
       const q = groupQty(p), multi = sizesOf(p).length > 1 || needsDrink(p), photo = UI.safeImg(p.photo);
       const bm = bossEditOn() && (state.bossMap || {})[p.id];
-      return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}${bm ? " boss-ch" : ""}" data-cg-open="${UI.esc(p.id)}">
+      return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}${bm ? " boss-ch" : ""}${!photo ? " nopic" : ""}" data-cg-open="${UI.esc(p.id)}">
         <div class="cg-info"><b>${q ? `<em class="cg-n"><bdi>${q}×</bdi></em> ` : ""}<bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></b>${p.description && !(grocShop() && promoOf(p)) ? `<small>${UI.esc(UI.bi(p.description))}</small>` : ""}${grocShop() && !multi ? cgPaPrice(p) : `<span class="cg-price">${UI.esc(groupPrice(p))}</span>`}${multi ? `<span class="cg-sizes">${UI.esc(sizesOf(p).map(x => UI.bi(sizeOf(x))).join(" · "))}</span>` : ""}${tileShop() ? tileMeta(p, multi) : ""}</div>
-        <div class="cg-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" loading="lazy" />` : shopArt(p)}
+        <div class="cg-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" loading="lazy" />` : document.documentElement.classList.contains("d5") ? "" : shopArt(p)}
         ${p.available && promoOf(p) ? `<em class="cg-promo${promoOf(p).lot > 1 ? " lot" : ""}"><bdi>${UI.esc(grocShop() ? `−${promoOf(p).off} %` : promoTag(promoOf(p)))}</bdi></em>` : ""}
         ${bossEditOn() ? `<button type="button" class="cg-boss" data-boss-edit="${UI.esc(p.id)}" aria-label="Modifier">✏️</button>` : ""}
         ${!p.available ? `<span class="cg-out">${bossEditOn() ? "🙈 Masqué" : UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</span>`
@@ -5656,8 +5683,10 @@ function renderShopBanner() {
       </div>` : ""}
       ${compact ? shopSheet(s) : `${shopGallery(s)}
       ${vit ? shopInfo(s, true) + noPayBox("vitTitle") : shopInfo(s)}`}`;
-    if (hero.dataset.html !== html) { hero.innerHTML = html; hero.dataset.html = html; }
+    const html2 = document.documentElement.classList.contains("d5") && compact ? d6HeroHtml(s, logo, cover) : html;
+    if (hero.dataset.html !== html2) { hero.innerHTML = html2; hero.dataset.html = html2; }
   }
+  d6ShopColor();
   const compactOn = !!(showHero && s.pro);
   if (compactOn) $("#shopBanner").classList.add("hidden");
   document.body.classList.toggle("shop-compact", compactOn);
