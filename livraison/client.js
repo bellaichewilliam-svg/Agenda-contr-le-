@@ -7494,6 +7494,32 @@ $("#homeFilters").addEventListener("click", e => {
 // Recherche d'un plat, d'un produit ou d'un commerce : les commerces de la vitrine tout de suite, les produits
 // de tous les catalogues (base) ensuite ; un produit ouvre son commerce et se met en avant dans le menu
 let findTimer = null, findSeq = 0;
+// Un commerce par son nom, même mal écrit (patron, 24/11 : « Smatch It » ne sortait pas Smash It) : 0 = le texte y est tel quel,
+// 1 = chaque mot tapé commence un mot du nom, 2+ = fautes de frappe (1 faute dès 4 lettres, 2 dès 6, nom collé compris) ; -1 = non
+function shopFindScore(s, q) {
+  const n = norm(q), full = `${s.name} ${(t("shKinds") || {})[s.kind] || ""} ${s.tagline || ""} ${s.tagline_he || ""}`;
+  if (norm(full).includes(n)) return 0;
+  const fold = v => String(v || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[’'"\-־.]/g, "");
+  const lim = w => (w.length >= 6 ? 2 : w.length >= 4 ? 1 : 0);
+  const names = String(s.name || "").split(/[·|]/).map(fold).filter(Boolean);
+  let best = -1;
+  for (const nm of names) {
+    const ws = nm.split(/\s+/).filter(Boolean), qs = fold(q).split(/\s+/).filter(w => w.length >= 2);
+    if (!qs.length) continue;
+    // le nom collé (« smatchit » ≈ « smashit »)
+    const joined = ws.join(""), dj = editDist(n, joined, lim(n));
+    if (dj <= lim(n)) best = best < 0 ? 2 + dj : Math.min(best, 2 + dj);
+    // mot à mot : chaque mot tapé trouve son mot dans le nom
+    let tot = 0, ok = true;
+    for (const w of qs) {
+      let d = 99;
+      for (const x of ws) { if (x.startsWith(w)) { d = 0; break; } const e = editDist(w, x.slice(0, Math.max(w.length, x.length)), lim(w)); if (e <= lim(w)) d = Math.min(d, e); }
+      if (d === 99) { ok = false; break; } tot += d;
+    }
+    if (ok) best = best < 0 ? 1 + tot : Math.min(best, 1 + tot);
+  }
+  return best;
+}
 async function homeFind(q) {
   const box = $("#homeFindList"), n = norm(q);
   if (n.length < 2) { box.classList.add("hidden"); box.innerHTML = ""; return; }
@@ -7501,7 +7527,7 @@ async function homeFind(q) {
   // Une liste (« 2 lait, du pain, 6 œufs ») : Hoppy la comprend et la range, avec les vrais produits
   if (VIT && parseList(q).length >= 2) return vitMagic(q, box, seq);
   const sc = code => (state.showcase || []).find(x => x.code === code) || {};
-  const shops = (state.showcase || []).filter(s => norm(`${s.name} ${(t("shKinds") || {})[s.kind] || ""} ${s.tagline || ""} ${s.tagline_he || ""}`).includes(n)).slice(0, 5);
+  const shops = (state.showcase || []).map(s => ({ s, d: shopFindScore(s, q) })).filter(x => x.d >= 0).sort((a, b) => a.d - b.d).map(x => x.s).slice(0, 5);
   const staple = rayonHits(q, 1).length > 0;
   const render = products => {
     if (seq !== findSeq) return;
@@ -9124,7 +9150,8 @@ function vitFindRender(q, products, shops, staple, box) {
         <div class="fr-cmp2-list">${shown.map(x => { const isLo = Number(x.p) === lo && gap > 0;
           return `<button type="button" class="${isLo ? "lo" : ""}" data-find-pro="${UI.esc(x.s)}" data-find-q="${UI.esc((g.he || q).trim())}"><span>${UI.esc(d4Nm({ code: x.s, name: x.s }))}</span>${isLo ? `<em>${UI.esc(t(nLo > 1 ? "cmpLoEq" : "cmpLo"))}</em>` : ""}<b><bdi dir="ltr">${UI.esc(money(Number(x.p)))}</bdi></b></button>`; }).join("")}
           ${more > 0 ? `<small class="fr-cmp2-more">${UI.esc(t("cmpMore", { n: more }))}</small>` : ""}</div></div>`; }).join("")}</section>`;
-  const out = any + cmpBox + (staple ? rayHtml + prodHtml : prodHtml + rayHtml) + shopHtml;
+  // un commerce tapé par son nom (même mal écrit) passe en premier (patron, 24/11 : « Smatch It »)
+  const out = shops.length && !staple ? shopHtml + any + cmpBox + prodHtml + rayHtml : any + cmpBox + (staple ? rayHtml + prodHtml : prodHtml + rayHtml) + shopHtml;
   if (box._findOut !== out || !box.firstChild || box._findFirst !== box.firstChild) { box.innerHTML = out; box._findOut = out; box._findFirst = box.firstChild; }
   box.classList.remove("hidden");
 }
