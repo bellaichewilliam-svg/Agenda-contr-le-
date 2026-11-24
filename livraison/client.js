@@ -4241,7 +4241,7 @@ const modText = (id, lang) => {
   const m = (state.cartMods || {})[id];
   if (!m) return "";
   // Dans la commande (lue par le patron), toujours en français ; à l'écran, dans la langue du client
-  const fr = { onion: "oignons", pickle: "cornichons", ketchup: "ketchup", mustard: "moutarde", sauce: "sauce", lettuce: "salade", tomato: "tomate", cheese: "fromage" };
+  const fr = { onion: "oignons", pickle: "cornichons", ketchup: "ketchup", mustard: "moutarde", sauce: "sauce", lettuce: "salade", tomato: "tomate", cheese: "fromage", crispy: "crispy", butter: "beurre végétal", egg: "œuf", cucumber: "concombre" };
   const lab = k => (lang === "fr" ? "sans " + (k === "cheese" && kosherShop() ? "cheddar végétal" : fr[k]) : t("modNo") + " " + modLbl(k));
   const drink = m.drink ? (lang === "fr" ? "boisson : " : t("drinkLbl") + " : ") + drinkName(m.drink, lang) : "";
   const fl = (m.flavors || []).filter(Boolean);
@@ -4313,9 +4313,9 @@ function d6ShopColor() {
   document.body.style.setProperty("--shop", c); document.body.style.setProperty("--shop-ink", lum > .62 ? "#3A1E0E" : "#FFFFFF");
   document.body.classList.toggle("d6-shop", !!s);
 }
-var vt = { cfg: null, code: "", cur: 0, off: {}, add: {}, auto: true, timer: 0 };
+var vt = { cfg: null, all: null, code: "", cur: 0, off: {}, add: {}, auto: true, timer: 0 };
 async function vtLoad(code, seq) {
-  vt.cfg = null; vt.code = code; vt.cur = 0; vt.off = {}; vt.add = {}; vt.auto = true; vtRender();
+  vt.cfg = null; vt.all = null; vt.code = code; vt.cur = 0; vt.off = {}; vt.add = {}; vt.auto = true; vtRender();
   let cfg = null;
   try { cfg = await Store.shopVitrine(code); } catch (e) { cfg = null; }
   if (seq !== shopSeq || !state.shop || state.shop.code !== code || !cfg || !Array.isArray(cfg.dishes)) return;
@@ -4324,10 +4324,17 @@ async function vtLoad(code, seq) {
   if (!cfg.dishes.length) return;
   if (!document.getElementById("vtFonts")) { const l = document.createElement("link"); l.id = "vtFonts"; l.rel = "stylesheet";
     l.href = "https://fonts.googleapis.com/css2?family=Karantina:wght@700&family=Caveat:wght@700&display=swap"; document.head.appendChild(l); }
-  vt.cfg = cfg; vtRender(true); d6ShopColor();
+  vt.all = cfg; vtApplySide(); d6ShopColor();
   try { const h = $("#shopHero"); if (h && document.documentElement.classList.contains("d5") && state.shop) { const html = d6HeroHtml(state.shop, UI.safeImg(state.shop.logo), UI.safeImg(state.shop.cover)); h.innerHTML = html; h.dataset.html = html; } } catch (e) { /* le haut reste */ }
 }
 const vtProd = id => cgProducts().find(p => p.id === id);
+// Côté Bassari / Halavi choisi (Rendez-Vous) : la vitrine ne montre que les plats de ce côté (cfg.dishes[].side = "b" | "h")
+function vtApplySide() {
+  if (!vt.all) return;
+  const side = ((state.ksSide || {})[vt.code]) || "", list = vt.all.dishes.filter(d => !side || !d.side || d.side === side);
+  vt.cfg = Object.assign({}, vt.all, { dishes: list.length ? list : vt.all.dishes }); vt.cur = 0; vtRender(true);
+  try { ksRender(); } catch (e) { /* choix Bassari / Halavi */ }
+}
 // (patron 24/11 : « le Royal du Smash It devait avoir la sélection ») un plat qui a sa vitrine « menu éclaté » s'ouvre
 // dans la vitrine (ingrédients détourés à enlever, sauces à ajouter) au lieu de l'ancienne fiche
 function vtOpenFor(id) {
@@ -4763,7 +4770,8 @@ function ksRender() {
   box.querySelectorAll("h4.cg-sec").forEach(h => { const k = secSide(h.textContent); h.dataset.ksSec = k; const g = h.nextElementSibling; if (g && g.classList.contains("cg-grid")) g.dataset.ksSec = k; });
   box.querySelectorAll(".cg-head-tabs button, .cg-head-tabs [data-cg-cat]").forEach(b => { b.dataset.ksSec = secSide(b.textContent); });
   box.dataset.ks = side;
-  const picOf = k => { const cat = ((state.catalog && state.catalog.categories) || []).find(c => KS_RX[k].test(c.name || ""));
+  const picOf = k => { const vd = vt.all && vt.code === code && vt.all.dishes.find(d => d.side === k && d.img); if (vd) return UI.esc(vd.img);
+    const cat = ((state.catalog && state.catalog.categories) || []).find(c => KS_RX[k].test(c.name || ""));
     const p = cat && cgProducts().find(x => x.category_id === cat.id && x.photo); return p ? UI.safeImg(p.photo) : ""; };
   const card = (k, bg, t1, t2, sub) => { const im = picOf(k);
     return `<button type="button" class="ks-card ks-${k}${side === k ? " on" : ""}" data-ks-pick="${k}" style="--ksbg:${bg}">
@@ -4772,7 +4780,10 @@ function ksRender() {
     <div class="ks-row">${card("b", "#FF5D73", he ? "בשרי" : "Côté viande", he ? "בשרי · Bassari" : "Bassari · בשרי", he ? "עוף, אסאדו, שניצל, נקניקים" : "Poulet, assado, shnitzel, charcuterie")}
     ${card("h", "#1E9BF0", he ? "חלבי" : "Côté lait", he ? "חלבי · Halavi" : "Halavi · חלבי", he ? "סלמון, בוראטה, מוצרלה, טונה" : "Saumon, burrata, mozzarella, thon")}</div>
     ${side ? `<button type="button" class="ks-all" data-ks-pick="">${UI.esc(he ? "להציג את כל התפריט" : "Voir tout le menu")}</button>` : ""}`;
-  if (!pick) { pick = document.createElement("section"); pick.id = "ksPick"; pick.className = "ks-pick"; box.parentNode.insertBefore(pick, box); }
+  // au-dessus de la vitrine (on choisit son côté, puis on voit ses plats)
+  const before = document.getElementById("vitrineBox") || box;
+  if (!pick) { pick = document.createElement("section"); pick.id = "ksPick"; pick.className = "ks-pick"; }
+  if (pick.nextElementSibling !== before) before.parentNode.insertBefore(pick, before);
   if (pick.dataset.html !== html) { pick.innerHTML = html; pick.dataset.html = html; }
 }
 document.addEventListener("click", e => {
@@ -4780,6 +4791,7 @@ document.addEventListener("click", e => {
   const code = (state.shop && state.shop.code) || ""; state.ksSide = state.ksSide || {};
   state.ksSide[code] = b.dataset.ksPick; UI.track("ks_pick", { shop_code: code, side: b.dataset.ksPick || "all" });
   ksRender();
+  if (vt.all && vt.code === code) vtApplySide();
   const first = b.dataset.ksPick && document.querySelector(`#catalogBox h4.cg-sec[data-ks-sec="${b.dataset.ksPick}"]`);
   const tgt = first || document.getElementById("ksPick");
   if (tgt) { const bars = [...document.querySelectorAll(".topbar, .view-bar, #catalogBox .cg-head")].filter(x => getComputedStyle(x).position === "sticky" || getComputedStyle(x).position === "fixed").reduce((n, x) => n + x.offsetHeight, 0);

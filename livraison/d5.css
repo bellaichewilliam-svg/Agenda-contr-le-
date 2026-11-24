@@ -1051,3 +1051,6 @@ html.d5 body .pay-top p { font: 700 16px/1.35 Heebo, sans-serif !important; colo
 html.d5 body .pay-top p i { background: var(--ink) !important; width: 28px; height: 28px; line-height: 28px; font-size: 15px; }
 html.d5 body .cs-ridepay { background: var(--c2); border-radius: 18px; padding: 12px 14px; color: var(--ink) !important; font: 800 16px/1.35 Heebo, sans-serif !important; margin: 10px 0 0 !important; }
 html.d5 body #cartNote:not(:empty) { font: 700 16px/1.4 Heebo, sans-serif !important; color: var(--ink) !important; }
+html.d5 body .ks-card img[src^="img/"] { border: 0 !important; border-radius: 0 !important; object-fit: contain !important; aspect-ratio: auto !important; width: 112% !important; inset-inline-end: -22% !important; bottom: 8px !important; filter: drop-shadow(0 10px 10px rgba(0,0,0,.25)); }
+html.d5 body .ks-card img[src^="img/"] { width: 100% !important; inset-inline-end: -14% !important; max-height: 46% !important; bottom: 6px !important; }
+html.d5 body .ks-card { min-height: 250px !important; }
