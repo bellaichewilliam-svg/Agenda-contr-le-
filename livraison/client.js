@@ -4241,7 +4241,7 @@ const modText = (id, lang) => {
   const m = (state.cartMods || {})[id];
   if (!m) return "";
   // Dans la commande (lue par le patron), toujours en français ; à l'écran, dans la langue du client
-  const fr = { onion: "oignons", pickle: "cornichons", ketchup: "ketchup", mustard: "moutarde", sauce: "sauce", lettuce: "salade", tomato: "tomate", cheese: "fromage", crispy: "crispy", butter: "beurre végétal", egg: "œuf", cucumber: "concombre" };
+  const fr = { onion: "oignons", pickle: "cornichons", ketchup: "ketchup", mustard: "moutarde", sauce: "sauce", lettuce: "salade", tomato: "tomate", cheese: "fromage", crispy: "crispy", butter: "beurre parvé", cheeseParve: "fromage parvé", mayo: "mayo", dried: "tomates séchées", egg: "œuf", cucumber: "concombre" };
   const lab = k => (lang === "fr" ? "sans " + (k === "cheese" && kosherShop() ? "cheddar végétal" : fr[k]) : t("modNo") + " " + modLbl(k));
   const drink = m.drink ? (lang === "fr" ? "boisson : " : t("drinkLbl") + " : ") + drinkName(m.drink, lang) : "";
   const fl = (m.flavors || []).filter(Boolean);
@@ -4296,11 +4296,14 @@ function d6HeroHtml(s, logo, cover) {
   const st = UI.openState(s.hours), wa = shopWa(s), he = I18N.lang === "he";
   const dish = typeof vt !== "undefined" && vt && vt.cfg && vt.code === s.code && vt.cfg.dishes && vt.cfg.dishes[0] ? vt.cfg.dishes[0].img : "";
   const pic = dish || cover || "";
+  // Identité du commerce en haut de sa page (patron 24/11, Rendez-Vous) : son logo, ses couleurs, sa phrase (cfg.brand de sa vitrine)
+  const brand = typeof vt !== "undefined" && vt && vt.all && vt.code === s.code ? vt.all.brand : null;
   const at = (() => { try { return val("urgency") === "programmee" && (state.shopSched || form.classList.contains("no-now")) && pickupDate(); } catch (e) { return null; } })();
-  return `<div class="d6h">
+  return `<div class="d6h${brand ? " d6h-brand" : ""}"${brand && brand.accent ? ` style="--brand-ac:${UI.esc(brand.accent)}"` : ""}>
     <div class="d6h-bubs">${st ? `<span class="d6h-b ${st.open ? "on" : "off"}"><i></i>${UI.esc(openLabel(st))}</span>` : ""}<span class="d6h-b w">${UI.esc(s.shop_pays ? t("scGift") : t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) }))}</span>${isKosher(s) ? `<span class="d6h-b k">${UI.esc(he ? "כשר" : "Casher")}</span>` : ""}</div>
+    ${brand && brand.logo ? `<img class="d6h-blogo" src="${UI.esc(brand.logo)}" alt="" />` : ""}
     <h1 class="d6h-name${Math.max(...UI.bi(s.name).split(/\s+/).map(w => w.length)) > 6 ? " long" : ""}">${UI.esc(UI.bi(s.name))}</h1>
-    <p class="d6h-tag">${UI.esc(UI.shopText(s, "tagline") || (t("shKinds") || {})[s.kind] || "")}</p>
+    ${brand && brand.line ? `<p class="d6h-bline">${UI.esc(brand.line[he ? "he" : "fr"] || brand.line.fr || "")}</p>` : `<p class="d6h-tag">${UI.esc(UI.shopText(s, "tagline") || (t("shKinds") || {})[s.kind] || "")}</p>`}
     ${pic ? `${dish ? `<i class="d6-halo h" aria-hidden="true"></i><i class="d6-ground h" aria-hidden="true"></i>` : ""}<img class="d6h-pic${dish ? " cut" : ""}" src="${UI.esc(pic)}" alt="" />` : logo ? `<img class="d6h-logo" src="${UI.esc(logo)}" alt="" />` : ""}
     <div class="d6h-acts"><button type="button" class="d6h-a" data-sh-info="1">${UI.esc(t("shInfoBtn"))}</button>${wa ? `<a class="d6h-a wa" href="https://wa.me/${UI.esc(wa)}?text=${encodeURIComponent(t("shWaHello", { name: UI.bi(s.name) }))}" target="_blank" rel="noopener">WhatsApp</a>` : ""}${at ? `<button type="button" class="d6h-a when" data-sl-goto>${UI.esc(vitWhenLong(at))} · ${UI.esc(t("slChange"))}</button>` : ""}</div>
   </div>${shopSheet(s)}`;

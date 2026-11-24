@@ -1054,3 +1054,21 @@ html.d5 body #cartNote:not(:empty) { font: 700 16px/1.4 Heebo, sans-serif !impor
 html.d5 body .ks-card img[src^="img/"] { border: 0 !important; border-radius: 0 !important; object-fit: contain !important; aspect-ratio: auto !important; width: 112% !important; inset-inline-end: -22% !important; bottom: 8px !important; filter: drop-shadow(0 10px 10px rgba(0,0,0,.25)); }
 html.d5 body .ks-card img[src^="img/"] { width: 100% !important; inset-inline-end: -14% !important; max-height: 46% !important; bottom: 6px !important; }
 html.d5 body .ks-card { min-height: 250px !important; }
+
+/* Haut de page à l'identité du commerce (patron 24/11, Rendez-Vous : son logo, son marron, son beige) */
+html.d5 body #shopHero .d6h.d6h-brand { color: var(--brand-ac, #fff) !important; }
+html.d5 body #shopHero .d6h-brand .d6h-blogo { position: relative; z-index: 3; display: block; width: 86px; height: 86px; border-radius: 50%; object-fit: cover; margin: 6px 0 12px; box-shadow: 0 10px 22px rgba(0,0,0,.25); border: 3px solid var(--brand-ac, #fff); }
+html.d5 body #shopHero .d6h-brand .d6h-name { color: var(--brand-ac, #fff) !important; font-size: 46px !important; }
+html.d5 body #shopHero .d6h-brand .d6h-bline { position: relative; z-index: 3; max-width: 50%; margin-top: 10px; font: 700 15px/1.35 Heebo, sans-serif; letter-spacing: .02em; color: var(--brand-ac, #fff); opacity: .95; }
+html.d5 body #shopHero .d6h-brand .d6h-b { background: var(--brand-ac, #fff) !important; color: var(--shop, #333) !important; }
+html.d5 body #shopHero .d6h-brand .d6h-b.on i { background: #3FB56C !important; }
+html.d5 body #shopHero .d6h-brand .d6h-a { background: var(--brand-ac, #fff) !important; color: var(--shop, #333) !important; }
+html.d5 body #shopHero .d6h-brand .d6-halo { background: radial-gradient(closest-side, rgba(233,211,166,.35), rgba(233,211,166,.12) 62%, rgba(233,211,166,0) 100%); }
+html.d5 body #shopHero .d6h-brand .d6h-pic.cut { top: 150px !important; }
+html.d5 body #shopHero .d6h-brand .d6-halo.h { top: 140px; } html.d5 body #shopHero .d6h-brand .d6-ground.h { top: 330px; }
+html.d5 body #shopHero .d6h-brand { min-height: 420px !important; }
+html.d5 body #shopHero .d6h-brand .d6h-bline { max-width: 60% !important; white-space: nowrap; font: 800 12.5px/1.2 Heebo, sans-serif !important; letter-spacing: .06em !important; text-transform: uppercase; }
+html[dir=rtl].d5 body #shopHero .d6h-brand .d6h-bline { letter-spacing: 0 !important; font-size: 14px !important; }
+html.d5 body #shopHero .d6h-brand .d6h-pic.cut { top: 196px !important; width: 186px !important; height: 186px !important; }
+html.d5 body #shopHero .d6h-brand .d6-halo.h { top: 186px; width: 200px; height: 200px; } html.d5 body #shopHero .d6h-brand .d6-ground.h { top: 370px; }
+html.d5 body #shopHero .d6h-brand { min-height: 450px !important; }
