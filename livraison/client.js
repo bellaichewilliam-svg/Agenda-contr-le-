@@ -4277,7 +4277,119 @@ async function loadCatalogFor(shop) {
   renderCatalog();
   renderQuote();
   if (state.boss) bossMapLoad(shop.code);
+  vtLoad(shop.code, seq);
 }
+
+// ===== Vitrine « menu éclaté » d'un restaurant (patron, 24/11) =====================================================
+// Ses plats vedettes détourés au centre, leurs ingrédients qui s'envolent autour, une couleur par plat, les couleurs de l'enseigne.
+// Le client touche un ingrédient pour l'enlever (« sans oignons » → même note que la fiche produit) ou ajoute une sauce (un vrai
+// produit du catalogue, prix compris). Mise en scène dans la base (shop_vitrine) ; noms, prix, descriptions = le catalogue.
+var vt = { cfg: null, code: "", cur: 0, off: {}, add: {}, auto: true, timer: 0 };
+async function vtLoad(code, seq) {
+  vt.cfg = null; vt.code = code; vt.cur = 0; vt.off = {}; vt.add = {}; vt.auto = true; vtRender();
+  let cfg = null;
+  try { cfg = await Store.shopVitrine(code); } catch (e) { cfg = null; }
+  if (seq !== shopSeq || !state.shop || state.shop.code !== code || !cfg || !Array.isArray(cfg.dishes)) return;
+  const prods = cgProducts();
+  cfg.dishes = cfg.dishes.filter(d => prods.some(p => p.id === d.product && p.available !== false));
+  if (!cfg.dishes.length) return;
+  if (!document.getElementById("vtFonts")) { const l = document.createElement("link"); l.id = "vtFonts"; l.rel = "stylesheet";
+    l.href = "https://fonts.googleapis.com/css2?family=Karantina:wght@700&family=Caveat:wght@700&display=swap"; document.head.appendChild(l); }
+  vt.cfg = cfg; vtRender(true);
+}
+const vtProd = id => cgProducts().find(p => p.id === id);
+function vtTorn(seed) { let d = "M0 0 L390 0 L390 10 ", x = 390, r = seed; while (x > 0) { r = (r * 9301 + 49297) % 233280; x -= 6 + (r / 233280) * 12; d += `L${Math.max(0, x).toFixed(1)} ${(6 + (r / 233280) * 14).toFixed(1)} `; } return d + "L0 10 Z"; }
+function vtRender(full) {
+  const box = $("#vitrineBox"); if (!box || typeof vt === "undefined" || !vt) return;
+  const on = !!vt.cfg && catalogOn() && !state.cgQ && !bossEditOn();
+  box.classList.toggle("hidden", !on);
+  clearInterval(vt.timer);
+  if (!on) { if (!vt.cfg) box.innerHTML = ""; return; }
+  if (full || !box.firstChild) {
+    const c = vt.cfg.colors || {}, words = ((vt.cfg.words || {})[I18N.lang] || (vt.cfg.words || {}).fr || []);
+    box.style.setProperty("--vt-dark", c.dark || "#16100C");
+    const w = words.map(x => `<span>${UI.esc(x)}</span>`).join("");
+    box.innerHTML = `${words.length ? `<div class="vt-band"><div class="vt-row">${w.repeat(4)}</div></div>` : ""}
+      <div class="vt-top"><div class="vt-chips">${vt.cfg.dishes.map((d, i) => { const p = vtProd(d.product);
+        return `<button type="button" class="vt-chip" data-vt-dish="${i}"><img src="${UI.esc(d.img)}" alt="" /><span>${UI.esc(UI.bi(p.name))}<small dir="ltr">${UI.esc(money(p.price))}</small></span></button>`; }).join("")}</div></div>
+      <div class="vt-stage"><svg class="vt-torn" viewBox="0 0 390 22" preserveAspectRatio="none"><path d="${vtTorn(7)}" /></svg>
+        <div class="vt-plate" id="vtPlate"><div class="vt-wm">${UI.esc(UI.bi(state.shop.name))}</div></div>
+        <div class="vt-picks" id="vtPicks"></div>
+        <div class="vt-info"><b class="vt-n" id="vtN"></b><p class="vt-d" id="vtD"></p><button type="button" class="vt-add" id="vtAdd" data-vt-add></button></div></div>`;
+    vtDish(vt.cur, true);
+    const io = new IntersectionObserver(es => es.forEach(e => { clearInterval(vt.timer); if (e.isIntersecting && vt.auto) vt.timer = setInterval(() => { if (vt.auto && vt.cfg) vtDish((vt.cur + 1) % vt.cfg.dishes.length); }, 3600); }), { threshold: .45 });
+    io.observe(box.querySelector(".vt-stage"));
+  }
+}
+function vtDish(i, instant) {
+  const d = vt.cfg && vt.cfg.dishes[i], plate = $("#vtPlate"); if (!d || !plate) return;
+  const rtl = I18N.lang === "he", p = vtProd(d.product); vt.cur = i;
+  document.querySelectorAll("#vitrineBox .vt-chip").forEach((c, k) => c.classList.toggle("on", k === i));
+  const on = document.querySelector(`#vitrineBox .vt-chip[data-vt-dish="${i}"]`), row = on && on.parentElement;
+  // (pas scrollIntoView : il fait aussi glisser la vitrine elle-même de côté, surtout en hébreu)
+  if (on && row && !instant) row.scrollTo({ left: on.offsetLeft - (row.clientWidth - on.offsetWidth) / 2, behavior: "smooth" });
+  $("#vitrineBox .vt-stage").style.background = d.bg || "#F2B21B";
+  const old = plate.querySelectorAll(".vt-dish, .vt-ing, .vt-tag");
+  old.forEach(e => e.classList.add(e.classList.contains("vt-dish") ? "out" : "gone"));
+  setTimeout(() => old.forEach(e => e.remove()), instant ? 0 : 320);
+  const build = () => {
+    const cx = plate.clientWidth / 2 || 190, cy = 170, off = vt.off[d.product] || [], add = vt.add[d.product] || [];
+    const im = new Image(); im.className = "vt-dish out"; im.src = d.img; im.alt = UI.bi(p.name); im.style.width = (d.w || 220) + "px"; plate.appendChild(im);
+    (d.ing || []).forEach((g, k) => {
+      const tap = g.off || g.add, el = document.createElement(tap ? "button" : "span"), xx = rtl ? -g.x : g.x;
+      el.className = "vt-ing gone" + (g.front ? " f" : "") + (tap ? " tap" : "") + ((g.off && off.includes(g.off)) ? " x" : "") + ((g.add && add.includes(g.add)) ? " plus" : "");
+      if (tap) { el.type = "button"; if (g.off) el.dataset.vtOff = g.off; else el.dataset.vtPlus = g.add;
+        el.setAttribute("aria-label", g.off ? `${t("modNo")} ${t("mod_" + g.off)}` : UI.bi((vtProd(g.add) || {}).name || "")); }
+      el.style.cssText = `width:${g.w}px;left:${cx + xx - g.w / 2}px;top:${cy + g.y - g.w / 2}px;--fx:${-xx}px;--fy:${-g.y}px;--r:${g.r || 0}deg`;
+      el.innerHTML = `<img src="${UI.esc(g.img)}" alt="" />${tap ? `<i>${g.off ? "−" : "+"}</i>` : ""}`;
+      plate.appendChild(el); setTimeout(() => el.classList.remove("gone"), 110 + k * 55);
+    });
+    const tg = (d.tags || {})[I18N.lang] || (d.tags || {}).fr || [];
+    tg.slice(0, 2).forEach((txt, k) => { const s = document.createElement("span"); s.className = "vt-tag gone" + (k ? " w" : ""); s.textContent = txt;
+      s.style.cssText = k ? `top:304px;${rtl ? "left" : "right"}:${cx - 128}px` : `top:44px;${rtl ? "right" : "left"}:${cx - 44}px`; plate.appendChild(s); setTimeout(() => s.classList.remove("gone"), 420); });
+    requestAnimationFrame(() => requestAnimationFrame(() => im.classList.remove("out")));
+    $("#vtN").textContent = UI.bi(p.name); $("#vtD").textContent = UI.bi(p.description || "");
+    vtPicks();
+  };
+  instant ? build() : setTimeout(build, 260);
+}
+function vtPicks() {
+  const d = vt.cfg.dishes[vt.cur], p = vtProd(d.product), off = vt.off[d.product] || [], add = vt.add[d.product] || [];
+  const adds = add.map(vtProd).filter(Boolean), total = Number(p.price) + adds.reduce((s, x) => s + Number(x.price), 0);
+  const hasTap = (d.ing || []).some(g => g.off || g.add);
+  $("#vtPicks").innerHTML = (off.length || adds.length) ? off.map(k => `<span>${UI.esc(t("modNo"))} ${UI.esc(t("mod_" + k))}</span>`).join("") + adds.map(x => `<span class="plus">+ ${UI.esc(UI.bi(x.name))}</span>`).join("")
+    : hasTap ? `<em>${UI.esc(t("vtHint"))}</em>` : "";
+  $("#vtAdd").innerHTML = `${UI.esc(t("vtAdd"))} <b dir="ltr">${UI.esc(money(total))}</b>`;
+}
+function vtTapIng(el) {
+  const d = vt.cfg.dishes[vt.cur]; vt.auto = false; clearInterval(vt.timer);
+  if (el.dataset.vtOff) { const k = el.dataset.vtOff, a = vt.off[d.product] = vt.off[d.product] || [];
+    if (a.includes(k)) a.splice(a.indexOf(k), 1); else a.push(k); el.classList.toggle("x", a.includes(k)); }
+  else { const id = el.dataset.vtPlus, a = vt.add[d.product] = vt.add[d.product] || [];
+    if (a.includes(id)) a.splice(a.indexOf(id), 1); else a.push(id); el.classList.toggle("plus", a.includes(id)); }
+  vtPicks();
+}
+function vtAddToCart() {
+  const d = vt.cfg.dishes[vt.cur], p = vtProd(d.product), off = (vt.off[d.product] || []).slice(), add = vt.add[d.product] || [];
+  if (!p) return;
+  if (sizesOf(p).length > 1 || needsDrink(p) || flavorCount(p) || needsSide(p)) return itOpen(p.id);
+  state.cart[p.id] = Math.min(50, (state.cart[p.id] || 0) + 1); hopCartFix(p.id);
+  state.cartMods = state.cartMods || {};
+  if (off.length) state.cartMods[p.id] = Object.assign({ off: [], note: "", drink: "", flavors: [], side: "", extras: [] }, state.cartMods[p.id] || {}, { off });
+  add.forEach(id => { if (vtProd(id)) state.cart[id] = Math.min(50, (state.cart[id] || 0) + 1); });
+  renderCatalog(); renderQuote(); saveDraft(); cartPersist();
+  toastCart(t("vtAdded", { name: UI.bi(p.name) }));
+  vt.off[d.product] = []; vt.add[d.product] = []; vtDish(vt.cur, true);
+}
+document.addEventListener("click", e => {
+  if (!e.target.closest || !e.target.closest("#vitrineBox")) return;
+  const ch = e.target.closest("[data-vt-dish]"); if (ch) { vt.auto = false; clearInterval(vt.timer); return vtDish(+ch.dataset.vtDish); }
+  const ing = e.target.closest(".vt-ing.tap"); if (ing) return vtTapIng(ing);
+  if (e.target.closest("[data-vt-add]")) return vtAddToCart();
+});
+(() => { let sx = 0; document.addEventListener("touchstart", e => { if (e.target.closest && e.target.closest("#vtPlate")) sx = e.touches[0].clientX; else sx = 0; }, { passive: true });
+  document.addEventListener("touchend", e => { if (!sx || !vt.cfg) return; const dx = e.changedTouches[0].clientX - sx; sx = 0; if (Math.abs(dx) < 50) return; vt.auto = false; clearInterval(vt.timer);
+    const dir = (dx < 0) !== (I18N.lang === "he") ? 1 : -1; vtDish((vt.cur + dir + vt.cfg.dishes.length) % vt.cfg.dishes.length); }, { passive: true }); })();
 
 // ===== Mode patron sur la page client (règle du 04/11) : le patron change un produit là où le client le voit =====
 // Nom (français · hébreu), prix, visible ou masqué. Boutiques HOP! (mises à jour toutes seules depuis le magasin) :
@@ -4448,6 +4560,7 @@ function renderCatalog() {
   try { viewTitle(); } catch (e) { /* titre */ }
   const box = $("#catalogBox"), on = catalogOn();
   box.classList.toggle("hidden", !on);
+  vtRender();
   $("#shopOrderBox").classList.toggle("with-cg", on);
   document.body.classList.toggle("cg-cart-on", on && cartCount() > 0);
   goLabel();

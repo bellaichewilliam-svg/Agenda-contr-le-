@@ -207,6 +207,25 @@ html[dir=rtl] .cartbar { padding: 10px 18px 10px 10px; } .cartbar .n { width: 30
 .nav-demo { position: fixed; z-index: 60; top: 64px; inset-inline-end: 8px; display: flex; flex-direction: column; gap: 4px; }
 .nav-demo button { width: 30px; height: 30px; border-radius: 15px; background: rgba(15,31,61,.82); color: #fff; font-size: 10px; font-weight: 800; }
 .nav-demo button.on { background: var(--or); }
+
+/* accueil : la première image, version pro (patron 24/11 : pas d'étoile, pas d'objets qui volent) */
+.h2x { padding: 18px 0 0; position: relative; }
+.h2x .ghost { position: absolute; left: 0; right: 0; top: 70px; text-align: center; font-size: 190px; color: transparent; -webkit-text-stroke: 1.5px rgba(244,236,221,.09); white-space: nowrap; pointer-events: none; }
+.h2x .eyebrow { position: relative; display: flex; align-items: center; gap: 10px; padding: 0 20px; font-size: 12px; font-weight: 600; letter-spacing: .14em; color: #AFC0DE; text-transform: uppercase; }
+.h2x .hh { position: relative; padding: 12px 20px 0; }
+.h2x .hrow { position: relative; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 20px; margin-top: -8px; }
+.h2x h1 { font-size: 80px; color: #fff; } .h2x h1 span, .h2x h1 b { display: block; } .h2x h1 b { color: var(--or); font-weight: 700; }
+html[dir=rtl] .h2x h1 { font-size: 80px; }
+.h2x .note { display: flex; align-items: flex-end; gap: 6px; padding-bottom: 14px; max-width: 190px; font-size: 24px; color: #CFE0FF; } html[dir=rtl] .h2x .note { font-size: 16px; } html[dir=rtl] .h2x .note svg { transform: scaleX(-1); }
+.h2x .hfig { position: relative; width: 150px; flex: none; }
+.h2x .hfig img { position: relative; z-index: 2; width: 150px; filter: drop-shadow(0 26px 22px rgba(0,0,0,.45)); animation: jump2 3.4s cubic-bezier(.45, 0, .35, 1) infinite; }
+@keyframes jump2 { 0%, 100% { transform: translateY(0); } 45% { transform: translateY(-12px) rotate(2deg); } }
+.h2x .hfig .arc { position: absolute; z-index: 1; width: 200px; height: 120px; top: 10px; inset-inline-end: 90px; }
+html[dir=rtl] .h2x .hfig .arc { transform: scaleX(-1); }
+.h2x .search { margin-top: 20px; }
+.h2x .facts { display: grid; grid-template-columns: repeat(3, 1fr); margin: 22px 16px 0; border-top: 1px solid rgba(255,255,255,.14); }
+.h2x .facts div { padding: 14px 6px 4px; text-align: center; } .h2x .facts div + div { border-inline-start: 1px solid rgba(255,255,255,.14); }
+.h2x .facts .K { display: block; font-size: 30px; color: #fff; } .h2x .facts small { display: block; margin-top: 4px; font-size: 11px; font-weight: 700; color: #9FB3D9; letter-spacing: .04em; }
 </style>
 </head>
 <body>
@@ -214,19 +233,16 @@ html[dir=rtl] .cartbar { padding: 10px 18px 10px 10px; } .cartbar .n { width: 30
   <!-- ======================= ACCUEIL ======================= -->
   <section class="screen" id="s-accueil">
     <header class="top"><div class="logo ltr">HOP<i>!</i></div><div class="addr"><i class="pin"></i><span><small data-t="to"></small><span data-t="addr"></span></span></div><button class="lang" data-lang></button></header>
-    <div class="hero">
-      <div class="giant K ltr fit" data-t="city"></div>
-      <div class="stage">
-        <svg class="arc" viewBox="0 0 410 250"><path d="M-10 230 C 60 20, 150 10, 205 115 S 330 40, 420 140"/></svg>
-        <img class="hp" src="img/v4/hoppy.webp" alt="Hoppy">
-        <img class="p float" src="img/v4/coca.webp" style="height:104px;left:18px;top:30px;--r:-12deg" alt="">
-        <img class="p float" src="img/v4/pommes.webp" style="height:58px;right:26px;top:40px;--r:16deg;animation-delay:-1.2s" alt="">
-        <img class="p float" src="img/v4/baguette.webp" style="height:104px;left:30px;top:180px;--r:22deg;animation-delay:-2.1s" alt="">
-        <div class="star"><svg viewBox="0 0 100 100"><path fill="#FF6A13" d="M50 2l7 12 13-6 1 14 14 1-6 13 12 7-12 7 6 13-14 1-1 14-13-6-7 12-7-12-13 6-1-14-14-1 6-13-12-7 12-7-6-13 14-1 1-14 13 6z"/></svg><div><span data-t="from"></span><b class="ltr">25 ₪</b><span data-t="inCity"></span></div></div>
+    <div class="hero h2x">
+      <div class="ghost K ltr" aria-hidden="true" data-t="city"></div>
+      <div class="eyebrow M"><i class="pin"></i><span data-t="eyebrow"></span></div>
+      <h1 class="K hh"><span data-t="h1a"></span><span data-t="h1b"></span><b data-t="h1c"></b></h1>
+      <div class="hrow">
+        <div class="note S"><svg width="30" height="26" viewBox="0 0 34 30" fill="none" stroke="#FF6A13" stroke-width="2.6" stroke-linecap="round"><path d="M4 4c2 12 10 20 24 20"/><path d="M22 18l6 6-7 4"/></svg><span data-t="note"></span></div>
+        <div class="hfig"><svg class="arc" viewBox="0 0 200 120"><path d="M-40 110 C 10 -10, 120 -20, 190 60"/></svg><img src="img/v4/hoppy.webp" alt="Hoppy"></div>
       </div>
-      <div class="tagline"><h1 class="K"><span data-t="t1"></span><br><b data-t="t2"></b></h1>
-        <div class="note S"><svg width="34" height="30" viewBox="0 0 34 30" fill="none" stroke="#FF6A13" stroke-width="2.6" stroke-linecap="round"><path d="M4 4c2 12 10 20 24 20"/><path d="M22 18l6 6-7 4"/></svg><span data-t="note"></span></div></div>
       <div class="search"><span data-t="search"></span><b><span data-t="find"></span></b></div>
+      <div class="facts"><div><span class="K" data-t="f1"></span><small data-t="f1s"></small></div><div><span class="K" data-t="f2"></span><small data-t="f2s"></small></div><div><span class="K ltr" data-t="f3"></span><small data-t="f3s"></small></div></div>
       <svg class="zig" viewBox="0 0 390 16" preserveAspectRatio="none"><path fill="#F4ECDD" d="M0 16V8L10 0l10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8 10 8 10-8V16z"/></svg>
     </div>
     <div class="tick M"><div class="row" id="tick"></div></div>
@@ -253,8 +269,9 @@ html[dir=rtl] .cartbar { padding: 10px 18px 10px 10px; } .cartbar .n { width: 30
     <div class="shero"><div class="giant K ltr fit">SMASH IT</div>
       <div class="info" id="sInfo"></div>
       <div class="chips" id="dchips" style="padding:16px 16px 12px"></div>
-      <svg class="torn" viewBox="0 0 390 22" preserveAspectRatio="none" style="margin-bottom:-1px"><path class="tp" id="tornExp" fill="#F2B21B"/></svg></div>
-    <div class="exp" id="exp" style="background:#F2B21B;padding-top:10px">
+    </div>
+    <div class="exp" id="exp" style="background:#F2B21B;padding-top:0">
+      <svg class="torn" viewBox="0 0 390 22" preserveAspectRatio="none" style="margin-top:-1px"><path class="tp" fill="#17100B"/></svg>
       <div class="plate" id="plate"><div class="wm">Smash It</div></div>
       <div class="nm K" id="dn"></div><div class="ds" id="dd"></div>
       <div class="act"><button class="btn dark" id="dAdd"></button></div>
@@ -353,7 +370,7 @@ html[dir=rtl] .cartbar { padding: 10px 18px 10px 10px; } .cartbar .n { width: 30
 <script>
 const STAR = '<svg viewBox="0 0 100 100"><path fill="#FF6A13" d="M50 2l7 12 13-6 1 14 14 1-6 13 12 7-12 7 6 13-14 1-1 14-13-6-7 12-7-12-13 6-1-14-14-1 6-13-12-7 12-7-6-13 14-1 1-14 13 6z"/></svg>';
 const T = {
-fr: { to: 'LIVRER À', addr: 'Herzl 12, Netanya', city: 'NETANYA', from: 'dès', inCity: 'en ville', t1: 'On fait vos courses', t2: 'pour vous.', note: 'au meilleur prix, promis', search: 'Lait, pizza, pharmacie…', find: 'Chercher',
+fr: { to: 'LIVRER À', eyebrow: 'Livraison à Netanya', h1a: 'On fait vos', h1b: 'courses', h1c: 'pour vous.', f1: 'Tout', f1s: 'magasins, restos, pharmacie', f2: 'Moins cher', f2s: 'on compare pour vous', f3: '25 ₪', f3s: 'en ville, au plus vite',  addr: 'Herzl 12, Netanya', city: 'NETANYA', from: 'dès', inCity: 'en ville', t1: 'On fait vos courses', t2: 'pour vous.', note: 'au meilleur prix, promis', search: 'Lait, pizza, pharmacie…', find: 'Chercher',
   tick: [['LAIT 1 L', '✓'], ['PAIN', '✓'], ['COUCHES', '✓'], ['PIZZA', 'CHAUDE'], ['ORDONNANCE', 'PRÊTE'], ['FLEURS', 'POUR MAMAN'], ['COLIS', 'RÉCUPÉRÉ'], ['BAMBA', '✓']],
   kT: 'Tout, livré.', kE: 'choisissez, on y va pour vous', kinds: [['Courses', 'lait', '--c-courses', -6, 'Le moins cher', 'magasin'], ['Restos', 'frites', '--c-restos', 8, 'Bien chaud', 'restos'], ['Pharmacie', '', '--c-pharma', 0, 'Ordonnance', 'pharma'], ['Makolet', 'bamba', '--c-makolet', -8, 'Tout de suite', 'magasin'], ['Boulange', 'baguette', '--c-boulange', 12, 'Frais du jour', 'magasin'], ['Colis', 'sac', '--c-colis', -4, 'Dépôt, retrait', 'accueil']],
   sT: 'Faites vos courses', sE: 'tous les magasins, le moins cher gagne', shops: [['Carrefour', 'market/carrefour-cover.webp', '−30 % sur 200 articles'], ['Rami Lévy', 'market/ramilevy-cover.webp', 'Le moins cher souvent'], ['Shufersal', 'market/shufersal-cover.webp', 'Toutes les promos'], ['Yohananof', 'market/yohananof-cover.webp', 'Grand choix']],
@@ -376,7 +393,7 @@ fr: { to: 'LIVRER À', addr: 'Herzl 12, Netanya', city: 'NETANYA', from: 'dès',
   sw: [['Bleu nuit', '#0F1F3D', 'marque, fonds'], ['Papier', '#F4ECDD', 'fond des pages'], ['Orange', '#FF6A13', 'l\'action, un seul'], ['Étiquette', '#FFE14A', 'les prix'], ['Courses', '#9CD8A8', ''], ['Restos', '#FFB283', ''], ['Pharmacie', '#A9D0FF', ''], ['Makolet', '#FFD54F', ''], ['Colis', '#C9B8FF', '']],
   rules: ['Un seul orange par écran : le bouton qui fait avancer.', 'Les titres en affiche, jamais plus de 4 mots.', 'Les prix toujours sur l\'étiquette jaune ou en orange.', 'Hoppy (image officielle) sur l\'accueil, la voix et les moments de joie.', 'Les tickets pour tout ce qui est liste, panier, commande.', 'Le tampon pour une bonne nouvelle : le moins cher, livré.', 'Français et hébreu de la même taille, jamais coupés.'],
   nHome: 'Accueil', nRest: 'Restos', nShop: 'Courses', nOrd: 'Commandes', lang: 'עב' },
-he: { to: 'משלוח אל', addr: 'הרצל 12, נתניה', city: 'נתניה', from: 'החל מ־', inCity: 'בעיר', t1: 'עושים לכם', t2: 'את הקניות.', note: 'במחיר הכי טוב, מבטיחים', search: 'חלב, פיצה, בית מרקחת…', find: 'חיפוש',
+he: { to: 'משלוח אל', eyebrow: 'משלוחים בנתניה', h1a: 'עושים', h1b: 'לכם את', h1c: 'הקניות.', f1: 'הכול', f1s: 'חנויות, מסעדות, בית מרקחת', f2: 'הכי זול', f2s: 'משווים בשבילכם', f3: '25 ₪', f3s: 'בעיר, הכי מהר',  addr: 'הרצל 12, נתניה', city: 'נתניה', from: 'החל מ־', inCity: 'בעיר', t1: 'עושים לכם', t2: 'את הקניות.', note: 'במחיר הכי טוב, מבטיחים', search: 'חלב, פיצה, בית מרקחת…', find: 'חיפוש',
   tick: [['חלב 1 ל׳', '✓'], ['לחם', '✓'], ['חיתולים', '✓'], ['פיצה', 'חמה'], ['מרשם', 'מוכן'], ['פרחים', 'לאמא'], ['חבילה', 'נאספה'], ['במבה', '✓']],
   kT: 'הכול, עד הבית.', kE: 'בוחרים, ואנחנו הולכים בשבילכם', kinds: [['קניות', 'lait', '--c-courses', -6, 'הכי זול', 'magasin'], ['מסעדות', 'frites', '--c-restos', 8, 'חם', 'restos'], ['בית מרקחת', '', '--c-pharma', 0, 'מרשם', 'pharma'], ['מכולת', 'bamba', '--c-makolet', -8, 'מיד', 'magasin'], ['מאפייה', 'baguette', '--c-boulange', 12, 'טרי', 'magasin'], ['חבילות', 'sac', '--c-colis', -4, 'מסירה, איסוף', 'accueil']],
   sT: 'עושים קניות', sE: 'כל החנויות, הכי זול מנצח', shops: [['Carrefour', 'market/carrefour-cover.webp', '‎−30%‎ על 200 מוצרים'], ['רמי לוי', 'market/ramilevy-cover.webp', 'לרוב הכי זול'], ['שופרסל', 'market/shufersal-cover.webp', 'כל המבצעים'], ['יוחננוף', 'market/yohananof-cover.webp', 'מבחר גדול']],
@@ -437,7 +454,7 @@ function fitAll() { $$('.screen.on .fit').forEach(g => { g.style.fontSize = '120
 function dish(i, instant) {
   const t = T[L], d = t.dishes[i], pl = $('#plate'), rtl = L === 'he'; cur = i;
   $$('#dchips .chip').forEach((c, k) => { c.style.background = k === i ? '#fff' : 'rgba(255,255,255,.12)'; c.style.color = k === i ? '#17100B' : '#fff'; });
-  $('#exp').style.background = d[2]; $('#tornExp').setAttribute('fill', d[2]);
+  $('#exp').style.background = d[2];
   const old = pl.querySelectorAll('.dish, .ing'); old.forEach(e => e.classList.add(e.classList.contains('dish') ? 'out' : 'gone')); setTimeout(() => old.forEach(e => e.remove()), instant ? 0 : 300);
   const build = () => {
     const cx = pl.clientWidth / 2 || 195, cy = 160;
