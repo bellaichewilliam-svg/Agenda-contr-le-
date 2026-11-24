@@ -60,6 +60,9 @@ Quand le patron dit **« mets Hoppy »** (dans une vidéo, une image, un post, u
 - Toute nouvelle fonction qui envoie des articles aux clients (recherche, ajout à une commande, rangées…) doit suivre la même règle : jamais de `p.photo` brut, toujours le lien.
 - Nouveau catalogue préparé par nous : photos en `.webp` (≈ 20–60 Ko) dans `livraison/img/<commerce>/`, empreinte md5 ajoutée à `shop_photo_files`. Ensuite, vérifier que `length(shop_catalog('<CODE>')::text)` reste sous **150 Ko**.
 
+## Pages des boutiques et restaurants (design 5)
+**Avant d'intégrer ou de refaire une boutique : lire `livraison/GUIDE-BOUTIQUES.md`** (identité de la boutique en haut : logo, couleurs, police de son site ; vitrine « menu éclaté » avec les vrais ingrédients de la recette ; Bassari / Halavi ; deux paiements ; captures et vidéos sans rien de coupé ; tous les boutons testés avec les vraies données avant toute mise en ligne).
+
 ## Produits Carrefour dans les rayons (méthode validée par le patron, 04/11/2026)
 Quand le patron envoie une page `carrefour.co.il/categories/<n°>/products…`, on importe toute la catégorie dans le bon rayon, **au prix Carrefour normal** (pas la promo du jour), dans la base (pas de mise en ligne) :
 1. `select public.carrefour_fetch(<n°>);` (plus de 100 produits : `carrefour_fetch(<n°>, 100)`, puis 200…) → un id ; attendre ~5 s.

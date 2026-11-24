@@ -4241,7 +4241,7 @@ const modText = (id, lang) => {
   const m = (state.cartMods || {})[id];
   if (!m) return "";
   // Dans la commande (lue par le patron), toujours en français ; à l'écran, dans la langue du client
-  const fr = { onion: "oignons", pickle: "cornichons", ketchup: "ketchup", mustard: "moutarde", sauce: "sauce", lettuce: "salade", tomato: "tomate", cheese: "fromage" };
+  const fr = { onion: "oignons", pickle: "cornichons", ketchup: "ketchup", mustard: "moutarde", sauce: "sauce", lettuce: "salade", tomato: "tomate", cheese: "fromage", crispy: "crispy", butter: "beurre parvé", cheeseParve: "fromage parvé", mayo: "mayo", dried: "tomates séchées", egg: "œuf", cucumber: "concombre" };
   const lab = k => (lang === "fr" ? "sans " + (k === "cheese" && kosherShop() ? "cheddar végétal" : fr[k]) : t("modNo") + " " + modLbl(k));
   const drink = m.drink ? (lang === "fr" ? "boisson : " : t("drinkLbl") + " : ") + drinkName(m.drink, lang) : "";
   const fl = (m.flavors || []).filter(Boolean);
@@ -4292,42 +4292,92 @@ async function loadCatalogFor(shop) {
 const D6_KIND_COLOR = { restaurant: "#FF5D73", epicerie: "#1E9BF0", supermarche: "#1E9BF0", pharmacie: "#7ED9A6", boulangerie: "#FFE14A", fleurs: "#FF8FB1", cafe: "#8E6CEF" };
 // Le haut de page d'un commerce, version pleine couleur : grand nom, accroche, bulles (ouvert, livraison), la photo qui flotte,
 // boutons pilules (infos, WhatsApp, horaire choisi) — mêmes actions qu'avant (data-sh-info, data-sl-goto)
+const D6_SCOOT = `<svg class="bi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="17" r="2.4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="17" r="2.4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.4 17h6.8l2.6-6h-3.6l-1.8-4H9.5M14.2 11H8.2L6 14.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 function d6HeroHtml(s, logo, cover) {
   const st = UI.openState(s.hours), wa = shopWa(s), he = I18N.lang === "he";
   const dish = typeof vt !== "undefined" && vt && vt.cfg && vt.code === s.code && vt.cfg.dishes && vt.cfg.dishes[0] ? vt.cfg.dishes[0].img : "";
-  const pic = dish || cover || "";
+  const bpic = typeof vt !== "undefined" && vt && vt.all && vt.code === s.code && vt.all.brand && vt.all.brand.pic ? vt.all.brand.pic : "";
+  // plat vedette détouré : celui de la vitrine, sinon brand.pic (cfg sans vitrine) ; à défaut la photo de couverture
+  const cut = dish || bpic, pic = cut || cover || "";
+  // Identité du commerce en haut de sa page (patron 24/11, Rendez-Vous) : son logo, ses couleurs, sa phrase (cfg.brand de sa vitrine)
+  const brand = typeof vt !== "undefined" && vt && vt.all && vt.code === s.code ? vt.all.brand : null;
   const at = (() => { try { return val("urgency") === "programmee" && (state.shopSched || form.classList.contains("no-now")) && pickupDate(); } catch (e) { return null; } })();
-  return `<div class="d6h">
-    <div class="d6h-bubs">${st ? `<span class="d6h-b ${st.open ? "on" : "off"}"><i></i>${UI.esc(openLabel(st))}</span>` : ""}<span class="d6h-b w">${UI.esc(s.shop_pays ? t("scGift") : t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) }))}</span>${isKosher(s) ? `<span class="d6h-b k">${UI.esc(he ? "כשר" : "Casher")}</span>` : ""}</div>
-    <h1 class="d6h-name${Math.max(...UI.bi(s.name).split(/\s+/).map(w => w.length)) > 6 ? " long" : ""}">${UI.esc(UI.bi(s.name))}</h1>
-    <p class="d6h-tag">${UI.esc(UI.shopText(s, "tagline") || (t("shKinds") || {})[s.kind] || "")}</p>
-    ${pic ? `${dish ? `<i class="d6-halo h" aria-hidden="true"></i><i class="d6-ground h" aria-hidden="true"></i>` : ""}<img class="d6h-pic${dish ? " cut" : ""}" src="${UI.esc(pic)}" alt="" />` : logo ? `<img class="d6h-logo" src="${UI.esc(logo)}" alt="" />` : ""}
-    <div class="d6h-acts"><button type="button" class="d6h-a" data-sh-info="1">${UI.esc(t("shInfoBtn"))}</button>${wa ? `<a class="d6h-a wa" href="https://wa.me/${UI.esc(wa)}?text=${encodeURIComponent(t("shWaHello", { name: UI.bi(s.name) }))}" target="_blank" rel="noopener">WhatsApp</a>` : ""}${at ? `<button type="button" class="d6h-a when" data-sl-goto>${UI.esc(vitWhenLong(at))} · ${UI.esc(t("slChange"))}</button>` : ""}</div>
+  return `<div class="d6h${brand ? " d6h-brand" : ""}"${brand ? ` style="${brand.accent ? `--brand-ac:${UI.esc(brand.accent)};` : ""}${brand.font ? `--brand-font:'${UI.esc(brand.font)}';` : ""}${brand.fontHe ? `--brand-font-he:'${UI.esc(brand.fontHe)}';` : ""}${brand.fontLine ? `--brand-font-line:'${UI.esc(brand.fontLine)}';` : ""}"` : ""}>
+    <div class="d6h-bubs">${st ? `<span class="d6h-b ${st.open ? "on" : "off"}"><i></i>${UI.esc(openLabel(st))}</span>` : ""}<span class="d6h-b w">${D6_SCOOT}${UI.esc(s.shop_pays ? t("scGift") : t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) }))}</span>${isKosher(s) ? `<span class="d6h-b k">${KOSHER_STAR}${UI.esc(he ? "כשר" : "Casher")}</span>` : ""}</div>
+    ${brand && (brand.logo || logo) ? `<img class="d6h-blogo${brand.logo ? "" : " auto"}${brand.logoShape === "wide" ? " wide" : ""}" src="${UI.esc(brand.logo || logo)}" alt=""${brand.logoBg ? ` style="background:${UI.esc(brand.logoBg)}"` : ""} />` : ""}
+    ${(() => { const nm = (brand && brand.name && (brand.name[he ? "he" : "fr"] || brand.name.fr)) || UI.bi(s.name); return `<h1 class="d6h-name${Math.max(...nm.split(/\s+/).map(w => w.length)) > 6 ? " long" : ""}">${UI.esc(nm)}</h1>`; })()}
+    ${brand && brand.line ? `<p class="d6h-bline">${String(brand.line[he ? "he" : "fr"] || brand.line.fr || "").split(/\s*·\s*/).map((w, i, a) => `<span>${UI.esc(w)}${i < a.length - 1 ? " ·" : ""}</span>`).join(" ")}</p>` : `<p class="d6h-tag">${UI.esc(UI.shopText(s, "tagline") || (t("shKinds") || {})[s.kind] || "")}</p>`}
+    ${pic ? `${cut ? `<i class="d6-halo h" aria-hidden="true"></i><i class="d6-ground h" aria-hidden="true"></i>${s.kind === "restaurant" && !(brand && brand.steam === false) ? `<i class="d6-steam" aria-hidden="true"><b></b><b></b><b></b></i>` : ""}` : ""}<img class="d6h-pic${cut ? " cut" : ""}" src="${UI.esc(pic)}" alt="" />` : logo && !brand ? `<img class="d6h-logo" src="${UI.esc(logo)}" alt="" />` : ""}
+    <div class="d6h-acts"><button type="button" class="d6h-a" data-sh-info="1">${UI.esc(t("shInfoBtn2"))}</button>${wa ? `<a class="d6h-a wa" href="https://wa.me/${UI.esc(wa)}?text=${encodeURIComponent(t("shWaHello", { name: UI.bi(s.name) }))}" target="_blank" rel="noopener">WhatsApp</a>` : ""}${at ? `<button type="button" class="d6h-a when" data-sl-goto>${UI.esc(vitWhenLong(at))} · ${UI.esc(t("slChange"))}</button>` : ""}</div>
   </div>${shopSheet(s)}`;
 }
 function d6ShopColor() {
   if (!document.documentElement.classList.contains("d5")) return;
-  const s = state.shop, cfg = typeof vt !== "undefined" && vt && vt.cfg && vt.code === (s && s.code) ? vt.cfg : null;
-  const c = (cfg && cfg.colors && cfg.colors.page) || (s && D6_KIND_COLOR[s.kind]) || "#1E9BF0";
+  const s = state.shop, cfg = typeof vt !== "undefined" && vt && vt.all && vt.code === (s && s.code) ? vt.all : null;
+  // couleur de l'enseigne : celle réglée dans sa vitrine, sinon lue dans son logo (d6LogoColor), sinon une couleur par type
+  if (s && !(cfg && cfg.colors && cfg.colors.page) && s.logo) d6LogoColor(s.code, UI.safeImg(s.logo));
+  const c = (cfg && cfg.colors && cfg.colors.page) || (s && D6_LOGO_COLOR[s.code]) || (s && D6_KIND_COLOR[s.kind]) || "#1E9BF0";
   const rgb = c.replace("#", "").match(/../g).map(x => parseInt(x, 16)), lum = (.299 * rgb[0] + .587 * rgb[1] + .114 * rgb[2]) / 255;
   document.body.style.setProperty("--shop", c); document.body.style.setProperty("--shop-ink", lum > .62 ? "#3A1E0E" : "#FFFFFF");
   document.body.classList.toggle("d6-shop", !!s);
 }
-var vt = { cfg: null, code: "", cur: 0, off: {}, add: {}, auto: true, timer: 0 };
+// La couleur principale d'un logo (patron 24/11 : « faire ça pour toutes les boutiques ») : le logo réduit à 40 × 40, on garde
+// la teinte la plus présente parmi les pixels bien colorés (ni blancs, ni noirs, ni gris) ; logo noir et blanc → rien
+const D6_LOGO_COLOR = {};
+function d6LogoColor(code, src) {
+  if (!src || D6_LOGO_COLOR[code] !== undefined) return;
+  D6_LOGO_COLOR[code] = "";
+  const img = new Image();
+  img.onload = () => {
+    try {
+      const n = 40, cv = document.createElement("canvas"); cv.width = cv.height = n;
+      const g = cv.getContext("2d"); g.drawImage(img, 0, 0, n, n);
+      const d = g.getImageData(0, 0, n, n).data, bins = {};
+      for (let i = 0; i < d.length; i += 4) {
+        if (d[i + 3] < 200) continue;
+        const r = d[i], gg = d[i + 1], b = d[i + 2], mx = Math.max(r, gg, b), mn = Math.min(r, gg, b), l = (mx + mn) / 2;
+        if (mx - mn < 60 || l > 235 || l < 30) continue;
+        const k = [r, gg, b].map(v => v >> 5).join(",");
+        (bins[k] = bins[k] || { n: 0, r: 0, g: 0, b: 0 }).n++; bins[k].r += r; bins[k].g += gg; bins[k].b += b;
+      }
+      const top = Object.values(bins).sort((a, z) => z.n - a.n)[0];
+      if (!top || top.n < 12) return;
+      const hx = v => Math.round(v / top.n).toString(16).padStart(2, "0");
+      D6_LOGO_COLOR[code] = "#" + hx(top.r) + hx(top.g) + hx(top.b);
+      if (state.shop && state.shop.code === code) d6ShopColor();
+    } catch (e) { /* logo d'un autre domaine : couleur par type */ }
+  };
+  if (/^https:/.test(src)) img.crossOrigin = "anonymous";
+  img.src = src;
+}
+var vt = { cfg: null, all: null, code: "", cur: 0, off: {}, add: {}, auto: true, timer: 0 };
 async function vtLoad(code, seq) {
-  vt.cfg = null; vt.code = code; vt.cur = 0; vt.off = {}; vt.add = {}; vt.auto = true; vtRender();
+  vt.cfg = null; vt.all = null; vt.code = code; vt.cur = 0; vt.off = {}; vt.add = {}; vt.auto = true; vtRender();
   let cfg = null;
   try { cfg = await Store.shopVitrine(code); } catch (e) { cfg = null; }
-  if (seq !== shopSeq || !state.shop || state.shop.code !== code || !cfg || !Array.isArray(cfg.dishes)) return;
+  if (seq !== shopSeq || !state.shop || state.shop.code !== code || !cfg) return;
   const prods = cgProducts();
-  cfg.dishes = cfg.dishes.filter(d => prods.some(p => p.id === d.product && p.available !== false));
-  if (!cfg.dishes.length) return;
+  cfg.dishes = (Array.isArray(cfg.dishes) ? cfg.dishes : []).filter(d => prods.some(p => p.id === d.product && p.available !== false));
+  // sans plat vedette mais avec son identité (cfg.brand / cfg.colors) : le haut de page à ses couleurs, pas de vitrine
+  if (!cfg.dishes.length && !cfg.brand && !cfg.colors) return;
   if (!document.getElementById("vtFonts")) { const l = document.createElement("link"); l.id = "vtFonts"; l.rel = "stylesheet";
     l.href = "https://fonts.googleapis.com/css2?family=Karantina:wght@700&family=Caveat:wght@700&display=swap"; document.head.appendChild(l); }
-  vt.cfg = cfg; vtRender(true); d6ShopColor();
+  // police du commerce (cfg.brand.fonts : familles Google Fonts, ex. « Outfit:wght@600;700 »)
+  if (cfg.brand && Array.isArray(cfg.brand.fonts) && cfg.brand.fonts.length && !document.getElementById("brandFonts-" + code)) {
+    const l = document.createElement("link"); l.id = "brandFonts-" + code; l.rel = "stylesheet";
+    l.href = "https://fonts.googleapis.com/css2?" + cfg.brand.fonts.map(f => "family=" + encodeURIComponent(f).replace(/%3A/g, ":").replace(/%40/g, "@").replace(/%3B/g, ";")).join("&") + "&display=swap";
+    document.head.appendChild(l); }
+  vt.all = cfg; vtApplySide(); d6ShopColor();
   try { const h = $("#shopHero"); if (h && document.documentElement.classList.contains("d5") && state.shop) { const html = d6HeroHtml(state.shop, UI.safeImg(state.shop.logo), UI.safeImg(state.shop.cover)); h.innerHTML = html; h.dataset.html = html; } } catch (e) { /* le haut reste */ }
 }
 const vtProd = id => cgProducts().find(p => p.id === id);
+// Côté Bassari / Halavi choisi (Rendez-Vous) : la vitrine ne montre que les plats de ce côté (cfg.dishes[].side = "b" | "h")
+function vtApplySide() {
+  if (!vt.all || !vt.all.dishes.length) return;
+  const side = ((state.ksSide || {})[vt.code]) || "", list = vt.all.dishes.filter(d => !side || !d.side || d.side === side);
+  vt.cfg = Object.assign({}, vt.all, { dishes: list.length ? list : vt.all.dishes }); vt.cur = 0; vtRender(true);
+  try { ksRender(); } catch (e) { /* choix Bassari / Halavi */ }
+}
 // (patron 24/11 : « le Royal du Smash It devait avoir la sélection ») un plat qui a sa vitrine « menu éclaté » s'ouvre
 // dans la vitrine (ingrédients détourés à enlever, sauces à ajouter) au lieu de l'ancienne fiche
 function vtOpenFor(id) {
@@ -4744,11 +4794,69 @@ function cgShowPick() {
   clearTimeout(cgShowPick.t); cgShowPick.t = setTimeout(() => plus.forEach(x => x.classList.remove("cg-nudge")), 5000);
   toastCart(t("cgPickHint"), 3500);
 }
+// Restaurant casher avec un côté viande et un côté lait (Rendez-Vous, patron 24/11) : en arrivant sur la boutique, deux grands
+// blocs « Bassari » / « Halavi » ; on ne voit ensuite que les rubriques de ce côté (+ boissons, desserts…), « Tout voir » pour tout
+const KS_RX = { b: /bassari|בשרי/i, h: /halavi|חלבי/i };
+const KS_EXTRA = { RENDEZVOUS: { b: /entrées|מנות ראשונות|formules|קומבינציות/i, h: /nouveauté|החדש של הרגע|petit déjeuner|ארוחת בוקר/i } };
+function ksRender() {
+  const box = $("#catalogBox"), d5 = document.documentElement.classList.contains("d5");
+  let pick = document.getElementById("ksPick");
+  const cats = ((state.catalog && state.catalog.categories) || []).map(c => c.name || "");
+  const both = d5 && box && !box.classList.contains("hidden") && cats.some(n => KS_RX.b.test(n)) && cats.some(n => KS_RX.h.test(n));
+  if (!both) { if (pick) pick.remove(); if (box) delete box.dataset.ks; return; }
+  const code = (state.shop && state.shop.code) || "", he = I18N.lang === "he";
+  state.ksSide = state.ksSide || {};
+  const side = state.ksSide[code] || "";
+  // rubriques sans « bassari / halavi » dans le nom : le côté donné par le site du restaurant
+  const ex = KS_EXTRA[code] || {};
+  const secSide = t2 => (KS_RX.b.test(t2) || (ex.b && ex.b.test(t2)) ? "b" : KS_RX.h.test(t2) || (ex.h && ex.h.test(t2)) ? "h" : "");
+  box.querySelectorAll("h4.cg-sec").forEach(h => { const k = secSide(h.textContent); h.dataset.ksSec = k; const g = h.nextElementSibling; if (g && g.classList.contains("cg-grid")) g.dataset.ksSec = k; });
+  box.querySelectorAll(".cg-head-tabs button, .cg-head-tabs [data-cg-cat]").forEach(b => { b.dataset.ksSec = secSide(b.textContent); });
+  box.dataset.ks = side;
+  const picOf = k => { const vd = vt.all && vt.code === code && vt.all.dishes.find(d => d.side === k && d.img); if (vd) return UI.esc(vd.img);
+    const cat = ((state.catalog && state.catalog.categories) || []).find(c => KS_RX[k].test(c.name || ""));
+    const p = cat && cgProducts().find(x => x.category_id === cat.id && x.photo); return p ? UI.safeImg(p.photo) : ""; };
+  const card = (k, bg, t1, t2, sub) => { const im = picOf(k);
+    return `<button type="button" class="ks-card ks-${k}${side === k ? " on" : ""}" data-ks-pick="${k}" style="--ksbg:${bg}">
+      <span class="ks-t"><small>${UI.esc(t1)}</small><b>${UI.esc(t2)}</b><em>${UI.esc(sub)}</em></span>${im ? `<img src="${im}" alt="" loading="lazy" />` : ""}</button>`; };
+  const html = `<h3 class="ks-h">${UI.esc(he ? "מה בא לכם היום?" : "Vous avez envie de quoi ?")}</h3>
+    <div class="ks-row">${card("b", "#FF5D73", he ? "בשרי" : "Côté viande", he ? "בשרי · Bassari" : "Bassari · בשרי", he ? "עוף, אסאדו, שניצל, נקניקים" : "Poulet, assado, shnitzel, charcuterie")}
+    ${card("h", "#1E9BF0", he ? "חלבי" : "Côté lait", he ? "חלבי · Halavi" : "Halavi · חלבי", he ? "סלמון, בוראטה, מוצרלה, טונה" : "Saumon, burrata, mozzarella, thon")}</div>
+    ${side ? `<button type="button" class="ks-all" data-ks-pick="">${UI.esc(he ? "להציג את כל התפריט" : "Voir tout le menu")}</button>` : ""}`;
+  // au-dessus de la vitrine (on choisit son côté, puis on voit ses plats)
+  const before = document.getElementById("vitrineBox") || box;
+  if (!pick) { pick = document.createElement("section"); pick.id = "ksPick"; pick.className = "ks-pick"; }
+  if (pick.nextElementSibling !== before) before.parentNode.insertBefore(pick, before);
+  if (pick.dataset.html !== html) { pick.innerHTML = html; pick.dataset.html = html; }
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-ks-pick]"); if (!b) return;
+  const code = (state.shop && state.shop.code) || ""; state.ksSide = state.ksSide || {};
+  state.ksSide[code] = b.dataset.ksPick; UI.track("ks_pick", { shop_code: code, side: b.dataset.ksPick || "all" });
+  ksRender();
+  if (vt.all && vt.code === code) vtApplySide();
+  const first = b.dataset.ksPick && document.querySelector(`#catalogBox h4.cg-sec[data-ks-sec="${b.dataset.ksPick}"]`);
+  // avec une vitrine : on descend sur ses plats de ce côté ; sinon sur la 1re rubrique de ce côté
+  const vb = document.getElementById("vitrineBox"), vOn = vb && !vb.classList.contains("hidden") && vt.all && vt.code === code;
+  const tgt = (b.dataset.ksPick && vOn ? vb : first) || document.getElementById("ksPick");
+  if (tgt) { const bars = [...document.querySelectorAll(".topbar, .view-bar, #catalogBox .cg-head")].filter(x => getComputedStyle(x).position === "sticky" || getComputedStyle(x).position === "fixed").reduce((n, x) => n + x.offsetHeight, 0);
+    window.scrollTo({ top: Math.max(0, tgt.getBoundingClientRect().top + scrollY - bars - 8), behavior: "smooth" }); }
+});
+// (patron, 24/11) dès l'arrivée sur un commerce : on comprend tout de suite les deux paiements,
+// les articles au commerce (en ligne quand il a son paiement) et la livraison au livreur, en espèces ou par Bit
+function rideFee() { const q = currentQuote(); return money(q && q.total != null ? Number(q.total) : proPrice(state.shop)); }
+function payTop() {
+  if (!state.shop || !proShopOn() || hopBuyOn()) return "";
+  const nm = UI.bi(state.shop.name), direct = !!(state.shop.pay_link || state.shop.pay_bit);
+  const goods = direct ? t("payTopGoods", { name: nm }) : shopNoPay() ? t("payTopGoodsShop", { name: nm }) : "";
+  return `<div class="pay-top"><b>${UI.esc(t("payTopT"))}</b>${goods ? `<p><i>1</i><span>${UI.esc(goods)}</span></p>` : ""}<p><i>${goods ? 2 : 1}</i><span>${UI.esc(t("payTopRide", { fee: rideFee() }))}</span></p></div>`;
+}
 function renderCatalog() {
   try { viewTitle(); } catch (e) { /* titre */ }
   const box = $("#catalogBox"), on = catalogOn();
   box.classList.toggle("hidden", !on);
   vtRender();
+  requestAnimationFrame(ksRender);
   $("#shopOrderBox").classList.toggle("with-cg", on);
   document.body.classList.toggle("cg-cart-on", on && cartCount() > 0);
   goLabel();
@@ -4841,7 +4949,7 @@ function renderCatalog() {
     } else swL.classList.add("hidden");
   }
   const sw = box.querySelector(".cg-stores-w"); if (sw && sw.dataset.html !== storeBar) { sw.innerHTML = storeBar; sw.dataset.html = storeBar; }
-  const html = `${state.boss ? bossBar() : ""}${anyTip}${itemsTip()}${nearTip()}${shopNoPay() ? noPayMini() : ""}
+  const html = `${state.boss ? bossBar() : ""}${payTop()}${anyTip}${itemsTip()}${nearTip()}${shopNoPay() ? noPayMini() : ""}
     ${cq && !sections.length && !isRlShop() ? `<p class="cg-none">${UI.esc(t("cgNone", { q: state.cgQ.trim() }))}</p><div class="cg-else" id="cgElse" data-q="${UI.esc(state.cgQ.trim())}"></div>` : ""}
     ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec" data-cg-sec="${UI.esc(sec.id)}">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid${tileShop() ? " cg-tiles" : ""}${grocShop() ? " cg-pa" : ""}${tileShop() && sec.items.length === 1 ? " cg-one" : ""}">${sec.items.map(p => {
       // Taille ou boisson à choisir : le « + » ouvre la fiche de l'article
@@ -5326,6 +5434,7 @@ function renderCart() {
   let gb = $("#cartGrand");
   if (!gb) { gb = document.createElement("div"); gb.id = "cartGrand"; tr.after(gb); }
   gb.innerHTML = g; gb.classList.toggle("hidden", !g); tr.classList.toggle("hidden", !!g);
+  // (patron, 24/11) la livraison se paie à part, au livreur : dit dans la note du panier (csNote / csNotePrepay)
   $("#cartRest").classList.toggle("hidden", !rest);
   // (boutique HOP! : le livreur les prend dans ce magasin ; restaurant, traiteur… : au plus près, sur le trajet)
   const restK = state.shop && isHopShop(state.shop) ? "" : "Near";

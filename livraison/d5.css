@@ -1030,3 +1030,140 @@ html.d5 body .pa .pa-name { font: 800 16px/1.15 Heebo !important; color: var(--i
 html.d5 body .pa .pa-pr strong { font: 800 24px/1 var(--K) !important; color: var(--ink) !important; }
 html.d5 body .pa .pa-shop { font-weight: 800 !important; }
 html.d5 body .pa .pa-none, html.d5 body .pa .pa-count, html.d5 body .pa .pa-foot { color: var(--ink) !important; font-weight: 700; }
+
+/* Rendez-Vous (casher viande + lait) : choisir son côté en arrivant (patron 24/11) */
+html.d5 body .ks-pick { margin: 14px 0 6px; }
+html.d5 body .ks-pick .ks-h { font: 800 30px/1 var(--K) !important; letter-spacing: -.035em !important; color: var(--ink) !important; margin: 0 2px 12px !important; }
+html.d5 body .ks-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+html.d5 body .ks-card { all: unset; box-sizing: border-box; cursor: pointer; position: relative; overflow: hidden; min-height: 230px; border-radius: var(--blk-r); background: var(--ksbg); color: #fff; padding: 16px 14px; display: flex; flex-direction: column; justify-content: flex-start; -webkit-tap-highlight-color: transparent; }
+html.d5 body .ks-card .ks-t { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 4px; }
+html.d5 body .ks-card small { font: 800 13px Heebo, sans-serif; opacity: .95; }
+html.d5 body .ks-card b { font: 800 26px/.95 var(--K); letter-spacing: -.035em; }
+html.d5 body .ks-card em { font: 600 13px/1.35 Heebo, sans-serif; font-style: normal; opacity: .95; }
+html.d5 body .ks-card img { position: absolute; z-index: 1; inset-inline-end: -18px; bottom: -14px; width: 78%; aspect-ratio: 1; object-fit: cover; border-radius: 50%; border: 5px solid rgba(255,255,255,.55); }
+html.d5 body .ks-card.on { box-shadow: 0 0 0 4px var(--ink) inset; }
+html.d5 body .ks-card:active { transform: scale(.97); }
+html.d5 body .ks-all { all: unset; cursor: pointer; display: block; margin: 10px auto 0; padding: 10px 18px; border-radius: 24px; background: #E3EFFA; color: var(--ink); font: 800 15px Heebo, sans-serif; }
+html.d5 body #catalogBox[data-ks="b"] [data-ks-sec="h"], html.d5 body #catalogBox[data-ks="h"] [data-ks-sec="b"] { display: none !important; }
+html.d5 body .pay-top { background: var(--c2) !important; border-radius: var(--blk-r) !important; padding: 18px !important; }
+html.d5 body .pay-top b { font: 800 24px/1 var(--K) !important; letter-spacing: -.03em; color: var(--ink) !important; }
+html.d5 body .pay-top p { font: 700 16px/1.35 Heebo, sans-serif !important; color: var(--ink) !important; }
+html.d5 body .pay-top p i { background: var(--ink) !important; width: 28px; height: 28px; line-height: 28px; font-size: 15px; }
+html.d5 body .cs-ridepay { background: var(--c2); border-radius: 18px; padding: 12px 14px; color: var(--ink) !important; font: 800 16px/1.35 Heebo, sans-serif !important; margin: 10px 0 0 !important; }
+html.d5 body #cartNote:not(:empty) { font: 700 16px/1.4 Heebo, sans-serif !important; color: var(--ink) !important; }
+html.d5 body .ks-card img[src^="img/"] { border: 0 !important; border-radius: 0 !important; object-fit: contain !important; aspect-ratio: auto !important; width: 112% !important; inset-inline-end: -22% !important; bottom: 8px !important; filter: drop-shadow(0 10px 10px rgba(0,0,0,.25)); }
+html.d5 body .ks-card img[src^="img/"] { width: 100% !important; inset-inline-end: -14% !important; max-height: 46% !important; bottom: 6px !important; }
+html.d5 body .ks-card { min-height: 250px !important; }
+
+/* Haut de page à l'identité du commerce (patron 24/11, Rendez-Vous : son logo, son marron, son beige) */
+html.d5 body #shopHero .d6h.d6h-brand { color: var(--brand-ac, var(--shop-ink, #fff)) !important; }
+html.d5 body #shopHero .d6h-brand .d6h-blogo { position: relative; z-index: 3; display: block; width: 86px; height: 86px; border-radius: 50%; object-fit: cover; margin: 6px 0 12px; box-shadow: 0 10px 22px rgba(0,0,0,.25); border: 3px solid var(--brand-ac, var(--shop-ink, #fff)); }
+html.d5 body #shopHero .d6h-brand .d6h-name { color: var(--brand-ac, var(--shop-ink, #fff)) !important; font-size: 46px !important; }
+html.d5 body #shopHero .d6h-brand .d6h-bline { position: relative; z-index: 3; max-width: 50%; margin-top: 10px; font: 700 15px/1.35 Heebo, sans-serif; letter-spacing: .02em; color: var(--brand-ac, var(--shop-ink, #fff)); opacity: .95; }
+html.d5 body #shopHero .d6h-brand .d6h-b { background: var(--brand-ac, var(--shop-ink, #fff)) !important; color: var(--shop, #333) !important; }
+html.d5 body #shopHero .d6h-brand .d6h-b.on i { background: #3FB56C !important; }
+html.d5 body #shopHero .d6h-brand .d6h-a { background: var(--brand-ac, var(--shop-ink, #fff)) !important; color: var(--shop, #333) !important; }
+html.d5 body #shopHero .d6h-brand .d6-halo { background: radial-gradient(closest-side, rgba(233,211,166,.35), rgba(233,211,166,.12) 62%, rgba(233,211,166,0) 100%); }
+html.d5 body #shopHero .d6h-brand .d6h-pic.cut { top: 150px !important; }
+html.d5 body #shopHero .d6h-brand .d6-halo.h { top: 140px; } html.d5 body #shopHero .d6h-brand .d6-ground.h { top: 330px; }
+html.d5 body #shopHero .d6h-brand { min-height: 420px !important; }
+html.d5 body #shopHero .d6h-brand .d6h-bline { max-width: 60% !important; white-space: nowrap; font: 800 12.5px/1.2 Heebo, sans-serif !important; letter-spacing: .06em !important; text-transform: uppercase; }
+html[dir=rtl].d5 body #shopHero .d6h-brand .d6h-bline { letter-spacing: 0 !important; font-size: 14px !important; }
+html.d5 body #shopHero .d6h-brand .d6h-pic.cut { top: 196px !important; width: 186px !important; height: 186px !important; }
+html.d5 body #shopHero .d6h-brand .d6-halo.h { top: 186px; width: 200px; height: 200px; } html.d5 body #shopHero .d6h-brand .d6-ground.h { top: 370px; }
+html.d5 body #shopHero .d6h-brand { min-height: 450px !important; }
+
+/* (patron 24/11 : « tes boutons sont coupés et pas jolis ») pastilles du haut entières, droites, sur une ligne ; vrais boutons en bas */
+html.d5 body #shopHero .d6h { padding-top: 26px !important; }
+html.d5 body #shopHero .d6h-bubs { position: relative; z-index: 4; display: flex !important; flex-wrap: wrap; gap: 8px !important; margin-bottom: 14px; }
+html.d5 body #shopHero .d6h .d6h-b { transform: none !important; padding: 9px 14px !important; border-radius: 22px !important; font: 800 13.5px/1 Heebo, sans-serif !important; white-space: nowrap; box-shadow: none !important; background: rgba(255,255,255,.92) !important; color: var(--ink) !important; }
+html.d5 body #shopHero .d6h .d6h-b.k { background: rgba(255,255,255,.92) !important; color: var(--ink) !important; }
+html.d5 body #shopHero .d6h-brand .d6h-b, html.d5 body #shopHero .d6h-brand .d6h-b.k, html.d5 body #shopHero .d6h-brand .d6h-b.w { background: var(--brand-ac, var(--shop-ink, #fff)) !important; color: var(--shop, #333) !important; }
+html.d5 body #shopHero .d6h-acts { bottom: 20px !important; gap: 10px !important; }
+html.d5 body #shopHero .d6h .d6h-a { min-height: 48px; display: inline-flex; align-items: center; gap: 8px; padding: 0 22px !important; border-radius: 26px !important; font: 800 16px Heebo, sans-serif !important; box-shadow: 0 8px 18px rgba(0,0,0,.18) !important; }
+html.d5 body #shopHero .d6h-brand .d6h-a { background: var(--brand-ac, var(--shop-ink, #fff)) !important; color: var(--shop, #333) !important; }
+html.d5 body #shopHero .d6h .d6h-b { padding: 8px 11px !important; font-size: 12.5px !important; gap: 5px !important; }
+html.d5 body #shopHero .d6h-bubs { gap: 6px !important; flex-wrap: nowrap !important; overflow: hidden; }
+html.d5 body #shopHero .d6h-brand .d6h-bline { white-space: normal !important; max-width: 46% !important; line-height: 1.5 !important; }
+html.d5 body #shopHero .d6h-brand { min-height: 500px !important; }
+html.d5 body #shopHero .d6h-brand .d6h-pic.cut { top: auto !important; bottom: 92px !important; }
+html.d5 body #shopHero .d6h-brand .d6-halo.h { top: auto !important; bottom: 86px !important; }
+html.d5 body #shopHero .d6h-brand .d6-ground.h { top: auto !important; bottom: 80px !important; }
+/* police du commerce (Rendez-Vous : Outfit pour le nom, DM Sans pour la phrase, Assistant en hébreu, comme sur son site) */
+html.d5 body #shopHero .d6h-brand .d6h-name { font-family: var(--brand-font), var(--K) !important; font-weight: 600 !important; letter-spacing: -.01em !important; line-height: .95 !important; }
+html[dir=rtl].d5 body #shopHero .d6h-brand .d6h-name { font-family: var(--brand-font-he), var(--brand-font), Heebo, sans-serif !important; font-weight: 800 !important; }
+html.d5 body #shopHero .d6h-brand .d6h-bline { font-family: var(--brand-font-line), Heebo, sans-serif !important; }
+html[dir=rtl].d5 body #shopHero .d6h-brand .d6h-bline { font-family: var(--brand-font-he), Heebo, sans-serif !important; }
+html.d5 body #shopHero .d6h-brand .d6h-bline span { white-space: nowrap; }
+
+/* =====================================================================================================================
+   (patron 24/11) pastilles « vraiment jolies, avec de beaux effets », fumée sur le plat, phrase qui s'allume
+   ===================================================================================================================== */
+/* pastilles du haut des commerces : icône, reflet lumineux qui passe, apparition en cascade, point « ouvert » qui pulse */
+html.d5 body #shopHero .d6h .d6h-b { position: relative; overflow: hidden; isolation: isolate; box-shadow: 0 6px 16px rgba(0,0,0,.18), inset 0 -2px 0 rgba(0,0,0,.08) !important; animation: d6pop .55s cubic-bezier(.2, 1.6, .4, 1) backwards; }
+html.d5 body #shopHero .d6h .d6h-b:nth-child(2) { animation-delay: .12s; } html.d5 body #shopHero .d6h .d6h-b:nth-child(3) { animation-delay: .24s; }
+html.d5 body #shopHero .d6h .d6h-b::after { content: ""; position: absolute; z-index: -1; top: 0; bottom: 0; left: -70%; width: 45%; background: linear-gradient(100deg, rgba(255,255,255,0), rgba(255,255,255,.85), rgba(255,255,255,0)); transform: skewX(-20deg); animation: d6shine 5s ease-in-out infinite; }
+html.d5 body #shopHero .d6h .d6h-b:nth-child(2)::after { animation-delay: .5s; } html.d5 body #shopHero .d6h .d6h-b:nth-child(3)::after { animation-delay: 1s; }
+html.d5 body #shopHero .d6h .d6h-b .bi, html.d5 body #shopHero .d6h .d6h-b .k-star { width: 15px; height: 15px; flex: none; }
+html.d5 body #shopHero .d6h .d6h-b.on i { width: 9px !important; height: 9px !important; border-radius: 50% !important; background: #2BC46F !important; animation: d6pulse 1.6s ease-out infinite; }
+html.d5 body #shopHero .d6h .d6h-b.off i { width: 9px !important; height: 9px !important; border-radius: 50% !important; background: #E8574A !important; }
+@keyframes d6pop { 0% { opacity: 0; transform: translateY(8px) scale(.7); } 100% { opacity: 1; transform: none; } }
+@keyframes d6shine { 0%, 62% { left: -70%; } 82%, 100% { left: 130%; } }
+@keyframes d6pulse { 0% { box-shadow: 0 0 0 0 rgba(43,196,111,.65); } 100% { box-shadow: 0 0 0 9px rgba(43,196,111,0); } }
+
+/* pastilles de l'accueil (à côté de Hoppy et des plats) : même reflet, et elles flottent doucement */
+html.d5 body .d6-slide .d6-bub { overflow: hidden; isolation: isolate; box-shadow: 0 8px 18px rgba(0,0,0,.18), inset 0 -2px 0 rgba(0,0,0,.1) !important; animation: d6bob 3.2s ease-in-out infinite; }
+html.d5 body .d6-slide .d6-bub.b1 { animation-delay: .9s; } html.d5 body .d6-slide .d6-bub.b2 { animation-delay: 1.7s; }
+html.d5 body .d6-slide .d6-bub::after { content: ""; position: absolute; z-index: -1; top: 0; bottom: 0; left: -70%; width: 45%; background: linear-gradient(100deg, rgba(255,255,255,0), rgba(255,255,255,.7), rgba(255,255,255,0)); transform: skewX(-20deg); animation: d6shine 4.6s ease-in-out infinite; }
+html.d5 body .d6-slide .d6-bub.b1::after { animation-delay: .7s; } html.d5 body .d6-slide .d6-bub.b2::after { animation-delay: 1.4s; }
+@keyframes d6bob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -7px; } }
+
+/* fumée qui monte du plat chaud (restaurants) */
+html.d5 body #shopHero .d6-steam { position: absolute; z-index: 3; inset-inline-end: 40px; top: 70px; width: 120px; height: 130px; pointer-events: none; }
+html.d5 body #shopHero .d6h-brand .d6-steam { top: auto; bottom: 230px; }
+html.d5 body #shopHero .d6-steam b { position: absolute; bottom: 0; width: 22px; height: 96px; border-radius: 50%; background: radial-gradient(ellipse at center, rgba(255,255,255,.7), rgba(255,255,255,0) 68%); filter: blur(5px); opacity: 0; animation: d6steam 3.9s ease-in infinite; }
+html.d5 body #shopHero .d6-steam b:nth-child(1) { left: 18px; } html.d5 body #shopHero .d6-steam b:nth-child(2) { left: 50px; animation-delay: 1.3s; } html.d5 body #shopHero .d6-steam b:nth-child(3) { left: 82px; animation-delay: 2.6s; }
+@keyframes d6steam { 0% { transform: translate(0, 24px) scaleX(.55); opacity: 0; } 22% { opacity: .9; } 50% { transform: translate(8px, -28px) scaleX(1.05) skewX(8deg); } 100% { transform: translate(-6px, -82px) scaleX(1.6) skewX(-10deg); opacity: 0; } }
+
+/* « Sandwichs · Salades · Café » : les mots s'allument l'un après l'autre */
+html.d5 body #shopHero .d6h-brand .d6h-bline span { animation: d6glow 3.6s ease-in-out infinite; }
+html.d5 body #shopHero .d6h-brand .d6h-bline span:nth-child(2) { animation-delay: 1.2s; } html.d5 body #shopHero .d6h-brand .d6h-bline span:nth-child(3) { animation-delay: 2.4s; }
+@keyframes d6glow { 0%, 45%, 100% { opacity: .72; text-shadow: none; } 15%, 28% { opacity: 1; color: #fff; text-shadow: 0 0 12px rgba(255,236,190,.95), 0 0 2px #fff; } }
+
+@media (prefers-reduced-motion: reduce) {
+  html.d5 body #shopHero .d6h .d6h-b, html.d5 body #shopHero .d6h .d6h-b::after, html.d5 body .d6-slide .d6-bub, html.d5 body .d6-slide .d6-bub::after,
+  html.d5 body #shopHero .d6-steam b, html.d5 body #shopHero .d6h-brand .d6h-bline span { animation: none !important; }
+}
+html.d5 body .d6-slide .d6-bub { padding: 9px 15px !important; border-radius: 22px !important; font: 800 13px Heebo, sans-serif !important; letter-spacing: .02em !important; }
+html.d5 body #shopHero .d6h .d6h-b .k-star { background: none !important; border: 0 !important; border-radius: 0 !important; padding: 0 !important; color: currentColor !important; stroke: currentColor; }
+html.d5 body #shopHero .d6h .d6h-b .k-star path { stroke: currentColor !important; fill: none !important; }
+html.d5 body #shopHero .d6h .d6h-b i { display: inline-block !important; flex: none; }
+html.d5 body #shopHero .d6h-brand .d6-steam { bottom: 205px !important; }
+html.d5 body #shopHero .d6-steam { top: 92px; }
+html.d5 body #shopHero .d6h .d6h-b .k-star { box-shadow: none !important; }
+/* pastilles du haut : passent à la ligne proprement plutôt que d'être coupées */
+html.d5 body #shopHero .d6h-bubs { flex-wrap: wrap !important; overflow: visible !important; row-gap: 8px !important; }
+/* « Vos articles se paient à … sur WhatsApp · comment ça marche » : un bloc, pas un vieux lien souligné */
+html.d5 body #catalogBox .nopay-mini { background: var(--c1) !important; color: #fff !important; border: 0 !important; border-radius: var(--blk-r) !important; padding: 16px 18px !important; margin: 0 0 12px !important; box-shadow: none !important; }
+html.d5 body #catalogBox .nopay-mini summary { list-style: none; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+html.d5 body #catalogBox .nopay-mini summary::-webkit-details-marker { display: none; }
+html.d5 body #catalogBox .nopay-mini summary i { display: none; }
+html.d5 body #catalogBox .nopay-mini summary b { display: block; font: 800 18px/1.15 var(--K) !important; color: #fff !important; text-decoration: none !important; }
+html.d5 body #catalogBox .nopay-mini summary small { display: inline-block; margin-top: 6px; padding: 6px 12px; border-radius: 16px; background: #fff; color: var(--ink) !important; font: 800 13px Heebo, sans-serif !important; text-decoration: none !important; }
+html.d5 body #catalogBox .nopay-mini[open] summary small { background: rgba(255,255,255,.25); color: #fff !important; }
+html.d5 body #catalogBox .nopay-mini > :not(summary) { margin-top: 12px; color: #fff !important; }
+html.d5 body #catalogBox .nopay-mini > :not(summary) * { color: #fff !important; }
+html.d5 body #catalogBox .nopay-mini summary, html.d5 body #catalogBox .nopay-mini summary * { text-decoration: none !important; border-bottom: 0 !important; }
+/* (patron 24/11) Bassari et Halavi : exactement la même taille */
+html.d5 body .ks-row { align-items: stretch !important; grid-auto-rows: 1fr; }
+html.d5 body .ks-card { height: 260px !important; min-height: 0 !important; }
+html.d5 body .ks-row { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } html.d5 body .ks-card { min-width: 0 !important; width: 100% !important; }
+html.d5 body .ks-card, html.d5 body .ks-card * { color: #fff !important; }
+/* Haut de page à l'identité d'un resto sans plat détouré (patron 24/11 : « pareil pour Smash It et les autres restos ») :
+   sa photo de couverture en carte inclinée en bas à droite, le texte à gauche ne passe jamais dessous */
+html.d5 body #shopHero .d6h-brand .d6h-pic:not(.cut) { top: auto !important; bottom: 96px !important; inset-inline-end: 4px !important; width: 168px !important; height: 168px !important; border-radius: 26px; border: 4px solid var(--brand-ac, var(--shop-ink, #fff)); transform: rotate(4deg); animation: d6float 4.4s ease-in-out infinite; }
+html[dir=rtl].d5 body #shopHero .d6h-brand .d6h-pic:not(.cut) { transform: rotate(-4deg); }
+/* logo du commerce pris dans sa fiche (fond souvent transparent) : posé sur une pastille blanche, jamais rogné ;
+   logo en longueur (brand.logoShape = "wide") : cartouche arrondi au lieu du rond */
+html.d5 body #shopHero .d6h-brand .d6h-blogo.auto { object-fit: contain; background: #fff; padding: 9px; }
+html.d5 body #shopHero .d6h-brand .d6h-blogo.wide { width: auto; max-width: 190px; height: 74px; border-radius: 20px; padding: 8px 14px; }
