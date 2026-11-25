@@ -1348,3 +1348,9 @@ html.d5 body.d6-lux #catalogBox#catalogBox .nopay-mini summary small { backgroun
 /* Photo trop petite ou trop compressée (checkLowPic) : plus petite, centrée, jamais étirée (patron 25/11) */
 html.d5 body #catalogBox#catalogBox#catalogBox .cg-grid .cg-item .cg-pic:has(img.pic-low) { display: grid !important; place-items: center !important; background: #fff !important; }
 html.d5 body #catalogBox#catalogBox#catalogBox .cg-grid .cg-item .cg-pic > img.pic-low, html.d5 body #catalogBox#catalogBox#catalogBox .cg-grid .cg-item .cg-pic img.pic-low { position: static !important; width: 66% !important; height: auto !important; max-height: 86% !important; aspect-ratio: auto !important; object-fit: contain !important; border-radius: 14px !important; margin: auto !important; }
+/* (patron 25/11 : « j'ai pas le comparateur ») la recherche de l'accueil : la liste des résultats (comparateur, magasins, produits)
+   était coupée par le haut de l'accueil (overflow hidden) et passait sous les slides */
+html.d5 body #vitTop:has(#homeFindList:not(.hidden)) { overflow: visible !important; z-index: 80 !important; }
+html.d5 body #homeFindList:not(.hidden) { z-index: 90 !important; box-shadow: 0 18px 40px rgba(11,74,111,.25) !important; }
+html.d5 body #homeFindList#homeFindList :is(b, bdi, .fr-nm, h5, .fr-name b, .fi-txt b) { color: #0B4A6F !important; }
+html.d5 body #homeFindList#homeFindList .fr-nm { color: #24384A !important; }
