@@ -35,7 +35,7 @@
     // Design 5 « affiche de quartier » (patron, 24/11 : tout le site dans ce style) : par défaut ; ?design=4 garde le précédent sur ce téléphone, ?design=5 revient au nouveau
     try { var d5q = new URLSearchParams(location.search).get("design");
       if (d5q === "5") localStorage.setItem("hop.design5", "1"); else if (d5q === "4" || d5q === "3") localStorage.setItem("hop.design5", "0"); else if (d5q) localStorage.removeItem("hop.design5");
-      if (document.documentElement.classList.contains("d4") && localStorage.getItem("hop.design5") === "1") document.documentElement.classList.add("d5"); } catch (e) {} /* (patron 24/11) design 5 seulement avec ?design=5 tant qu'il n'est pas validé en ligne */
+      if (document.documentElement.classList.contains("d4") && localStorage.getItem("hop.design5") !== "0") document.documentElement.classList.add("d5"); } catch (e) {} /* (patron 25/11 : « je te valide le 5 ») design 5 pour tous les clients ; ?design=4 garde le précédent sur un téléphone */
     // Accueil « vitrine » (adresse, recherche, rubriques, bandeaux, commerces ; la carte s'ouvre pour une course libre),
     // demandé par le patron le 06/11/2026 ; ?accueil=carte garde l'ancien accueil sur ce téléphone, ?accueil=vitrine revient au nouveau
     try { var aq = new URLSearchParams(location.search).get("accueil");
