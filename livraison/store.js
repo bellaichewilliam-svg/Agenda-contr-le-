@@ -406,7 +406,6 @@ async function createOrder(order) {
     const directShop = order.shop_id && localShops().some(x => x.id === order.shop_id && !x.pay_link && !x.pay_bit && !x.cash_ok);
     if (order.phone_order && (!order.shop_id || directShop) && order.service !== "achat") {
       if (!String(order.pickup_name || "").trim()) throw new Error("phone_name_required");
-      if (!order.phone_paid) throw new Error("phone_unpaid");
       const ready = new Date(Math.min(Math.max(new Date(order.phone_ready_at || Date.now()).getTime(), Date.now()), Date.now() + 3 * 3600000));
       Object.assign(order, { pickup_name: String(order.pickup_name).trim().slice(0, 60), phone_ref: String(order.phone_ref || "").trim().slice(0, 20) || null,
         phone_ready_at: ready.toISOString(), ready_at: ready.toISOString(),
@@ -2928,7 +2927,7 @@ async function broadcastClients(body, days) {
   return devices.length;
 }
 // --- Colis à récupérer : documents du client (avis/SMS, carte d'identité, procuration, rendez-vous) ----------
-function docsNeeded(place) { return place === "poste" ? ["avis", "identite", "procuration", "rdv"] : place === "locker" ? ["avis"] : ["avis", "identite"]; }
+function docsNeeded(place) { return place === "poste" ? ["avis", "identite", "procuration", "rdv"] : place === "locker" ? ["avis"] : place === "autre" ? [] : ["avis", "identite"]; }
 // Les documents d'une course (même règle que la base : order_docs_needed)
 function docsFor(o) {
   return o.service === "retrait" ? docsNeeded(o.place_kind) : o.service === "achat" && o.rx ? ["identite", "ordonnance"]
