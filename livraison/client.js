@@ -390,6 +390,8 @@ function renderPhone() {
     box.dataset.lang = I18N.lang;
   }
   box.querySelectorAll("[data-ready]").forEach(el => el.classList.toggle("on", Number(el.dataset.ready) === state.phoneReady));
+  // (patron 25/11) pas encore payée : c'est permis, le livreur avance ; on le dit clairement au client
+  const un = $("#phUnpaid"); if (un) un.classList.toggle("hidden", !phoneOn() || form.phone_paid.checked);
 }
 
 // --- Colis à récupérer : les documents demandés selon le lieu (photos), envoyés avec la commande ---------
@@ -432,6 +434,7 @@ function pickReady(v) {
   form.querySelectorAll('input[name="pickup_ready"]').forEach(r => { r.checked = r.value === String(v); r.closest(".ch-chip").classList.toggle("on", r.checked); });
 }
 form.addEventListener("change", e => { if (e.target.name === "pickup_ready") pickReady(e.target.value); });
+form.addEventListener("change", e => { if (e.target.name === "phone_paid") { const un = $("#phUnpaid"); if (un) un.classList.toggle("hidden", e.target.checked); } });
 // Colis : « Qu'est-ce qu'on transporte ? » (clés, documents, sac…), écrit en tête du mot pour le livreur
 const WHAT = [["🔑", "whatKeys"], ["✉️", "whatDocs"], ["🛍️", "whatBag"], ["📦", "whatBox"], ["👕", "whatClothes"], ["🎁", "whatGift"]];
 const whatOn = () => val("service") === "colis" && !state.shop;
@@ -3182,7 +3185,6 @@ function validateOrder() {
   if (phoneOn()) {
     if (!val("pickup_name").trim()) { form.pickup_name.focus(); return showErrorFalse(t("errPhoneName")); }
     if (state.phoneReady == null) { $("#phReadyChips").scrollIntoView({ block: "center" }); return showErrorFalse(t("errPhoneReady")); }
-    if (!form.phone_paid.checked) { form.phone_paid.focus(); return showErrorFalse(t("errPhonePaid")); }
   }
   if (val("service") === "achat" && shopListText().trim().length < 3) { form.shopping_list.focus(); return showErrorFalse(t("errShopList")); }
   const badPhone = [form.drop_me.checked ? null : "dropoff_phone", val("service") !== "retrait" && !near ? "pickup_phone" : null]
@@ -3410,7 +3412,7 @@ async function submit(e) {
       not_before: isoOk(noteNotBefore()),
       cash_note: val("payment_method") === "cash" ? Number(form.cash_note.value) || 0 : null,
       payer: val("payer"),
-      notes: [shopDropOn() && cartCount() ? `🧺 ${t("cgDropNote", { name: state.shop.name })}\n` + cartLines().map(l => `${l.qty} × ${l.p.name}`).join("\n") : "", notesText(), softNote()].filter(Boolean).join("\n") || null,
+      notes: [phoneOn() && !form.phone_paid.checked ? "💰 Commande PAS encore payée : le livreur paie au commerce, le client rembourse à la livraison" : "", shopDropOn() && cartCount() ? `🧺 ${t("cgDropNote", { name: state.shop.name })}\n` + cartLines().map(l => `${l.qty} × ${l.p.name}`).join("\n") : "", notesText(), softNote()].filter(Boolean).join("\n") || null,
       // Articles du catalogue : la base reprend noms et prix, et écrit la liste à préparer
       shop_order: proShopOn() ? (cartCount() ? cartLines().map(l => `${l.qty} × ${l.p.name}`).join("\n") + (val("shop_order").trim() ? "\n💬 " + val("shop_order").trim() : "") : val("shop_order").trim()) : null,
       items: proShopOn() && cartCount() ? cartLines().map(l => ({ id: l.p.id, qty: l.qty })) : null,

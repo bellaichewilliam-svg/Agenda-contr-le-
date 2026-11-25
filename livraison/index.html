@@ -417,6 +417,7 @@
               <small class="muted" data-i18n="phReady"></small>
               <div class="rate-tags" id="phReadyChips"></div>
               <label class="check full"><input type="checkbox" name="phone_paid" /> <span data-i18n="phPaid"></span></label>
+              <p class="notice full hidden" id="phUnpaid" data-i18n="phUnpaid"></p>
               <p class="small muted" data-i18n="phRule"></p>
             </div>
           </div>
@@ -443,11 +444,11 @@
           <div class="fields">
             <label data-wiz="1" class="f full show-retrait"><span data-i18n="placeKind"></span>
               <select name="place_kind">
+                <option value="autre" data-i18n="place_autre" selected></option>
                 <option value="poste" data-i18n="place_poste"></option>
                 <option value="superpharm" data-i18n="place_superpharm"></option>
                 <option value="relais" data-i18n="place_relais"></option>
                 <option value="locker" data-i18n="place_locker"></option>
-                <option value="autre" data-i18n="place_autre"></option>
               </select>
             </label>
             <p data-wiz="1" class="notice warn full poste-id hidden" id="posteId" data-i18n="posteId"></p>
