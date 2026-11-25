@@ -391,7 +391,7 @@ function renderPhone() {
   }
   box.querySelectorAll("[data-ready]").forEach(el => el.classList.toggle("on", Number(el.dataset.ready) === state.phoneReady));
   // (patron 25/11) pas encore payée : c'est permis, le livreur avance ; on le dit clairement au client
-  const un = $("#phUnpaid"); if (un) un.classList.toggle("hidden", !phoneOn() || form.phone_paid.checked);
+  const un = $("#phUnpaid"); if (un) { un.classList.toggle("hidden", !phoneOn() || form.phone_paid.checked); un.textContent = t("phUnpaid", { max: money(ADVANCE_MAX) }); }
 }
 
 // --- Colis à récupérer : les documents demandés selon le lieu (photos), envoyés avec la commande ---------
@@ -3412,7 +3412,7 @@ async function submit(e) {
       not_before: isoOk(noteNotBefore()),
       cash_note: val("payment_method") === "cash" ? Number(form.cash_note.value) || 0 : null,
       payer: val("payer"),
-      notes: [phoneOn() && !form.phone_paid.checked ? "💰 Commande PAS encore payée : le livreur paie au commerce, le client rembourse à la livraison" : "", shopDropOn() && cartCount() ? `🧺 ${t("cgDropNote", { name: state.shop.name })}\n` + cartLines().map(l => `${l.qty} × ${l.p.name}`).join("\n") : "", notesText(), softNote()].filter(Boolean).join("\n") || null,
+      notes: [phoneOn() && !form.phone_paid.checked ? `💰 Commande PAS encore payée : le livreur avance au commerce (max ${ADVANCE_MAX} ₪), le client rembourse à la livraison` : "", shopDropOn() && cartCount() ? `🧺 ${t("cgDropNote", { name: state.shop.name })}\n` + cartLines().map(l => `${l.qty} × ${l.p.name}`).join("\n") : "", notesText(), softNote()].filter(Boolean).join("\n") || null,
       // Articles du catalogue : la base reprend noms et prix, et écrit la liste à préparer
       shop_order: proShopOn() ? (cartCount() ? cartLines().map(l => `${l.qty} × ${l.p.name}`).join("\n") + (val("shop_order").trim() ? "\n💬 " + val("shop_order").trim() : "") : val("shop_order").trim()) : null,
       items: proShopOn() && cartCount() ? cartLines().map(l => ({ id: l.p.id, qty: l.qty })) : null,
@@ -4150,8 +4150,19 @@ function checkWhitePic(img) {
 }
 document.addEventListener("load", e => {
   const el = e.target;
-  if (el && el.tagName === "IMG" && el.closest(".cg-pic, .cg-tpic, .it-pic, .cs-pic")) checkWhitePic(el);
+  if (el && el.tagName === "IMG" && el.closest(".cg-pic, .cg-tpic, .it-pic, .cs-pic")) { checkWhitePic(el); checkLowPic(el); }
 }, true);
+// (patron 25/11 : « les photos sont affreuses en qualité ») photo trop petite ou trop compressée pour la place qu'elle a :
+// affichée plus petite et centrée au lieu d'être étirée et floue (classe pic-low, design 5)
+function checkLowPic(img) {
+  const nw = img.naturalWidth, nh = img.naturalHeight; if (!nw) return;
+  const need = (img.clientWidth || img.parentNode.clientWidth || 0) * Math.min(2, window.devicePixelRatio || 1);
+  // trop petite pour sa place, ou magasin dont les photos sont floues (en attendant de vraies photos)
+  const blurry = LOW_PIC_SHOPS.includes(String((state.shop && state.shop.code) || ""));
+  img.classList.toggle("pic-low", blurry || (need > 0 && nw < need * 0.8));
+}
+// Photos floues connues (patron 25/11 : captures agrandies) : Golda, HOP! Jus ; à retirer dès qu'elles sont remplacées
+const LOW_PIC_SHOPS = ["GOLDAKIKAR", "HOPJUS"];
 // Photo d'article qui ne charge pas (le site du magasin ne l'a pas) : un panier dessiné, sobre, à la place de l'image cassée
 // (patron, 21/11 : avocats et échalotes Rami Lévy sans photo)
 document.addEventListener("error", e => {

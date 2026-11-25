@@ -1345,3 +1345,6 @@ html.d5 body.d6-lux .pay-top.pay-top.pay-top :is(button, a) { background: #E9D3A
 html.d5 body.d6-lux #catalogBox#catalogBox .nopay-mini { background: #1F1C19 !important; border: 1px solid #C9A96E !important; }
 html.d5 body.d6-lux #catalogBox#catalogBox .nopay-mini summary b { color: #E9D3A6 !important; font-family: 'Cinzel', 'Frank Ruhl Libre', serif !important; }
 html.d5 body.d6-lux #catalogBox#catalogBox .nopay-mini summary small { background: #E9D3A6 !important; color: #1F1C19 !important; }
+/* Photo trop petite ou trop compressée (checkLowPic) : plus petite, centrée, jamais étirée (patron 25/11) */
+html.d5 body #catalogBox#catalogBox#catalogBox .cg-grid .cg-item .cg-pic:has(img.pic-low) { display: grid !important; place-items: center !important; background: #fff !important; }
+html.d5 body #catalogBox#catalogBox#catalogBox .cg-grid .cg-item .cg-pic > img.pic-low, html.d5 body #catalogBox#catalogBox#catalogBox .cg-grid .cg-item .cg-pic img.pic-low { position: static !important; width: 66% !important; height: auto !important; max-height: 86% !important; aspect-ratio: auto !important; object-fit: contain !important; border-radius: 14px !important; margin: auto !important; }
