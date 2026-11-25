@@ -4934,8 +4934,8 @@ function rideFee() { const q = currentQuote(); return money(q && q.total != null
 function payTop() {
   if (!state.shop || !proShopOn() || hopBuyOn()) return "";
   const nm = UI.bi(state.shop.name), direct = !!(state.shop.pay_link || state.shop.pay_bit);
-  const goods = direct ? t("payTopGoods", { name: nm }) : shopNoPay() ? t("payTopGoodsShop", { name: nm }) : "";
-  return `<div class="pay-top"><b>${UI.esc(t("payTopT"))}</b>${goods ? `<p><i>1</i><span>${UI.esc(goods)}</span></p>` : ""}<p><i>${goods ? 2 : 1}</i><span>${UI.esc(t("payTopRide", { fee: rideFee() }))}</span></p></div>`;
+  const goods = direct ? t("payTopGoods", { name: nm }) : shopNoPay() ? t("payTopGoodsShop", { name: nm }) : shopCashOnly() ? t("payTopGoodsCash", { name: nm }) : "";
+  return `<div class="pay-top"><b>${UI.esc(t(goods ? "payTopT" : "payTopOne"))}</b>${goods ? `<p><i>1</i><span>${UI.esc(goods)}</span></p>` : ""}<p><i>${goods ? 2 : 1}</i><span>${UI.esc(t("payTopRide", { fee: rideFee() }))}</span></p></div>`;
 }
 function renderCatalog() {
   try { viewTitle(); } catch (e) { /* titre */ }
