@@ -1389,6 +1389,11 @@ function renderSend(full) {
       <div class="sd-r sd-r-a"><i>A</i><span><small>${e(t("sdFromL"))}</small><b>${e(shop.name || "")}</b><em>${e(shop.address || "")}${shop.address ? " · " : ""}${e(t("sdFromSaved"))}</em></span></div>
       <div class="sd-r sd-r-b"><i>B</i><span><small>${e(t("sdToL"))}</small><b>${e(t("sdToB"))}</b><em>${e(t("sdToS"))}</em></span></div>
     </div>
+    <div class="sd-voice">
+      <button type="button" class="sd-mic" id="sdMic" aria-label="${e(t("sdVoice"))}"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+      <span class="sd-vt"><b>${e(t("sdVoice"))}</b><small id="sdVoiceSub">${e(t("sdVoiceEx"))}</small></span>
+    </div>
+    <p class="sd-heard hidden" id="sdHeard"></p>
     <p class="sd-req">${e(t("sdReq"))}</p>
     <div class="sd-grid sd-two">
       ${fld("name", "sdName", 'required autocomplete="off" maxlength="60"')}
@@ -1530,6 +1535,87 @@ $("#spSend").addEventListener("change", e => {
   if (e.target.name === "payer") { send.payer = e.target.value; f.querySelector(".sd-payer").classList.remove("field-bad"); }
   if (e.target.name === "how") { send.how = e.target.value; f.querySelector(".sd-how").classList.remove("field-bad"); }
   if (e.target.name === "city") sendRefreshPrice();
+});
+// (patron 25/11) Dicter la course : « Pour David, 052 123 4567, Herzl 12, 3e étage, appartement 8, code 1234, payé par le client en espèces ».
+// La reconnaissance vocale du téléphone écrit la phrase ; on la lit ICI (règles simples, FR + HE) et on remplit les cases.
+// Nom, numéro et adresse du client ne partent jamais vers l'IA.
+const SD_NUM = { zéro: 0, zero: 0, un: 1, une: 1, deux: 2, trois: 3, quatre: 4, cinq: 5, six: 6, sept: 7, huit: 8, neuf: 9, dix: 10,
+  premier: 1, première: 1, deuxième: 2, troisième: 3, quatrième: 4, cinquième: 5, sixième: 6, septième: 7, huitième: 8, neuvième: 9, dixième: 10,
+  אפס: 0, אחת: 1, אחד: 1, שתיים: 2, שניים: 2, שלוש: 3, שלושה: 3, ארבע: 4, ארבעה: 4, חמש: 5, חמישה: 5, שש: 6, שישה: 6, שבע: 7, שבעה: 7, שמונה: 8, תשע: 9, תשעה: 9, עשר: 10, עשרה: 10 };
+function sdParse(raw) {
+  let s = " " + String(raw || "").replace(/\s+/g, " ") + " ";
+  const out = {}, take = (rx, f) => { const m = s.match(rx); if (m) { f(m); s = s.replace(m[0], " , "); } return !!m; };
+  const num = w => { w = String(w || "").toLowerCase(); return /^\d+$/.test(w) ? Number(w) : SD_NUM[w] != null ? SD_NUM[w] : null; };
+  const W = "[A-Za-zÀ-ÿ\u0590-\u05FF'’׳\"-]";
+  // téléphone : 05X… (chiffres collés ou espacés), +972
+  take(/(?:\+?972[\s-]?|0)(5\d)(?:[\s.-]?\d){7}/, m => { const d = m[0].replace(/\D/g, "").replace(/^972/, "0"); out.phone = d.replace(/^(\d{3})(\d{3})(\d{4})$/, "$1-$2-$3"); });
+  // à encaisser
+  take(/(?:à encaisser|encaisser|à récupérer|לגבות|גבייה(?: של)?)\s*(\d+(?:[.,]\d+)?)\s*(?:₪|shekels?|שקלים?|שח)?/i, m => { out.collect = m[1].replace(",", "."); });
+  // étage
+  // « 3e étage » / « troisième étage » d'abord, puis « étage 3 » / « קומה 3 » (seulement si un nombre suit)
+  const FW = "\\d+|" + Object.keys(SD_NUM).join("|");
+  if (!take(new RegExp("(?:^|\\s)(\\d+)(?:e|er|ère|ème|eme)?\\s+(?:étage|etage)|(?:^|\\s)(" + Object.keys(SD_NUM).join("|") + ")\\s+(?:étage|etage)", "i"), m => { out.floor = String(num(m[1] || m[2])); }))
+    take(new RegExp("(?:étage|etage|קומה)\\s*(?:n°|numéro|מספר)?\\s*(" + FW + ")(?=\\s|,|$)", "i"), m => { const n = num(m[1]); if (n != null) out.floor = String(n); });
+  if (out.floor == null) take(/rez[- ]de[- ]chauss[ée]e|קומת קרקע|קרקע/i, () => { out.floor = "0"; });
+  // appartement / porte
+  take(/(?:appartement|appart|apt|porte|דירה)\s*(?:n°|numéro|מספר)?\s*(\d+\w?|\S+)/i, m => { const n = num(m[1]); out.apt = n != null ? String(n) : m[1]; });
+  // code d'entrée (ou « pas de code »)
+  if (!take(/pas de code|sans code|אין קוד|בלי קוד/i, () => { out.code = t("noCodeVal"); }))
+    take(/(?:code(?: d['’]entrée)?|digicode|קוד(?: כניסה)?)\s*(?:est|:)?\s*([\d#*][\d\s#*]{1,10})/i, m => { out.code = m[1].replace(/\s/g, ""); });
+  // qui paie, comment, quand
+  if (/payé par (?:le )?client|le client paie|c['’]est le client|הלקוח משלם|על חשבון הלקוח/i.test(s)) out.payer = "destinataire";
+  else if (/payé par (?:moi|nous|le commerce)|c['’]est moi qui paie|je paie|on paie|אני משלם|אנחנו משלמים|על חשבוני|על חשבוננו/i.test(s)) out.payer = "moi";
+  if (/espèces|espece|cash|liquide|מזומן/i.test(s)) out.how = "cash"; else if (/\bbit\b|ביט/i.test(s)) out.how = "bit";
+  take(/(?:à|vers|ב-?|בשעה)\s*(\d{1,2})\s*(?:h|:|heures?)\s*(\d{2})?/i, m => { out.ready = "at"; out.at = String(m[1]).padStart(2, "0") + ":" + (m[2] || "00"); });
+  if (!out.ready) { const m = s.match(/(?:dans|בעוד)\s*(15|quinze|רבע|30|trente|demi[- ]heure|חצי שעה)/i); if (m) out.ready = /15|quinze|רבע/.test(m[1]) ? "15" : "30";
+    else if (/maintenant|tout de suite|c['’]est prêt|déjà prêt|עכשיו|מוכן/i.test(s)) out.ready = "0"; }
+  s = s.replace(/payé par (?:le )?client|le client paie|payé par (?:moi|nous|le commerce)|en espèces|espèces|cash|par bit|\bbit\b|maintenant|tout de suite|c['’]est prêt|déjà prêt|dans (?:15|30|quinze|trente) minutes|הלקוח משלם|אני משלם|במזומן|מזומן|בביט|ביט|עכשיו|מוכן/gi, " , ");
+  // remarque
+  take(/(?:remarque|note|précision|הערה)\s*:?\s*([^,]{3,120})/i, m => { out.note = m[1].trim(); });
+  // ville
+  (CONFIG.cities || []).forEach(c => { const names = [c.fr, c.he, c.en].filter(Boolean); if (!out.city && names.some(n => new RegExp("(^|[\\s,])" + String(n).replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?=$|[\\s,])", "i").test(s))) { out.city = c.id; names.forEach(n => { s = s.replace(new RegExp(String(n).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "ig"), " , "); }); } });
+  // nom : après « pour / au nom de / client / עבור / בשם / ל »
+  take(new RegExp("(?:pour|au nom de|nom|client(?:e)?|עבור|בשם|שם)\\s+(" + W + "{2,}(?:\\s+" + W + "{2,})?)", "i"), m => { out.name = m[1].trim(); });
+  // rue + numéro : « rue Herzl 12 », « Herzl 12 », « 12 rue Herzl », « הרצל 12 »
+  if (!take(new RegExp("(?:rue|avenue|av\\.?|boulevard|bd|שדרות|שד'|רחוב|רח')?\\s*(" + W + "{2,}(?:\\s+" + W + "{2,}){0,3})\\s+(\\d{1,3}\\w?)(?=\\s|,|$)"), m => { out.street = (m[1].replace(/^(?:rue|avenue|boulevard)\s+/i, "") + " " + m[2]).trim(); }))
+    take(new RegExp("(\\d{1,3})\\s*,?\\s*(?:rue|avenue|boulevard|bd)\\s+(" + W + "{2,}(?:\\s+" + W + "{2,}){0,3})", "i"), m => { out.street = (m[2] + " " + m[1]).trim(); });
+  if (!out.name) { const m = s.match(new RegExp("^[\\s,]*(" + W + "{2,}(?:\\s+" + W + "{2,})?)\\s*,")); if (m && !/étage|appart|code|rue|קומה|דירה/i.test(m[1])) out.name = m[1].trim(); }
+  return out;
+}
+function sdApply(o) {
+  const f = $("#spSend"); if (!f) return 0;
+  let n = 0;
+  ["name", "phone", "street", "floor", "apt", "code", "note", "collect", "at"].forEach(k => { if (o[k] != null && o[k] !== "" && f.elements[k]) { f.elements[k].value = o[k]; f.elements[k].classList.remove("field-bad"); f.elements[k].classList.add("sd-filled"); n++; } });
+  if (o.city && f.elements.city) { f.elements.city.value = o.city; n++; }
+  const pick = (name, val) => { const r = f.querySelector(`input[name="${name}"][value="${val}"]`); if (r) { r.checked = true; r.dispatchEvent(new Event("change", { bubbles: true })); n++; } };
+  if (o.ready) pick("ready", o.ready);
+  if (o.payer) pick("payer", o.payer);
+  if (o.how) pick("how", o.how);
+  if (o.street) { send.pick = null; f.elements.street.dispatchEvent(new Event("input", { bubbles: true })); }
+  sendRefreshPrice();
+  setTimeout(() => f.querySelectorAll(".sd-filled").forEach(x => x.classList.remove("sd-filled")), 2600);
+  return n;
+}
+function sdHeard(text, n) {
+  const p = $("#sdHeard"); if (!p) return;
+  p.innerHTML = `<b>${I18N.lang === "he" ? `<bdi dir="rtl">"${UI.esc(text)}"</bdi>` : `« ${UI.esc(text)} »`}</b><span>${UI.esc(n ? t("sdVoiceDone", { n }) : t("sdVoiceNone"))}</span>`;
+  p.classList.remove("hidden");
+}
+let sdRec = null;
+$("#spSend").addEventListener("click", e => {
+  if (!e.target.closest("#sdMic")) return;
+  e.preventDefault();
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition, btn = $("#sdMic"), sub = $("#sdVoiceSub");
+  if (sdRec) { try { sdRec.stop(); } catch (x) { /* déjà arrêté */ } return; }
+  if (!SR) { const typed = prompt(t("sdVoiceType")); if (typed) sdHeard(typed, sdApply(sdParse(typed))); return; }
+  const r = new SR(); sdRec = r; let said = "";
+  r.lang = I18N.lang === "he" ? "he-IL" : "fr-FR"; r.interimResults = true; r.continuous = true; r.maxAlternatives = 1;
+  btn.classList.add("on"); sub.textContent = t("sdVoiceListen");
+  r.onresult = ev => { said = [...ev.results].map(x => x[0].transcript).join(" "); sub.textContent = said; };
+  r.onerror = ev => { if (ev.error === "not-allowed" || ev.error === "service-not-allowed") alert(t("micDenied")); };
+  r.onend = () => { sdRec = null; btn.classList.remove("on"); sub.textContent = t("sdVoiceEx"); if (said.trim()) sdHeard(said.trim(), sdApply(sdParse(said))); };
+  try { r.start(); } catch (x) { sdRec = null; btn.classList.remove("on"); }
+  setTimeout(() => { if (sdRec === r) try { r.stop(); } catch (x) { /* fin */ } }, 20000);
 });
 $("#spSend").addEventListener("input", e => { if (e.target.classList.contains("field-bad") && e.target.value.trim()) e.target.classList.remove("field-bad"); });
 $("#spSend").addEventListener("submit", e => { e.preventDefault(); sendSubmit(); });
