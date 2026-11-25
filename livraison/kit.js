@@ -792,6 +792,8 @@ const CAMPS = [
 const FMT = { fiche: "🦘 Image officielle", detoure: "✂️ Sans fond (PNG)", post: "◻️ Post carré", story: "📱 Story", flyer: "🖨️ Flyer A5", g3: "1. Publier « P! »", g2: "2. Puis « O »", g1: "3. Puis « H »",
   g6: "1. « Pourquoi HOP! »", g5: "2. « Comment ça marche »", g4: "3. « Tout Netanya »" };
 const VIDEOS = [
+  // Nouveau (25/11) : « La révolution à Netanya » au nouveau design de l'appli (vraies captures, comparateur, restos, voix, 30 s, video/src/Revolution5.tsx)
+  { id: "revo5", aud: "client", title: "🚀 Nouveau · La révolution à Netanya : le nouveau HOP! (comparateur, restos, commande à la voix, 30 s)" },
   // Nouveau (24/11) : « La révolution des courses à Netanya » : tous les magasins, comparateur, promos, Hoppy, livré (30 s, video/src/Revolution.tsx)
   { id: "revolution", aud: "client", title: "🛒 Nouveau · La révolution des courses à Netanya : tous les magasins, le moins cher, livré (30 s)" },
   // Pub vidéo (video/pubs/monter.py)
