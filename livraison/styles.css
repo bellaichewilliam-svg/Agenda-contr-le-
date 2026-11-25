@@ -7883,3 +7883,16 @@ html.d4 .d4t > * { max-width: 100%; }
 html.d4 .d4-promo .d4-sls { width: 100%; align-self: stretch; flex: none; min-width: 0; }
 html.d4 .d4-promo .d4-sl { width: 100%; box-sizing: border-box; }
 html.d4 .d4-promo .d4-sl small, html.d4 .d4-promo .d4-sl b { display: block; width: 100%; word-break: normal; overflow-wrap: normal; }
+/* (patron 25/11 : « c'est devenu affreux ») applis patron et livreur le soir (mode sombre du téléphone) : la passe du 23/11
+   forçait des blocs en blanc (onglets, « Je prends des commandes ») alors que les textes sont clairs → presque invisibles */
+@media (prefers-color-scheme: dark) {
+  html.st :is(.card, .stat, .panel, .order) { border-color: rgba(255,255,255,.10) !important; }
+  html.st .stat small { color: #A9B4C4 !important; }
+  html.st .adm-groups { background: var(--panel) !important; border: 1px solid rgba(255,255,255,.10) !important; }
+  html.st .adm-groups button { color: #A9B4C4 !important; }
+  html.st .adm-groups button.on, html.st .adm-groups button[aria-selected="true"] { background: #FF6A13 !important; color: #fff !important; }
+  html.st .duty, html.st .duty.on { background: var(--panel) !important; border: 1px solid rgba(255,255,255,.10) !important; color: #EEF2F7 !important; }
+  html.st .duty .muted, html.st .duty small { color: #A9B4C4 !important; }
+  html.st .lock-box { background: #2A2210 !important; color: #F5DEB0 !important; border-color: #5C4A1F !important; }
+  html.st .lock-box.free { background: #12261A !important; color: #CDEBD5 !important; border-color: #24452F !important; }
+}

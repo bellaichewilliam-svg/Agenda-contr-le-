@@ -25,3 +25,8 @@ do $$ begin
 end $$;
 -- Même jour : retrait_docs_needed('autre') = aucun document ; orders_phone_order n'exige plus phone_paid (le livreur avance, max 100 ₪) ;
 -- shop_pic renvoie Access-Control-Allow-Origin + Vary: Origin.
+
+-- (patron 25/11, soir) Comparateur « Lait » / « חלב » : d'abord les plus achetés (table hop_staple_extra :
+-- Tnuva 3 % 1 L, Tnuva 1 % 1 L, Tnuva 3 % 2 L), puis la recherche. price_compare lit hop_staple_extra (ordre pos).
+-- chain_find : photo = photo_by_barcode (vraie photo connue), sinon l'adresse Rami Lévy seulement si Rami Lévy a le produit.
+-- (définitions complètes appliquées en base : migration staples_extra_and_chain_photos)
