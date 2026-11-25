@@ -793,7 +793,9 @@ async function loadCatalog() {
 }
 // Photo réduite (480 px, JPEG) : légère pour les clients
 function shrinkPhoto(file) {
-  return cropPhoto(file, 480, 480, 280000, t("cropTitleItem"));
+  // (patron 25/11 : « des bonnes définitions de photos ») 1000 × 1000 : nette en grand sur le téléphone ;
+  // le catalogue reste léger (la photo est servie à part par shop_pic)
+  return cropPhoto(file, 1000, 1000, 420000, t("cropTitleItem"));
 }
 function prodForm(p, catId) {
   const { categories } = cat.data;
