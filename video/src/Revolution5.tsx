@@ -14,7 +14,7 @@ import { Wordmark } from './Reel';
 // 1. accroche · 2. tout, livré (l'accueil) · 3. on compare les prix · 4. vos restos (Rendez-Vous, Bassari / Halavi)
 // 5. dites-le à Hoppy · 6. on y va pour vous, dès 25 ₪ en ville · 7. fin HOP!.
 // Règles : aucun concurrent nommé, pas de durée chiffrée, « dès 25 ₪ en ville », Hoppy officiel.
-export const REVO5_FRAMES = 900;
+export const REVO5_FRAMES = 915;
 type Lang = 'fr' | 'he';
 const BLUE = '#1E9BF0', LEMON = '#FFE14A', CORAL = '#FF5D73', MINT = '#7ED9A6', INK = '#0B4A6F', NAVY = '#0F1F3D', NIGHT = '#081226', OR = '#FF6A13';
 const STR = {
@@ -22,7 +22,7 @@ const STR = {
     hook: ['LA', 'RÉVOLUTION'], hookS: 'à Netanya', pills: ['Courses', 'Restos', 'Pharmacie', 'Colis'],
     tout: ['Tout,', 'livré.'], toutS: 'choisissez, on y va pour vous',
     cmp: ['On compare', 'les prix.'], cmpS: 'le moins cher, en un clin d’œil', cheap: 'Moins cher', big: '7,20 ₪', shops: [['Osher Ad', '7,20'], ['Rami Lévy', '7,20']],
-    resto: ['Vos restos', 'préférés.'], restoS: 'votre plat arrive chaud', bassari: 'Bassari', halavi: 'Halavi',
+    resto: ['Vos restos', 'préférés.'], restoS: 'votre plat arrive chaud', bassari: 'Bassari', halavi: 'Halavi', comp: ['Composez', 'votre plat.'], compS: 'comme vous l’aimez',
     voice: ['Dites-le', 'à Hoppy.'], say: '« Du lait et du pain »',
     go: ['On y va', 'pour vous.'], price: 'Dès 25 ₪ en ville', fast: 'au plus vite',
     end: 'On fait vos courses pour vous',
@@ -31,7 +31,7 @@ const STR = {
     hook: ['המהפכה'], hookS: 'בנתניה', pills: ['קניות', 'מסעדות', 'בית מרקחת', 'חבילות'],
     tout: ['הכול,', 'עד הבית.'], toutS: 'אתם בוחרים, אנחנו הולכים',
     cmp: ['משווים', 'מחירים.'], cmpS: 'הכי זול, במבט אחד', cheap: 'הכי זול', big: '7.20 ₪', shops: [['אושר עד', '7.20'], ['רמי לוי', '7.20']],
-    resto: ['המסעדות', 'שאתם אוהבים.'], restoS: 'האוכל מגיע חם', bassari: 'בשרי', halavi: 'חלבי',
+    resto: ['המסעדות', 'שאתם אוהבים.'], restoS: 'האוכל מגיע חם', bassari: 'בשרי', halavi: 'חלבי', comp: ['מרכיבים', 'את המנה.'], compS: 'בדיוק כמו שאתם אוהבים',
     voice: ['תגידו', 'להופי.'], say: '«חלב ולחם»',
     go: ['אנחנו הולכים', 'בשבילכם.'], price: 'החל מ־25 ₪ בעיר', fast: 'הכי מהר',
     end: 'עושים לכם את הקניות',
@@ -155,7 +155,7 @@ const Tout: React.FC = () => (
   <Stage bg={LEMON} a="#FFEE80" b={CORAL} ox={540} oy={1700}>
     <Title lines={S.tout} at={4} y={110} size={150} block={CORAL} step={10} />
     <Script text={S.toutS} at={26} y={448} size={78} color={INK} rot={-2} />
-    <Phone src={cap('home')} at={8} y={590} w={640} scroll={[40, 130, 2600, 150]} tilt={-3} />
+    <Phone src={cap('home')} at={8} y={590} w={640} scroll={[30, 105, 2600, 120]} tilt={-3} />
   </Stage>
 );
 // ===== 3. On compare (270–450) : la recherche « Lait » et le comparateur =====
@@ -177,16 +177,54 @@ const Compare: React.FC = () => {
     </Stage>
   );
 };
-// ===== 4. Vos restos (450–600) : Rendez-Vous, puis Bassari / Halavi =====
-const Resto: React.FC = () => (
-  <Stage bg={CORAL} a="#FF8496" b={LEMON} ox={180} oy={1500}>
-    <Title lines={S.resto} at={4} y={90} size={140} color="#fff" block={LEMON} blockInk={INK} step={10} />
-    <Script text={S.restoS} at={26} y={420} size={80} color={LEMON} rot={-3} />
-    <Phone src={cap('rdv')} src2={cap('rdv-ks')} swap={70} at={8} y={580} w={640} tilt={3} />
-    <Pill text={S.bassari} at={75} x={RTL ? 870 : 190} y={1180} bg={CORAL} ink="#fff" size={54} rot={-6} />
-    <Pill text={S.halavi} at={90} x={RTL ? 190 : 880} y={1300} bg={BLUE} ink="#fff" size={54} rot={6} />
-  </Stage>
-);
+// ===== 4. La vitrine (375–600) : Rendez-Vous à son identité, puis « composez votre plat » (vraies captures, vrais touchers) =====
+// Captures : rdv (haut de page de l'enseigne), vt1 (Cheese Burger et ses ingrédients), vt2 (sans salade), vt3 (sans cornichons),
+// vt4 (la salade revient), vt5a (bouton Ajouter), vt5 (ajouté au panier). Touchers aux vraies positions (en points CSS de l'écran 390 px).
+const VT_SHOTS: [number, string][] = [[0, 'rdv'], [42, 'vt1'], [80, 'vt2'], [118, 'vt3'], [156, 'vt4'], [186, 'vt5a'], [204, 'vt5']];
+const VT_TAPS: Record<Lang, [number, number, number][]> = {
+  fr: [[74, 338, 368], [112, 52, 530], [150, 338, 368], [198, 195, 530]],
+  he: [[74, 52, 368], [112, 338, 530], [150, 52, 368], [198, 195, 530]],
+};
+const Vitrine: React.FC = () => {
+  const f = useCurrentFrame();
+  const W = 780, X = 540, Y = 470, sw = W - 36, k0 = sp(f, 6, 14, 140, 0.9), zoom = sw / 390;
+  return (
+    <Stage bg={CORAL} a="#FF8496" b={LEMON} ox={180} oy={1500}>
+      <AbsoluteFill style={{ opacity: lerp(f, [34, 40], [1, 0]) }}>
+        <Title lines={S.resto} at={4} y={70} size={130} color="#fff" block={LEMON} blockInk={INK} step={8} />
+        <Script text={S.restoS} at={20} y={370} size={74} color={LEMON} rot={-3} />
+      </AbsoluteFill>
+      {f >= 40 ? <>
+        <Title lines={S.comp} at={40} y={70} size={130} color="#fff" block={INK} step={8} />
+        <Script text={S.compS} at={58} y={370} size={80} color={LEMON} rot={-3} />
+      </> : null}
+      <div style={{ position: 'absolute', left: X - W / 2, top: Y, width: W, borderRadius: 100, background: '#0B1220', padding: 18, boxSizing: 'border-box',
+        transform: `translateY(${(1 - k0) * 900}px) rotate(${(1 - k0) * 4}deg)`, boxShadow: '0 50px 90px rgba(8,18,38,.45), inset 0 0 0 3px #2A3550' }}>
+        <div style={{ position: 'relative', width: sw, height: sw * 2532 / 1173, borderRadius: 84, overflow: 'hidden', background: '#fff' }}>
+          <div style={{ position: 'absolute', inset: 0, transformOrigin: `${195 * zoom}px ${450 * zoom}px`,
+            transform: `scale(${f < 186 ? 1 : 1})` }}>
+          {VT_SHOTS.map(([at, n], i) => {
+            const next = VT_SHOTS[i + 1];
+            const o = (f >= at ? lerp(f, [at, at + 5], [i === 0 ? 1 : 0, 1]) : 0) * (next && f >= next[0] + 5 ? 0 : 1);
+            return o > 0 ? <Img key={n} src={cap(n)} style={{ position: 'absolute', left: 0, top: 0, width: sw, opacity: o }} /> : null;
+          })}
+          {VT_TAPS[L].map(([at, x, y], i) => {
+            if (f < at - 6 || f > at + 16) return null;
+            const t = lerp(f, [at, at + 16], [0, 1]), pre = lerp(f, [at - 6, at], [0, 1]);
+            return <React.Fragment key={i}>
+              <div style={{ position: 'absolute', left: x * zoom - 60, top: y * zoom - 60, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,.55)',
+                transform: `scale(${f < at ? 0.6 + 0.2 * pre : 0.8 - 0.25 * Math.min(1, t * 3)})`, opacity: f < at ? pre : 1 - t, boxShadow: '0 0 0 6px rgba(11,74,111,.35)' }} />
+              <div style={{ position: 'absolute', left: x * zoom - 90, top: y * zoom - 90, width: 180, height: 180, borderRadius: '50%', border: '6px solid #fff',
+                transform: `scale(${0.5 + t * 1.2})`, opacity: f < at ? 0 : 1 - t }} />
+            </React.Fragment>;
+          })}
+          </div>
+          <div style={{ position: 'absolute', top: 18, left: '50%', width: 210, height: 56, marginLeft: -105, borderRadius: 30, background: '#0B1220' }} />
+        </div>
+      </div>
+    </Stage>
+  );
+};
 // ===== 5. Dites-le à Hoppy (600–720) : la commande à la voix =====
 const Voice: React.FC = () => {
   const f = useCurrentFrame();
@@ -249,18 +287,18 @@ const End: React.FC = () => {
 };
 
 // Montage : 120 BPM, coupes sur les temps
-export const CUTS_REVO5 = [120, 270, 450, 600, 720, 810];
+export const CUTS_REVO5 = [105, 225, 375, 600, 720, 810];
 export const Revolution5: React.FC<{ lang?: Lang; music?: boolean }> = ({ lang = 'fr', music = true }) => {
   L = lang; S = STR[lang]; RTL = lang === 'he';
   return (
     <AbsoluteFill style={{ background: NIGHT }}>
-      <Sequence durationInFrames={120}><Hook /></Sequence>
-      <Sequence from={120} durationInFrames={150}><Tout /></Sequence>
-      <Sequence from={270} durationInFrames={180}><Compare /></Sequence>
-      <Sequence from={450} durationInFrames={150}><Resto /></Sequence>
+      <Sequence durationInFrames={105}><Hook /></Sequence>
+      <Sequence from={105} durationInFrames={120}><Tout /></Sequence>
+      <Sequence from={225} durationInFrames={150}><Compare /></Sequence>
+      <Sequence from={375} durationInFrames={225}><Vitrine /></Sequence>
       <Sequence from={600} durationInFrames={120}><Voice /></Sequence>
       <Sequence from={720} durationInFrames={90}><Go /></Sequence>
-      <Sequence from={810} durationInFrames={90}><End /></Sequence>
+      <Sequence from={810} durationInFrames={105}><End /></Sequence>
       <Flash at={CUTS_REVO5} />
       {music ? <Audio src={staticFile('revo5-music.wav')} /> : null}
     </AbsoluteFill>
