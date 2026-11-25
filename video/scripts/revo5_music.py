@@ -10,7 +10,7 @@ import numpy as np
 from scipy.signal import butter, sosfilt
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SR, BEAT, DUR = 44100, 0.5, 30.0
+SR, BEAT, DUR = 44100, 0.5, 30.5
 N = int(SR * DUR)
 rng = np.random.default_rng(7)
 L, R = np.zeros(N), np.zeros(N)
@@ -108,7 +108,7 @@ def f2t(frame):
 
 
 CH = [(48, [60, 64, 67, 71]), (43, [55, 59, 62, 67]), (45, [57, 60, 64, 69]), (41, [53, 57, 60, 65])]  # Cmaj7 G Am F : lumineux
-CUTS = (120, 270, 450, 600, 720, 810)
+CUTS = (105, 225, 375, 600, 720, 810)
 # 1. accroche : quatre coups (LA · RÉVO · LU · TION), tic-tac, montée vers la coupe 120
 for fr in (0, 15, 30, 45):
     add(boom(), f2t(fr), 0.55 + 0.1 * (fr == 45)); add(clap(), f2t(fr), 0.35)
@@ -116,10 +116,10 @@ for k in range(16):
     add(hat(0.03), f2t(k * 7.5), 0.16, pan=(k % 2 - 0.5) * 0.6)
 add(pad(CH[0][1], 4.0), 0.0, 0.35)
 add(ding(91), f2t(60), 0.35)
-add(whoosh(1.0, True), f2t(120) - 1.0, 0.6)
-# 2 à 6. le rythme plein de l'image 120 à 810 (23 s = 46 temps)
-t0 = f2t(120)
-for b in range(46):
+add(whoosh(1.0, True), f2t(105) - 1.0, 0.6)
+# 2 à 6. le rythme plein de l'image 105 à 810 (23,5 s = 47 temps)
+t0 = f2t(105)
+for b in range(47):
     t = t0 + b * BEAT
     root, notes = CH[(b // 4) % 4]
     add(kick(), t, 0.95)
@@ -133,19 +133,22 @@ for b in range(46):
 # coups sur chaque coupe
 for fr in CUTS[:-1]:
     add(whoosh(0.5, True), f2t(fr) - 0.5, 0.45); add(boom(), f2t(fr), 0.7)
-# comparateur : les pastilles « Moins cher » (330, 345) et le prix (375)
-for i, fr in enumerate((330, 345, 360)):
+# comparateur : les pastilles (285, 300) « Moins cher » (315) et le prix (330)
+for i, fr in enumerate((285, 300, 315)):
     add(blip([84, 88, 91][i]), f2t(fr), 0.4)
-add(ding(93), f2t(375), 0.4)
-# restos : Bassari / Halavi (525, 540)
-add(ding(86), f2t(525), 0.3); add(ding(90), f2t(540), 0.3)
+add(ding(93), f2t(330), 0.4)
+# vitrine : le plat arrive (417), les touchers sur les ingrédients (449, 487, 525) et « Ajouter » (573)
+add(ding(86), f2t(417), 0.35)
+for fr, m in ((449, 79), (487, 76), (525, 83)):
+    add(blip(m), f2t(fr), 0.45); add(blip(m + 7), f2t(fr) + 0.05, 0.3)
+add(ding(88), f2t(573), 0.45); add(ding(95), f2t(573) + 0.1, 0.4)
 # voix : micro (630), bulle (660)
 for i in range(3): add(blip([79, 83, 86][i]), f2t(630 + i * 5), 0.3)
 add(ding(88), f2t(660), 0.35)
 # « dès 25 ₪ » (750) et « au plus vite » (780)
 add(ding(84), f2t(750), 0.45); add(ding(91), f2t(750) + 0.12, 0.4); add(whoosh(0.35, True), f2t(780) - 0.35, 0.4)
 # 7. fin : accord tenu, le logo (810), Hoppy touche le sol
-add(pad([48, 55, 60, 64, 67, 72], 3.4), f2t(810), 0.6)
+add(pad([48, 55, 60, 64, 67, 72], 3.8), f2t(810), 0.6)
 add(whoosh(0.7, True), f2t(810) - 0.7, 0.5); add(boom(), f2t(810), 0.95)
 for i, m in enumerate((72, 76, 79, 84)):
     add(pluck(m, 0.7, 5000), f2t(810) + i * 0.09, 0.4)
