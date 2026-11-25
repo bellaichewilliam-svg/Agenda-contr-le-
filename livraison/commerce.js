@@ -1575,7 +1575,7 @@ function sdParse(raw) {
   // ville
   (CONFIG.cities || []).forEach(c => { const names = [c.fr, c.he, c.en].filter(Boolean); if (!out.city && names.some(n => new RegExp("(^|[\\s,])" + String(n).replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?=$|[\\s,])", "i").test(s))) { out.city = c.id; names.forEach(n => { s = s.replace(new RegExp(String(n).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "ig"), " , "); }); } });
   // nom : après « pour / au nom de / client / עבור / בשם / ל »
-  take(new RegExp("(?:pour|au nom de|nom|client(?:e)?|עבור|בשם|שם)\\s+(" + W + "{2,}(?:\\s+" + W + "{2,})?)", "i"), m => { out.name = m[1].trim(); });
+  take(new RegExp("(?:pour|au nom de|nom|client(?:e)?|עבור|בשם|שם)\\s+(" + W + "{2,}(?:\\s+" + W + "{2,}(?!" + W + ")(?!\\s+\\d))?)", "i"), m => { out.name = m[1].trim(); });
   // rue + numéro : « rue Herzl 12 », « Herzl 12 », « 12 rue Herzl », « הרצל 12 »
   if (!take(new RegExp("(?:rue|avenue|av\\.?|boulevard|bd|שדרות|שד'|רחוב|רח')?\\s*(" + W + "{2,}(?:\\s+" + W + "{2,}){0,3})\\s+(\\d{1,3}\\w?)(?=\\s|,|$)"), m => { out.street = (m[1].replace(/^(?:rue|avenue|boulevard)\s+/i, "") + " " + m[2]).trim(); }))
     take(new RegExp("(\\d{1,3})\\s*,?\\s*(?:rue|avenue|boulevard|bd)\\s+(" + W + "{2,}(?:\\s+" + W + "{2,}){0,3})", "i"), m => { out.street = (m[2] + " " + m[1]).trim(); });
@@ -1601,21 +1601,73 @@ function sdHeard(text, n) {
   p.innerHTML = `<b>${I18N.lang === "he" ? `<bdi dir="rtl">"${UI.esc(text)}"</bdi>` : `« ${UI.esc(text)} »`}</b><span>${UI.esc(n ? t("sdVoiceDone", { n }) : t("sdVoiceNone"))}</span>`;
   p.classList.remove("hidden");
 }
-let sdRec = null;
+let sdRec = null, sdAsk = null;
+// Écoute une phrase (micro du téléphone) ; continuous = la course dictée d'une traite, sinon une seule réponse
+function sdListen(continuous, onText) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition, btn = $("#sdMic"), sub = $("#sdVoiceSub");
+  if (!SR) { const typed = prompt(sdAsk ? t("sdQ_" + sdAsk) : t("sdVoiceType")); onText(typed || ""); return; }
+  const r = new SR(); sdRec = r; let said = "";
+  r.lang = I18N.lang === "he" ? "he-IL" : "fr-FR"; r.interimResults = true; r.continuous = continuous; r.maxAlternatives = 1;
+  btn.classList.add("on"); if (!sdAsk) sub.textContent = t("sdVoiceListen");
+  r.onresult = ev => { said = [...ev.results].map(x => x[0].transcript).join(" "); sub.textContent = said; };
+  r.onerror = ev => { if (ev.error === "not-allowed" || ev.error === "service-not-allowed") alert(t("micDenied")); };
+  r.onend = () => { if (sdRec !== r) return; sdRec = null; btn.classList.remove("on"); sub.textContent = t("sdVoiceEx"); onText(said.trim()); };
+  try { r.start(); } catch (x) { sdRec = null; btn.classList.remove("on"); }
+  setTimeout(() => { if (sdRec === r) try { r.stop(); } catch (x) { /* fin */ } }, continuous ? 20000 : 9000);
+}
+// (patron 25/11) l'appli pose elle-même les questions qui manquent (à voix haute), jusqu'à la fiche complète
+const SD_ORDER = ["name", "phone", "street", "floor", "apt", "code", "payer", "how"];
+function sdMissing() {
+  const f = $("#spSend"); if (!f) return [];
+  return SD_ORDER.filter(k => k === "payer" ? !send.payer : k === "how" ? !send.how : !String((f.elements[k] || {}).value || "").trim());
+}
+function sdSay(text, then) {
+  const p = $("#sdHeard"); if (p) { p.innerHTML = `<b class="sd-q">${UI.esc(text)}</b>`; p.classList.remove("hidden"); }
+  try {
+    if (!window.speechSynthesis) return then();
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text); u.lang = I18N.lang === "he" ? "he-IL" : "fr-FR"; u.rate = 1.05;
+    let done = false; const go = () => { if (!done) { done = true; setTimeout(then, 250); } };
+    u.onend = go; u.onerror = go; speechSynthesis.speak(u); setTimeout(go, 6000);
+  } catch (x) { then(); }
+}
+// Réponse à UNE question : lue selon ce qu'on a demandé
+function sdAnswer(k, txt) {
+  const s = String(txt || "").trim(), no = /^(non|pas de|aucun|il n'y en a pas|לא|אין)/i.test(s), o = {};
+  if (!s) return o;
+  if (k === "phone") { const d = s.replace(/\D/g, "").replace(/^972/, "0"); if (d.length >= 9) o.phone = d.replace(/^(\d{3})(\d{3})(\d{4})$/, "$1-$2-$3"); }
+  else if (k === "floor") { const n = sdParse("étage " + s).floor ?? sdParse(s + " étage").floor; o.floor = n != null ? n : /rez|קרקע/i.test(s) ? "0" : (s.match(/\d+/) || [])[0]; }
+  else if (k === "apt") { const n = (s.match(/\d+\w?/) || [])[0] || (SD_NUM[s.toLowerCase()] != null ? String(SD_NUM[s.toLowerCase()]) : ""); o.apt = n || (no ? "-" : s.slice(0, 10)); }
+  else if (k === "code") { o.code = no ? t("noCodeVal") : (s.replace(/[^\d#*]/g, "") || s.slice(0, 20)); }
+  else if (k === "payer") { if (/client|לקוח/i.test(s)) o.payer = "destinataire"; else if (/moi|nous|commerce|je|אני|אנחנו|אנו/i.test(s)) o.payer = "moi"; }
+  else if (k === "how") { if (/esp[eè]ce|cash|liquide|מזומן/i.test(s)) o.how = "cash"; else if (/bit|ביט/i.test(s)) o.how = "bit"; }
+  else if (k === "street") { const p = sdParse(s); o.street = p.street || s.replace(/^(c['’]est|au|à|rue)\s+/i, ""); if (p.city) o.city = p.city; }
+  else if (k === "name") { o.name = s.replace(/^(c['’]est|il s['’]appelle|elle s['’]appelle|son nom est|שמו|שמה|קוראים לו|קוראים לה)\s+/i, "").slice(0, 60); }
+  return o;
+}
+function sdNext(tries) {
+  const miss = sdMissing();
+  if (!miss.length) { sdAsk = null; return sdSay(t("sdAllDone"), () => {}); }
+  const k = miss[0]; sdAsk = k;
+  sdSay(t("sdQ_" + k), () => sdListen(false, txt => {
+    if (sdAsk !== k) return;
+    const o = sdAnswer(k, txt), n = sdApply(o);
+    if (!n) { if ((tries || 0) >= 1) { sdAsk = null; return sdSay(t("sdAskStop"), () => {}); } return sdNext((tries || 0) + 1); }
+    sdNext(0);
+  }));
+}
 $("#spSend").addEventListener("click", e => {
   if (!e.target.closest("#sdMic")) return;
   e.preventDefault();
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition, btn = $("#sdMic"), sub = $("#sdVoiceSub");
-  if (sdRec) { try { sdRec.stop(); } catch (x) { /* déjà arrêté */ } return; }
-  if (!SR) { const typed = prompt(t("sdVoiceType")); if (typed) sdHeard(typed, sdApply(sdParse(typed))); return; }
-  const r = new SR(); sdRec = r; let said = "";
-  r.lang = I18N.lang === "he" ? "he-IL" : "fr-FR"; r.interimResults = true; r.continuous = true; r.maxAlternatives = 1;
-  btn.classList.add("on"); sub.textContent = t("sdVoiceListen");
-  r.onresult = ev => { said = [...ev.results].map(x => x[0].transcript).join(" "); sub.textContent = said; };
-  r.onerror = ev => { if (ev.error === "not-allowed" || ev.error === "service-not-allowed") alert(t("micDenied")); };
-  r.onend = () => { sdRec = null; btn.classList.remove("on"); sub.textContent = t("sdVoiceEx"); if (said.trim()) sdHeard(said.trim(), sdApply(sdParse(said))); };
-  try { r.start(); } catch (x) { sdRec = null; btn.classList.remove("on"); }
-  setTimeout(() => { if (sdRec === r) try { r.stop(); } catch (x) { /* fin */ } }, 20000);
+  // toucher le micro pendant l'écoute ou les questions : on arrête tout
+  if (sdRec || sdAsk) { const r = sdRec; sdRec = null; sdAsk = null; try { r && r.stop(); } catch (x) { /* déjà arrêté */ } try { speechSynthesis.cancel(); } catch (x) { /* rien */ } $("#sdMic").classList.remove("on"); $("#sdVoiceSub").textContent = t("sdVoiceEx"); return; }
+  sdListen(true, said => {
+    if (!said) return;
+    const n = sdApply(sdParse(said));
+    sdHeard(said, n);
+    // ce qui manque encore : l'appli le demande
+    if (sdMissing().length) setTimeout(() => sdNext(0), 900);
+  });
 });
 $("#spSend").addEventListener("input", e => { if (e.target.classList.contains("field-bad") && e.target.value.trim()) e.target.classList.remove("field-bad"); });
 $("#spSend").addEventListener("submit", e => { e.preventDefault(); sendSubmit(); });

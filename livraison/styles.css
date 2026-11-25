@@ -7908,3 +7908,4 @@ html.d4 .d4-promo .d4-sl small, html.d4 .d4-promo .d4-sl b { display: block; wid
 .sd-heard b { display: block; font-weight: 600; margin-bottom: 3px; color: #0F1F3D; }
 #spSend input.sd-filled { box-shadow: 0 0 0 2px #12B76A !important; transition: box-shadow .4s; }
 @media (prefers-reduced-motion: reduce) { .sd-mic.on { animation: none; } }
+.sd-heard .sd-q { font-size: 15px; color: #0F1F3D; margin: 0; }
