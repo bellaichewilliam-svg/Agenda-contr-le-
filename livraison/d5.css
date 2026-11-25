@@ -1291,3 +1291,6 @@ html.d5 body .d5-more.in .d5-more-it:active { transform: scale(.95); }
 @keyframes d5mShine { to { transform: translateX(120%); } }
 @media (prefers-reduced-motion: reduce) { html.d5 body .d5-more .d5-more-it { opacity: 1; transform: none; animation: none !important; } html.d5 body .d5-more-it .d5-mi { animation: none; } }
 html.d5 body .d5-more-it:last-child:nth-child(odd) { grid-column: span 2; }
+/* (patron 25/11) Halavi = tous les produits Halavi, Bassari = tous les produits Bassari : la règle des grilles (#catalogBox#catalogBox …
+   display:flex !important) gardait visibles les produits de l'autre côté ; sélecteur renforcé, rubriques et articles un par un */
+html.d5 body #catalogBox#catalogBox#catalogBox[data-ks="b"] [data-ks-sec="h"], html.d5 body #catalogBox#catalogBox#catalogBox[data-ks="h"] [data-ks-sec="b"] { display: none !important; }

@@ -4848,6 +4848,8 @@ function cgShowPick() {
 // blocs « Bassari » / « Halavi » ; on ne voit ensuite que les rubriques de ce côté (+ boissons, desserts…), « Tout voir » pour tout
 const KS_RX = { b: /bassari|בשרי/i, h: /halavi|חלבי/i };
 const KS_EXTRA = { RENDEZVOUS: { b: /entrées|מנות ראשונות|formules|קומבינציות/i, h: /nouveauté|החדש של הרגע|petit déjeuner|ארוחת בוקר/i } };
+// Articles d'une rubrique mélangée : leur côté d'après le nom (Rendez-Vous : Entrées = hot dogs bassari, navettes / pizza / fricassés au thon ou saumon halavi)
+const KS_PROD = { RENDEZVOUS: { b: /hot dog|נקניקיה|charcuterie|נקניקים|poulet|עוף/i, h: /thon|saumon|טונה|סלמון|mozza|מוצרלה|burrata|בוראטה/i } };
 function ksRender() {
   const box = $("#catalogBox"), d5 = document.documentElement.classList.contains("d5");
   let pick = document.getElementById("ksPick");
@@ -4860,8 +4862,18 @@ function ksRender() {
   // rubriques sans « bassari / halavi » dans le nom : le côté donné par le site du restaurant
   const ex = KS_EXTRA[code] || {};
   const secSide = t2 => (KS_RX.b.test(t2) || (ex.b && ex.b.test(t2)) ? "b" : KS_RX.h.test(t2) || (ex.h && ex.h.test(t2)) ? "h" : "");
-  box.querySelectorAll("h4.cg-sec").forEach(h => { const k = secSide(h.textContent); h.dataset.ksSec = k; const g = h.nextElementSibling; if (g && g.classList.contains("cg-grid")) g.dataset.ksSec = k; });
-  box.querySelectorAll(".cg-head-tabs button, .cg-head-tabs [data-cg-cat]").forEach(b => { b.dataset.ksSec = secSide(b.textContent); });
+  // (patron 25/11) chaque produit a son côté : une rubrique mélangée (Entrées : navettes thon / saumon et hot dogs) est triée article par article ;
+  // Halavi montre tous les produits Halavi, Bassari tous les produits Bassari (+ boissons, desserts… communs aux deux)
+  const pp = KS_PROD[code] || {}, byId = new Map(cgProducts().map(x => [String(x.id), x]));
+  const itemSide = (it, k, named) => { if (named) return k; const pr = byId.get(it.dataset.cgOpen || ""), n = String((pr && pr.name) || "");
+    return pp.b && pp.b.test(n) ? "b" : pp.h && pp.h.test(n) ? "h" : k; };
+  const tabSide = {};
+  box.querySelectorAll("h4.cg-sec").forEach(h => { const k = secSide(h.textContent), g = h.nextElementSibling;
+    let sides = new Set([k]);
+    if (g && g.classList.contains("cg-grid")) { sides = new Set(); g.querySelectorAll(".cg-item").forEach(it => { const s2 = itemSide(it, k, KS_RX.b.test(h.textContent) || KS_RX.h.test(h.textContent)); it.dataset.ksSec = s2; sides.add(s2); }); }
+    const all = sides.size === 1 ? [...sides][0] : "";   // rubrique mélangée : visible des deux côtés, articles triés un par un
+    h.dataset.ksSec = all; if (g && g.classList.contains("cg-grid")) g.dataset.ksSec = all; tabSide[h.textContent.trim()] = all; });
+  box.querySelectorAll(".cg-head-tabs button, .cg-head-tabs [data-cg-cat]").forEach(b => { const n = b.textContent.trim(); b.dataset.ksSec = n in tabSide ? tabSide[n] : secSide(n); });
   box.dataset.ks = side;
   const picOf = k => { const vd = vt.all && vt.code === code && vt.all.dishes.find(d => d.side === k && d.img); if (vd) return UI.esc(vd.img);
     const cat = ((state.catalog && state.catalog.categories) || []).find(c => KS_RX[k].test(c.name || ""));
