@@ -4167,6 +4167,26 @@ document.addEventListener("error", e => {
   el.replaceWith(m);
 }, true);
 
+// Petites icônes animées des services d'un pressing (patron 25/11, Edmar : « des petits logos qui animent les options ») :
+// dessin au trait, une animation par service (le fer glisse, le tambour tourne, le cintre se balance…) ; seulement sans photo, design 5
+const SVC_IC = [
+  [/repass|גיהוץ/i, "iron", '<path d="M8 32h30c0-8-5-14-14-14h-8"/><path d="M8 32l3-8h13"/><path d="M14 18h6"/><g class="ic-steam"><path d="M15 12c-2-2 2-3 0-6"/><path d="M22 12c-2-2 2-3 0-6"/><path d="M29 12c-2-2 2-3 0-6"/></g><path class="ic-gold" d="M12 37h26"/>'],
+  [/nettoyage à sec|ניקוי יבש/i, "dry", '<path d="M24 9a3 3 0 1 1 3 3l-3 2"/><path d="M24 14L8 24h32z"/><path d="M13 24l2 16h18l2-16"/><g class="ic-gold ic-twinkle"><path d="M38 8v6M35 11h6"/><path d="M9 33v4M7 35h4"/></g>'],
+  [/poids|משקל/i, "scale", '<path d="M10 40h28"/><path d="M24 40V14"/><path d="M12 18h24"/><g class="ic-tilt"><path d="M12 18l-5 10h10z"/><path d="M36 18l-5 10h10z"/></g><circle class="ic-gold" cx="24" cy="12" r="2"/>'],
+  [/manteau|מעיל/i, "coat", '<g class="ic-swing"><path d="M24 6a3 3 0 1 1 3 3l-3 2"/><path d="M24 11l-12 7v24h8V28m4-17l12 7v24h-8V28"/><path d="M20 18l4 6 4-6"/><circle class="ic-gold" cx="24" cy="30" r="1"/><circle class="ic-gold" cx="24" cy="35" r="1"/></g>'],
+  [/robe|שמל/i, "dress", '<g class="ic-swing"><path d="M24 5a3 3 0 1 1 3 3l-3 2"/><path d="M19 12h10l-2 8 7 20H14l7-20z"/><path class="ic-gold" d="M21 20h6"/></g>'],
+  [/tsitsit|ציצי/i, "tsitsit", '<path d="M10 10h28v18H10z"/><path class="ic-gold" d="M10 15h28M10 23h28"/><g class="ic-fringe"><path d="M13 28v10M17 28v12M31 28v12M35 28v10"/></g>'],
+  [/couverture|שמיכ/i, "blanket", '<g class="ic-breathe"><rect x="8" y="12" width="32" height="24" rx="5"/><path d="M8 20h32"/><path class="ic-gold" d="M14 28h20"/></g>'],
+  [/tapis|שטיח/i, "rug", '<g class="ic-wave"><rect x="11" y="10" width="26" height="28" rx="2"/><path class="ic-gold" d="M17 16h14v16H17z"/><path d="M14 38v4M19 38v4M24 38v4M29 38v4M34 38v4M14 6v4M19 6v4M24 6v4M29 6v4M34 6v4"/></g>'],
+  [/lavage|כביס/i, "washer", '<rect x="9" y="6" width="30" height="36" rx="5"/><path d="M9 14h30"/><circle class="ic-gold" cx="15" cy="10" r="1.2"/><circle cx="24" cy="28" r="9"/><path class="ic-spin" d="M17 28c3-3 5 3 7 0s5 3 7 0"/>'],
+  [/./, "spark", '<g class="ic-spin2"><path d="M24 8v8M24 32v8M8 24h8M32 24h8"/><path class="ic-gold" d="M24 18l2 6-2 6-2-6z"/></g><circle class="ic-gold ic-twinkle" cx="36" cy="12" r="1.6"/>'],
+];
+function svcIcon(p) {
+  if (!state.shop || state.shop.kind !== "pressing") return "";
+  const n = String((p && p.name) || ""), hit = SVC_IC.find(x => x[0].test(n));
+  return hit ? `<span class="cg-ic ic-${hit[1]}" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${hit[2]}</svg></span>` : "";
+}
+
 // Tailles d'un même menu (ex. McDonald's petit / moyen / grand) : des articles « Nom · שם [Grand · גדולה] » de la même rubrique.
 // Une seule carte (« dès 49 ₪ »), la taille se choisit dans la fiche de l'article ; le panier garde la taille choisie
 const SIZE_RX = /\s*\[([^\]]+)\]\s*$/;
@@ -4312,7 +4332,7 @@ function d6HeroHtml(s, logo, cover) {
   const at = (() => { try { return val("urgency") === "programmee" && (state.shopSched || form.classList.contains("no-now")) && pickupDate(); } catch (e) { return null; } })();
   return `<div class="d6h${brand ? " d6h-brand" : ""}"${brand ? ` style="${brand.accent ? `--brand-ac:${UI.esc(brand.accent)};` : ""}${brand.font ? `--brand-font:'${UI.esc(brand.font)}';` : ""}${brand.fontHe ? `--brand-font-he:'${UI.esc(brand.fontHe)}';` : ""}${brand.fontLine ? `--brand-font-line:'${UI.esc(brand.fontLine)}';` : ""}"` : ""}>
     <div class="d6h-bubs">${st ? `<span class="d6h-b ${st.open ? "on" : "off"}"><i></i>${UI.esc(openLabel(st))}</span>` : ""}<span class="d6h-b w">${D6_SCOOT}${UI.esc(s.shop_pays ? t("scGift") : t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) }))}</span>${isKosher(s) ? `<span class="d6h-b k">${KOSHER_STAR}${UI.esc(he ? "כשר" : "Casher")}</span>` : ""}</div>
-    ${brand && (brand.logo || logo) ? `<img class="d6h-blogo${brand.logo ? "" : " auto"}${brand.logoShape === "wide" ? " wide" : ""}" src="${UI.esc(brand.logo || logo)}" alt=""${brand.logoBg ? ` style="background:${UI.esc(brand.logoBg)}"` : ""} />` : ""}
+    ${brand && brand.logo !== false && (brand.logo || logo) ? `<img class="d6h-blogo${brand.logo ? "" : " auto"}${brand.logoShape === "wide" ? " wide" : ""}" src="${UI.esc(brand.logo || logo)}" alt=""${brand.logoBg ? ` style="background:${UI.esc(brand.logoBg)}"` : ""} />` : ""}
     ${(() => { const nm = (brand && brand.name && (brand.name[he ? "he" : "fr"] || brand.name.fr)) || UI.bi(s.name); return `<h1 class="d6h-name${Math.max(...nm.split(/\s+/).map(w => w.length)) > 6 ? " long" : ""}">${UI.esc(nm)}</h1>`; })()}
     ${brand && brand.line ? `<p class="d6h-bline">${String(brand.line[he ? "he" : "fr"] || brand.line.fr || "").split(/\s*·\s*/).map((w, i, a) => `<span>${UI.esc(w)}${i < a.length - 1 ? " ·" : ""}</span>`).join(" ")}</p>` : `<p class="d6h-tag">${UI.esc(UI.shopText(s, "tagline") || (t("shKinds") || {})[s.kind] || "")}</p>`}
     ${pic ? `${cut ? `<i class="d6-halo h" aria-hidden="true"></i><i class="d6-ground h" aria-hidden="true"></i>${s.kind === "restaurant" && !(brand && brand.steam === false) ? `<i class="d6-steam" aria-hidden="true"><b></b><b></b><b></b></i>` : ""}` : ""}<img class="d6h-pic${cut ? " cut" : ""}" src="${UI.esc(pic)}" alt="" />` : logo && !brand ? `<img class="d6h-logo" src="${UI.esc(logo)}" alt="" />` : ""}
@@ -4329,6 +4349,8 @@ function d6ShopColor() {
   document.body.style.setProperty("--shop", c); document.body.style.setProperty("--shop-ink", lum > .62 ? "#3A1E0E" : "#FFFFFF");
   // (patron 24/11 : la couleur du magasin restait en haut de l'accueil) seulement sur la page du magasin et sa commande
   document.body.classList.toggle("d6-shop", !!s && (document.body.dataset.view || "order") === "order");
+  // cartes ivoire et or pour une enseigne chic (Edmar : cfg.brand.style = "lux")
+  document.body.classList.toggle("d6-lux", !!(cfg && cfg.brand && cfg.brand.style === "lux"));
 }
 // La couleur principale d'un logo (patron 24/11 : « faire ça pour toutes les boutiques ») : le logo réduit à 40 × 40, on garde
 // la teinte la plus présente parmi les pixels bien colorés (ni blancs, ni noirs, ni gris) ; logo noir et blanc → rien
@@ -5017,9 +5039,9 @@ function renderCatalog() {
       // Taille ou boisson à choisir : le « + » ouvre la fiche de l'article
       const q = groupQty(p), multi = sizesOf(p).length > 1 || needsDrink(p), photo = UI.safeImg(p.photo);
       const bm = bossEditOn() && (state.bossMap || {})[p.id];
-      return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}${bm ? " boss-ch" : ""}${!photo ? " nopic" : ""}" data-cg-open="${UI.esc(p.id)}">
+      return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}${bm ? " boss-ch" : ""}${!photo ? " nopic" : ""}${!photo && svcIcon(p) ? " has-ic" : ""}" data-cg-open="${UI.esc(p.id)}">
         <div class="cg-info"><b>${q ? `<em class="cg-n"><bdi>${q}×</bdi></em> ` : ""}<bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></b>${p.description && !(grocShop() && promoOf(p)) ? `<small>${UI.esc(UI.bi(p.description))}</small>` : ""}${grocShop() && !multi ? cgPaPrice(p) : `<span class="cg-price">${UI.esc(groupPrice(p))}</span>`}${multi ? `<span class="cg-sizes">${UI.esc(sizesOf(p).map(x => UI.bi(sizeOf(x))).join(" · "))}</span>` : ""}${tileShop() ? tileMeta(p, multi) : ""}</div>
-        <div class="cg-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" loading="lazy" />` : document.documentElement.classList.contains("d5") ? "" : shopArt(p)}
+        <div class="cg-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" loading="lazy" />` : document.documentElement.classList.contains("d5") ? svcIcon(p) : shopArt(p)}
         ${p.available && promoOf(p) ? `<em class="cg-promo${promoOf(p).lot > 1 ? " lot" : ""}"><bdi>${UI.esc(grocShop() ? `−${promoOf(p).off} %` : promoTag(promoOf(p)))}</bdi></em>` : ""}
         ${bossEditOn() ? `<button type="button" class="cg-boss" data-boss-edit="${UI.esc(p.id)}" aria-label="Modifier">✏️</button>` : ""}
         ${!p.available ? `<span class="cg-out">${bossEditOn() ? "🙈 Masqué" : UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</span>`
@@ -7973,8 +7995,13 @@ $("#homeFilters").addEventListener("click", e => {
 let findTimer = null, findSeq = 0;
 // Un commerce par son nom, même mal écrit (patron, 24/11 : « Smatch It » ne sortait pas Smash It) : 0 = le texte y est tel quel,
 // 1 = chaque mot tapé commence un mot du nom, 2+ = fautes de frappe (1 faute dès 4 lettres, 2 dès 6, nom collé compris) ; -1 = non
+// Mots que les clients tapent pour un métier (patron 25/11 : « pressing », « nettoyage », « כביסה » doivent trouver Edmar)
+const SHOP_KIND_WORDS = {
+  pressing: "pressing nettoyage nettoyage à sec blanchisserie laverie teinturerie repassage linge lavage vêtements costume robe tapis couette couverture מכבסה כביסה ניקוי יבש גיהוץ בגדים שטיחים שמיכות",
+  pharmacie: "pharmacie médicament médicaments ordonnance בית מרקחת תרופות",
+};
 function shopFindScore(s, q) {
-  const n = norm(q), full = `${s.name} ${(t("shKinds") || {})[s.kind] || ""} ${s.tagline || ""} ${s.tagline_he || ""}`;
+  const n = norm(q), full = `${s.name} ${(t("shKinds") || {})[s.kind] || ""} ${s.tagline || ""} ${s.tagline_he || ""} ${SHOP_KIND_WORDS[s.kind] || ""}`;
   if (norm(full).includes(n)) return 0;
   const fold = v => String(v || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[’'"\-־.]/g, "");
   const lim = w => (w.length >= 6 ? 2 : w.length >= 4 ? 1 : 0);
@@ -9628,7 +9655,8 @@ function vitFindRender(q, products, shops, staple, box) {
           return `<button type="button" class="${isLo ? "lo" : ""}" data-find-pro="${UI.esc(x.s)}" data-find-q="${UI.esc((g.he || q).trim())}"><span>${UI.esc(d4Nm({ code: x.s, name: x.s }))}</span>${isLo ? `<em>${UI.esc(t(nLo > 1 ? "cmpLoEq" : "cmpLo"))}</em>` : ""}<b><bdi dir="ltr">${UI.esc(money(Number(x.p)))}</bdi></b></button>`; }).join("")}
           ${more > 0 ? `<small class="fr-cmp2-more">${UI.esc(t("cmpMore", { n: more }))}</small>` : ""}</div></div>`; }).join("")}</section>`;
   // un commerce tapé par son nom (même mal écrit) passe en premier (patron, 24/11 : « Smatch It »)
-  const out = shops.length && !staple ? shopHtml + any + cmpBox + prodHtml + rayHtml : any + cmpBox + (staple ? rayHtml + prodHtml : prodHtml + rayHtml) + shopHtml;
+  // un commerce qui correspond vraiment (nom ou métier : « pressing », « כביסה ») passe en tête, même si des produits répondent aussi
+  const out = shops.length && (!staple || shopFindScore(shops[0], q) <= 1) ? shopHtml + any + cmpBox + prodHtml + rayHtml : any + cmpBox + (staple ? rayHtml + prodHtml : prodHtml + rayHtml) + shopHtml;
   if (box._findOut !== out || !box.firstChild || box._findFirst !== box.firstChild) { box.innerHTML = out; box._findOut = out; box._findFirst = box.firstChild; }
   box.classList.remove("hidden");
 }
@@ -10041,6 +10069,10 @@ $("#homeFind").addEventListener("keydown", e => {
   // « cigarettes » + Entrée : le petit catalogue de cigarettes, pas la case « Autre chose ? »
   const ch = rayonCatHit(q);
   if (ch) { $("#homeFindList").classList.add("hidden"); e.target.blur(); return goRayonFind(ch.r, q); }
+  // (patron 25/11) « pressing » + Entrée : un de nos commerces correspond (nom, métier, mots du métier) → on ouvre sa page, pas la course libre
+  const hit = (state.showcase || []).map(s => ({ s, d: shopFindScore(s, q) })).filter(x => x.d >= 0 && x.d <= 1).sort((x, y) => x.d - y.d)[0];
+  if (hit) { const btn = $("#homeFindList").querySelector(`button[data-find-pro="${CSS.escape(hit.s.code)}"]:not([data-find-q]):not([data-find-item])`);
+    if (btn) { e.target.blur(); return btn.click(); } }
   startFreeOrder(q);
 });
 $("#homeFind").addEventListener("focus", e => { if (norm(e.target.value).length >= 2) homeFind(e.target.value); });

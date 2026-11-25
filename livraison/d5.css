@@ -1294,3 +1294,54 @@ html.d5 body .d5-more-it:last-child:nth-child(odd) { grid-column: span 2; }
 /* (patron 25/11) Halavi = tous les produits Halavi, Bassari = tous les produits Bassari : la règle des grilles (#catalogBox#catalogBox …
    display:flex !important) gardait visibles les produits de l'autre côté ; sélecteur renforcé, rubriques et articles un par un */
 html.d5 body #catalogBox#catalogBox#catalogBox[data-ks="b"] [data-ks-sec="h"], html.d5 body #catalogBox#catalogBox#catalogBox[data-ks="h"] [data-ks-sec="b"] { display: none !important; }
+/* ===== Services d'un pressing : petites icônes animées (patron 25/11, Edmar) ===== */
+html.d5 body #catalogBox#catalogBox .cg-grid .cg-item.has-ic { position: relative; }
+html.d5 body #catalogBox#catalogBox#catalogBox .cg-grid .cg-item.has-ic .cg-ic { position: absolute; top: 16px; inset-inline-end: 16px; z-index: 1; }
+html.d5 body #catalogBox#catalogBox#catalogBox .cg-grid .cg-item.has-ic .cg-info { padding-inline-end: 76px !important; }
+html.d5 body #catalogBox .cg-ic { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: rgba(255,255,255,.75); color: #1F1C19; }
+html.d5 body #catalogBox .cg-ic svg { width: 46px; height: 46px; overflow: visible; }
+html.d5 body #catalogBox .cg-ic .ic-gold { stroke: #B8924A; }
+html.d5 body #catalogBox .ic-iron svg { animation: icIron 2.4s ease-in-out infinite; }
+html.d5 body #catalogBox .ic-steam path { animation: icSteam 2.4s ease-in-out infinite; } html.d5 body #catalogBox .ic-steam path:nth-child(2) { animation-delay: .3s; } html.d5 body #catalogBox .ic-steam path:nth-child(3) { animation-delay: .6s; }
+html.d5 body #catalogBox .ic-swing { transform-origin: 24px 6px; animation: icSwing 2.6s ease-in-out infinite; }
+html.d5 body #catalogBox .ic-spin { transform-origin: 24px 28px; animation: icSpin 1.6s linear infinite; }
+html.d5 body #catalogBox .ic-spin2 { transform-origin: 24px 24px; animation: icSpin 6s linear infinite; }
+html.d5 body #catalogBox .ic-twinkle { transform-box: fill-box; transform-origin: center; animation: icTwinkle 1.8s ease-in-out infinite; }
+html.d5 body #catalogBox .ic-tilt { transform-origin: 24px 18px; animation: icTilt 2.8s ease-in-out infinite; }
+html.d5 body #catalogBox .ic-fringe path { transform-box: fill-box; transform-origin: top; animation: icFringe 1.6s ease-in-out infinite; } html.d5 body #catalogBox .ic-fringe path:nth-child(even) { animation-delay: .4s; }
+html.d5 body #catalogBox .ic-breathe { transform-origin: 24px 24px; animation: icBreathe 2.6s ease-in-out infinite; }
+html.d5 body #catalogBox .ic-wave { transform-origin: 24px 24px; animation: icWave 3s ease-in-out infinite; }
+@keyframes icIron { 0%, 100% { transform: translateX(-3px); } 50% { transform: translateX(4px); } }
+@keyframes icSteam { 0% { opacity: 0; transform: translateY(3px); } 40% { opacity: 1; } 100% { opacity: 0; transform: translateY(-5px); } }
+@keyframes icSwing { 0%, 100% { transform: rotate(-7deg); } 50% { transform: rotate(7deg); } }
+@keyframes icSpin { to { transform: rotate(360deg); } }
+@keyframes icTwinkle { 0%, 100% { transform: scale(.6); opacity: .4; } 50% { transform: scale(1.15); opacity: 1; } }
+@keyframes icTilt { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+@keyframes icFringe { 0%, 100% { transform: skewX(-8deg); } 50% { transform: skewX(8deg); } }
+@keyframes icBreathe { 0%, 100% { transform: scale(.94); } 50% { transform: scale(1.04); } }
+@keyframes icWave { 0%, 100% { transform: rotate(-4deg) translateY(1px); } 50% { transform: rotate(4deg) translateY(-1px); } }
+@media (prefers-reduced-motion: reduce) { html.d5 body #catalogBox .cg-ic * { animation: none !important; } }
+
+/* ===== Enseigne chic (cfg.brand.style = "lux", Edmar) : cartes ivoire, filet or, titres anthracite ===== */
+html.d5 body.d6-lux #catalogBox#catalogBox#catalogBox .cg-grid .cg-item, html.d5 body.d6-lux #catalogBox#catalogBox#catalogBox .cg-grid .cg-item:nth-child(n) { background: #FBF8F2 !important; border: 1px solid #E4D6BB !important; box-shadow: none !important; color: #1F1C19 !important; }
+html.d5 body.d6-lux #catalogBox#catalogBox .cg-grid .cg-item .cg-info b { font-family: 'Cinzel', 'Frank Ruhl Libre', serif !important; letter-spacing: .01em !important; color: #1F1C19 !important; }
+html.d5 body.d6-lux #catalogBox#catalogBox .cg-grid .cg-item .cg-info :is(.cg-price, strong) { color: #8C6A2F !important; }
+html.d5 body.d6-lux #catalogBox#catalogBox .cg-grid .cg-item .cg-plus { background: #1F1C19 !important; color: #E9D3A6 !important; }
+html.d5 body.d6-lux #catalogBox#catalogBox .cg-ic { background: #fff; border: 1px solid #E4D6BB; }
+html.d5 body.d6-lux #catalogBox#catalogBox h4.cg-sec { background: #1F1C19 !important; color: #E9D3A6 !important; font-family: 'Cinzel', 'Frank Ruhl Libre', serif !important; letter-spacing: .04em !important; }
+html.d5 body.d6-lux #catalogBox .cg-head-tabs button.on { background: #1F1C19 !important; color: #E9D3A6 !important; }
+html.d5 body.d6-lux .d6h-name { font-family: 'Cinzel', 'Frank Ruhl Libre', serif !important; letter-spacing: .06em !important; }
+html.d5 body.d6-lux .d6h-pic:not(.cut) { border: 1px solid #C9A96E; background: #fff; object-fit: contain !important; }
+html.d5 body.d6-lux #catalogBox#catalogBox#catalogBox .cg-grid .cg-item .cg-info b { font-family: 'Cinzel', 'Frank Ruhl Libre', serif !important; color: #1F1C19 !important; }
+html.d5 body.d6-lux #catalogBox#catalogBox#catalogBox .cg-grid .cg-item .cg-info small { color: #6B6257 !important; }
+/* blocs encore aux couleurs HOP! (bleu) sur la page d'une enseigne chic : anthracite et or */
+html.d5 body.d6-lux #catalogBox#catalogBox#catalogBox .pay-top, html.d5 body.d6-lux #catalogBox#catalogBox#catalogBox .pay-top * { background: #1F1C19 !important; color: #F3E7CF !important; }
+html.d5 body.d6-lux #catalogBox :is(.cg-qmic, .cg-search button) { background: #1F1C19 !important; color: #E9D3A6 !important; }
+html.d5 body.d6-lux :is(#mobileGo, .mb-go, #mobileBar .btn-primary) { background: #E9D3A6 !important; color: #1F1C19 !important; }
+html.d5 body #catalogBox#catalogBox#catalogBox .cg-grid .cg-item.has-ic { min-height: 176px !important; }
+html.d5 body.d6-lux .pay-top.pay-top.pay-top { background: #1F1C19 !important; border: 1px solid #C9A96E !important; }
+html.d5 body.d6-lux .pay-top.pay-top.pay-top :is(b, p, span) { color: #F3E7CF !important; }
+html.d5 body.d6-lux .pay-top.pay-top.pay-top :is(button, a) { background: #E9D3A6 !important; color: #1F1C19 !important; }
+html.d5 body.d6-lux #catalogBox#catalogBox .nopay-mini { background: #1F1C19 !important; border: 1px solid #C9A96E !important; }
+html.d5 body.d6-lux #catalogBox#catalogBox .nopay-mini summary b { color: #E9D3A6 !important; font-family: 'Cinzel', 'Frank Ruhl Libre', serif !important; }
+html.d5 body.d6-lux #catalogBox#catalogBox .nopay-mini summary small { background: #E9D3A6 !important; color: #1F1C19 !important; }

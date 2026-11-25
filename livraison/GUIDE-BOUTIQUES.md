@@ -46,3 +46,9 @@ sauf les images, qui vont dans `livraison/img/<boutique>/` (fichiers `.webp`, pa
 - Captures **pleine page, rien de coupé** (screenshot `fullPage: true`, ou bandes successives qui se recouvrent), FR **et** HE, 390 px.
 - Vidéo : tout le parcours (accueil → boutique → choix → vitrine → ingrédient → Ajouter → panier), aucune zone coupée.
 - **Tous les boutons cliqués un par un avec les vraies données** (vrais commerces, vraies promos) avant de mettre le design en ligne.
+
+## Enseigne chic et services (Edmar, 25/11)
+- `cfg.brand.style = "lux"` : cartes ivoire, filet or, titres anthracite en police classique (Cinzel), blocs « paiement » anthracite et or. Pour une enseigne dont le logo est noir et blanc et élégant.
+- `cfg.brand.logo = false` : pas de petit logo en haut, quand le logo est déjà en grand dans `brand.pic` (ex. `img/edmar/hero.webp`, le logo entier dans un cadre or). Jamais de bannière coupée.
+- Pressing (`kind = "pressing"`) : chaque service sans photo reçoit une petite icône animée (`SVC_IC` dans client.js : fer, tambour, cintre, robe, tsitsit, couverture, tapis, balance, étincelle), d'après son nom FR / HE.
+- Recherche : `SHOP_KIND_WORDS` (client.js) = les mots que les clients tapent pour un métier (« nettoyage », « כביסה »…) ; Entrée sur la recherche ouvre le commerce qui correspond au lieu de la course libre.
