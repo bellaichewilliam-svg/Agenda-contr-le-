@@ -4705,8 +4705,8 @@ document.addEventListener("click", e => {
   if (id === "resto") { d4m.f = "k:restaurant"; d4m.q = ""; return d4MagOpen(); }
   // (patron 25/11 : l'icône pressing ouvrait une course libre) nos pressings ; un seul → directement sa page
   if (id === "pressing") { const pr = (state.showcase || []).filter(s => s.kind === "pressing" && !s.paused);
-    if (pr.length === 1) { state.shopDir = ""; return loadShop(pr[0].code); }
-    if (pr.length > 1) { d4m.f = "k:pressing"; d4m.q = ""; return d4MagOpen(); } }
+    // (patron 25/11 : « on ne peut pas le bloquer à Edmar ») la liste de nos pressings + « Un autre pressing »
+    if (pr.length) { d4m.f = "k:pressing"; d4m.q = ""; return d4MagOpen(); } }
   const kb = document.querySelector(`#homeKinds .ch-kind[data-kind="${id}"], #homeKinds [data-kind="${id}"]`);
   if (kb) return kb.click();
   const t4 = document.querySelector(`#d4Tiles [data-d4="${id}"], #d4Shops [data-d4="${id}"]`);
@@ -6956,6 +6956,8 @@ function d4MagRender() {
   box.querySelector(".d4m-chips").innerHTML = fl.map(([k, l]) => `<button type="button" class="${d4m.f === k ? "on" : ""}" data-d4m-f="${k}">${escHop(l)}</button>` + (k === "k:restaurant" ? kSub : "")).join("");
   // « Makolet du coin » : dans Épicerie (et Tous), on va dans n'importe quel makolet pour vous
   const mako = (d4m.f === "k:epicerie" || (!d4m.f && !words.length)) ? `<button type="button" class="d4m-card d4m-mako" data-d4m-mako><span class="d4m-ph"><img src="img/hoppy-vit.webp" alt="" loading="lazy" /></span><b class="d4m-nm">${UI.esc(t("d4Mako"))}</b><small>${UI.esc(t("d4MakoS"))}</small></button>` : "";
+  // Pressing : après nos pressings, « Un autre pressing » (on va chercher et on rapporte, au pressing de votre choix)
+  const press = d4m.f === "k:pressing" ? `<button type="button" class="d4m-card d4m-mako" data-d4m-press><span class="d4m-ph"><img src="img/hoppy-vit.webp" alt="" loading="lazy" /></span><b class="d4m-nm">${UI.esc(t("d4Press"))}</b><small>${UI.esc(t("d4PressS"))}</small></button>` : "";
   box.querySelector(".d4m-list").innerHTML = mako + (list.length ? list.map(({ x, st }) => {
     // (patron 22/11) : grandes cartes photo, deux par ligne, logo sur la photo, statut court
     const cover = UI.safeImg(x.cover), logo = UI.safeImg(x.logo), open = !x.paused && (!st || st.open);
@@ -6965,7 +6967,7 @@ function d4MagRender() {
     return `<button type="button" class="d4m-card" data-d4m-pro="${UI.esc(x.code)}"><span class="d4m-ph"${cover ? ` style="background-image:url('${cover}')"` : ""}>${isKosher(x) ? kosherTag("k-on-cover") : ""}${logo ? `<img src="${logo}" alt="" loading="lazy" onerror="this.remove()" />` : `<b>${UI.esc(nm.slice(0, 1))}</b>`}</span>
 ${d4Reco(x) ? `<em class="d4-reco">${UI.esc(t("d4Reco"))}</em>` : ""}
       <b class="d4m-nm"><bdi>${UI.esc(nm)}</bdi>${d4Stars(x)}</b><small><i class="${open ? "op" : "cl"}"></i>${UI.esc(stx)}</small>${sub ? `<small class="d4m-sub">${UI.esc(sub)}</small>` : ""}</button>`;
-  }).join("") : mako ? "" : `<p class="d4m-none">${UI.esc(t("d4mNone"))}</p>`);
+  }).join("") : (mako || press) ? "" : `<p class="d4m-none">${UI.esc(t("d4mNone"))}</p>`) + press;
 }
 function d4MagOpen() {
   let box = $("#d4Mag");
@@ -6976,6 +6978,7 @@ function d4MagOpen() {
       const f = e.target.closest("[data-d4m-f]"); if (f) { d4m.f = f.dataset.d4mF; d4MagRender(); return; }
       if (e.target.closest("[data-d4m-kosher]")) { d4m.kosher = !d4m.kosher; d4MagRender(); return; }
       const r = e.target.closest("[data-d4m-pro]"); if (r) { d4MagClose(true); state.shopDir = ""; loadShop(r.dataset.d4mPro); return; }
+      if (e.target.closest("[data-d4m-press]")) { d4MagClose(true); setTimeout(() => { const kb = document.querySelector('#homeKinds [data-kind="pressing"]'); if (kb) kb.click(); }, 60); return; }
       if (e.target.closest("[data-d4m-mako]")) { d4MagClose(true); setTimeout(() => { const kb = document.querySelector('#homeKinds [data-kind="shop"]'); if (kb) kb.click(); }, 60); return; }
       if (e.target.closest("[data-d4m-any]")) { d4MagClose(true); setTimeout(() => $("#vitCourse").click(), 60); }
     });
