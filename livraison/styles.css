@@ -7872,3 +7872,8 @@ html[dir=rtl] .fi-help .fh-stops p { padding: 6px 26px 10px 0; } html[dir=rtl] .
 /* micro dans la barre de recherche du catalogue (design 5 seulement : il remplace le gros bouton « Commander à la voix ») */
 .cg-qmic { display: none; }
 #cartTitle .ct-shop { display: block; margin-top: 4px; font-size: .62em; font-weight: 700; opacity: .85; }
+/* « Ma position » pour l'adresse de livraison : un vrai gros bouton (point du 25/11 : les clients s'arrêtaient à l'adresse vide),
+   qui s'allume quand on essaie de continuer sans adresse */
+.drop-addr [data-geo="to"] { width: 100%; min-height: 48px; font-size: 16px; font-weight: 800; border-radius: 14px; }
+.drop-addr [data-geo="to"].geo-hint { animation: geoHint 1s ease-in-out 4; box-shadow: 0 0 0 0 rgba(232,89,12,.5); }
+@keyframes geoHint { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(232,89,12,.45); } 50% { transform: scale(1.03); box-shadow: 0 0 0 10px rgba(232,89,12,0); } }
