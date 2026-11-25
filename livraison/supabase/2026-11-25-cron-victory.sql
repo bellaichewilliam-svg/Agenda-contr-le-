@@ -1,0 +1,7 @@
+-- 25/11/2026 (point du matin, patron : « tout »)
+-- 1. Tâches automatiques regroupées : cron_every_minute() (push_ready_orders, idle_couriers_check, pay_checks, remind_orders),
+--    cron_every_5s() (ring_open_orders, ring_boss_orders, offers_track), cron_every_5min() (late_orders_alert, carts_push_check).
+--    Jobs 1, 5, 3 appellent ces groupes ; jobs 4, 7, 8, 9, 11, 14 désactivés (active = false, gardés). Traductions à :03, alerte blocage à :04.
+-- 2. shop_catalog : HOPVICTORY ajouté aux boutiques à identifiants de rayon courts (163 Ko → 135 Ko).
+-- 3. hop-victory-ranger : victory_categorize(); victory_trim(200); catalog_guard('HOPVICTORY', 143000) juste après l'import du matin.
+-- (appliqué en ligne par migrations « cron_groupes » et « shop_catalog_victory_court »)

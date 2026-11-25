@@ -137,6 +137,7 @@ FR + HE partout · jamais « partenaire » côté client · aucun concurrent cit
 - Finances livreur rangées par jour ; promos avec recherche + micro ; création de compte (voix) ; carte « hors service » ; prix « dès 25 ₪ » sur la course libre ; espace commerce d3.
 
 ## 14. En attente / à faire plus tard
+- **Machsanei HaShuk (60 bd Binyamin, Netanya)** : le patron veut l'ajouter ; « on attend » (24/11). Son site (mck.co.il, Cloudflare) et ses fichiers de prix (laibcatalog.co.il) ne s'ouvrent pas hors d'Israël (ni Supabase ni GitHub). Essai prêt : `scripts/mck_probe.py` + `probe-mck.yml` (lancé à la main). Piste : le téléphone Android du patron (commande d'Android par MCP).
 - Réponse du patron : prix Roladin (1/2/3) ; passer `boss_only` à faux pour que les livreurs reçoivent les courses (« oui, change le réglage »).
 - Déploiement `hop-push` (notifications « course donnée / annulée / pas remboursé ») : attend l'accord du patron.
 - Design d3 pour les applis livreur et patron ; vignettes photo des catégories (3 par ligne) ; back-office produits ; regroupement intelligent des commandes ; assistance livreur / client ; emballage Android (stores).

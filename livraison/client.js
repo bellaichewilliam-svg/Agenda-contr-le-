@@ -3153,6 +3153,8 @@ function validateOrder() {
   const missing = required.find(k => !val(k).trim());
   if (missing || !fromCity || !toCity) {
     if (missing) form.elements[missing].focus();
+    // (point du 25/11 : les clients s'arrêtaient à l'adresse vide) le bouton « Ma position » s'allume à côté du message
+    if (missing === "dropoff_address") { const g = form.querySelector('[data-geo="to"]'); if (g) { g.classList.remove("geo-hint"); void g.offsetWidth; g.classList.add("geo-hint"); setTimeout(() => g.classList.remove("geo-hint"), 5000); } }
     return showErrorFalse(t(missing === "dropoff_address" ? "errDropAddr" : "errRequired"));
   }
   // Adresses : uniquement celles proposées par la carte (si le service répond)
