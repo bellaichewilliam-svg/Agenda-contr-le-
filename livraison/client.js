@@ -11595,3 +11595,21 @@ document.addEventListener("submit", async e => {
 });
 
 })();
+
+// (patron 25/11 : « j'ai encore l'ancienne version ») appli restée ouverte : quand elle revient à l'écran, on regarde si une nouvelle
+// version est en ligne (numéro ?v= de client.js dans index.html) et on recharge (le panier est gardé) ; jamais pendant la saisie
+(() => {
+  const mine = (document.querySelector('script[src*="client.js?v="]') || {}).src, cur = mine && (mine.match(/v=(\d+)/) || [])[1];
+  if (!cur) return;
+  let last = 0;
+  const check = () => {
+    if (document.hidden || Date.now() - last < 120000) return; last = Date.now();
+    fetch("index.html", { cache: "no-store" }).then(r => r.text()).then(h => {
+      const v = (h.match(/client\.js\?v=(\d+)/) || [])[1];
+      const typing = document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+      if (v && v !== cur && !typing && !document.querySelector(".modal:not(.hidden), dialog[open]")) location.reload();
+    }).catch(() => {});
+  };
+  document.addEventListener("visibilitychange", check);
+  setInterval(check, 10 * 60000);
+})();
