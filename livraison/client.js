@@ -4155,6 +4155,11 @@ document.addEventListener("load", e => {
 document.addEventListener("error", e => {
   const el = e.target;
   if (!el || el.tagName !== "IMG" || el.dataset.miss || !el.closest(".cg-pic, .cg-tpic, .it-pic, .cs-pic, .ck-t, .fr-pic")) return;
+  // Photo servie par la base déjà gardée par le téléphone sans l'autorisation « crossorigin » (vue avant dans la vitrine,
+  // le panier…) : le navigateur la refuse. On la recharge une fois sans « crossorigin » (patron, 25/11 : paninis Rendez-Vous vides)
+  if (el.hasAttribute("crossorigin") && !el.dataset.nocors) {
+    el.dataset.nocors = "1"; const s = el.src; el.removeAttribute("crossorigin"); el.src = ""; el.src = s; return;
+  }
   el.dataset.miss = "1";
   const m = document.createElement("span");
   m.className = "pic-miss";
