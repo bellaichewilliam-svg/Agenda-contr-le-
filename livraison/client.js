@@ -4703,6 +4703,10 @@ document.addEventListener("click", e => {
   if (id === "mikve") return mikveOpen();
   // (patron 24/11 : « Tous les restos ne fonctionne pas ») la liste des restaurants, directement
   if (id === "resto") { d4m.f = "k:restaurant"; d4m.q = ""; return d4MagOpen(); }
+  // (patron 25/11 : l'icône pressing ouvrait une course libre) nos pressings ; un seul → directement sa page
+  if (id === "pressing") { const pr = (state.showcase || []).filter(s => s.kind === "pressing" && !s.paused);
+    if (pr.length === 1) { state.shopDir = ""; return loadShop(pr[0].code); }
+    if (pr.length > 1) { d4m.f = "k:pressing"; d4m.q = ""; return d4MagOpen(); } }
   const kb = document.querySelector(`#homeKinds .ch-kind[data-kind="${id}"], #homeKinds [data-kind="${id}"]`);
   if (kb) return kb.click();
   const t4 = document.querySelector(`#d4Tiles [data-d4="${id}"], #d4Shops [data-d4="${id}"]`);
