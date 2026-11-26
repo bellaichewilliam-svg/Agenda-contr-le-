@@ -56,6 +56,7 @@ for lang in ("fr", "he"):
     N = music.shape[1]
     voice = np.zeros_like(music)
     mine = [l for l in lines if l["lang"] == lang]
+    cursor = 0.0   # fin de la phrase précédente (s) : une phrase qui déborde décale légèrement la suivante
     for i, l in enumerate(mine):
         p = os.path.join(PUB, "fidelite-voix", l["id"] + ".wav")
         if not os.path.exists(p):
@@ -65,11 +66,13 @@ for lang in ("fr", "he"):
         v = trim(read(p))
         dur = v.shape[1] / SR
         if dur > room:
-            f = min(1.18, dur / room)
+            f = min(1.2, dur / room)
             v = trim(read(tempo(p, f)))
             print(f"{l['id']} {dur:.2f}s > {room:.2f}s : accéléré x{f:.2f} -> {v.shape[1] / SR:.2f}s")
         v = voice_fx(v)
-        s = int(l["at"] / FPS * SR)
+        start = max(l["at"] / FPS, cursor + 0.12)
+        s = int(start * SR)
+        cursor = start + v.shape[1] / SR
         e = min(N, s + v.shape[1])
         voice[:, s:e] += v[:, : e - s]
     # Baisse de la musique sous la voix (enveloppe lissée, attaque 80 ms, relâche 350 ms)

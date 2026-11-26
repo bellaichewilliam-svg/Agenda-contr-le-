@@ -1,31 +1,226 @@
 [
-  {"id": "fr01", "lang": "fr", "at": 6,    "text": "Ta carte de fidélité en carton ? Perdue, oubliée, jetée."},
-  {"id": "fr02", "lang": "fr", "at": 128,  "text": "Et si elle était dans le téléphone de tes clients ?"},
-  {"id": "fr03", "lang": "fr", "at": 246,  "text": "Ton client scanne le QR code au comptoir."},
-  {"id": "fr04", "lang": "fr", "at": 364,  "text": "Et sa carte est dans son Wallet. Sans appli."},
-  {"id": "fr05", "lang": "fr", "at": 456,  "text": "Tes couleurs, ton logo, ton cadeau : tout se règle en deux minutes."},
-  {"id": "fr06", "lang": "fr", "at": 578,  "text": "À chaque passage, un tampon. Et une notification."},
-  {"id": "fr07", "lang": "fr", "at": 728,  "text": "Après le repas : un avis Google."},
-  {"id": "fr08", "lang": "fr", "at": 803,  "text": "Son anniversaire : un cadeau, tout seul."},
-  {"id": "fr09", "lang": "fr", "at": 878,  "text": "Il ne revient plus ? La carte le relance."},
-  {"id": "fr10", "lang": "fr", "at": 953,  "text": "Il passe devant ? Son téléphone lui fait signe."},
-  {"id": "fr11", "lang": "fr", "at": 1026, "text": "Une promo ? Un message, et tous tes clients sont prévenus."},
-  {"id": "fr12", "lang": "fr", "at": 1146, "text": "Et toi, tu connais enfin tes habitués."},
-  {"id": "fr13", "lang": "fr", "at": 1250, "text": "Parrainage, statistiques, Apple et Google Wallet."},
-  {"id": "fr14", "lang": "fr", "at": 1340, "text": "Ta carte de fidélité. Simple, jolie, dans le téléphone de tes clients."},
-
-  {"id": "he01", "lang": "he", "at": 6,    "text": "כרטיס המועדון שלך עדיין מקרטון? הולך לאיבוד, נשכח, נזרק."},
-  {"id": "he02", "lang": "he", "at": 128,  "text": "ומה אם הוא היה בטלפון של הלקוחות שלך?"},
-  {"id": "he03", "lang": "he", "at": 246,  "text": "הלקוח סורק את הקוד בקופה."},
-  {"id": "he04", "lang": "he", "at": 364,  "text": "והכרטיס כבר בארנק שלו. בלי אפליקציה."},
-  {"id": "he05", "lang": "he", "at": 456,  "text": "הצבעים שלך, הלוגו, המתנה: הכול מוכן תוך שתי דקות."},
-  {"id": "he06", "lang": "he", "at": 578,  "text": "בכל ביקור, חותמת. וגם התראה."},
-  {"id": "he07", "lang": "he", "at": 728,  "text": "אחרי הארוחה: ביקורת בגוגל."},
-  {"id": "he08", "lang": "he", "at": 803,  "text": "יום הולדת: מתנה, לבד."},
-  {"id": "he09", "lang": "he", "at": 878,  "text": "הוא לא חוזר? הכרטיס מזכיר לו."},
-  {"id": "he10", "lang": "he", "at": 953,  "text": "הוא עובר ליד? הטלפון שלו מזכיר לו."},
-  {"id": "he11", "lang": "he", "at": 1026, "text": "יש מבצע? הודעה אחת, וכל הלקוחות יודעים."},
-  {"id": "he12", "lang": "he", "at": 1146, "text": "ואתה סוף סוף מכיר את הלקוחות הקבועים."},
-  {"id": "he13", "lang": "he", "at": 1250, "text": "חבר מביא חבר, סטטיסטיקות, אפל וגוגל וולט."},
-  {"id": "he14", "lang": "he", "at": 1340, "text": "כרטיס המועדון שלך. פשוט, יפה, בטלפון של הלקוחות."}
+ {
+  "id": "fr01",
+  "lang": "fr",
+  "at": 6,
+  "text": "Ta carte de fidélité en carton ? Perdue, oubliée, jetée.",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "fr02",
+  "lang": "fr",
+  "at": 128,
+  "text": "Et si elle était dans le téléphone de tes clients ?",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "fr03",
+  "lang": "fr",
+  "at": 246,
+  "text": "Ton client scanne le QR code au comptoir.",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "fr04",
+  "lang": "fr",
+  "at": 364,
+  "text": "Et sa carte est dans son Wallet. Sans appli.",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "fr05",
+  "lang": "fr",
+  "at": 456,
+  "text": "Tes couleurs, ton logo, ton cadeau : tout se règle en deux minutes.",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "fr06",
+  "lang": "fr",
+  "at": 578,
+  "text": "À chaque passage, un tampon. Et une notification.",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "fr07",
+  "lang": "fr",
+  "at": 728,
+  "text": "Après le repas : un avis Google.",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "fr08",
+  "lang": "fr",
+  "at": 803,
+  "text": "Son anniversaire : un cadeau, tout seul.",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "fr09",
+  "lang": "fr",
+  "at": 878,
+  "text": "Il ne revient plus ? La carte le relance.",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "fr10",
+  "lang": "fr",
+  "at": 953,
+  "text": "Il passe devant ? Son téléphone lui fait signe.",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "fr11",
+  "lang": "fr",
+  "at": 1026,
+  "text": "Une promo ? Un message, et tous tes clients sont prévenus.",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "fr12",
+  "lang": "fr",
+  "at": 1146,
+  "text": "Et toi, tu connais enfin tes habitués.",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "fr13",
+  "lang": "fr",
+  "at": 1250,
+  "text": "Parrainage, statistiques, Apple et Google Wallet.",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "fr14",
+  "lang": "fr",
+  "at": 1340,
+  "text": "Ta carte de fidélité. Simple, jolie, dans le téléphone de tes clients.",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "he01",
+  "lang": "he",
+  "at": 6,
+  "text": "כרטיס מועדון מקרטון? הולך לאיבוד, נשכח, נזרק.",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "he02",
+  "lang": "he",
+  "at": 128,
+  "text": "ומה אם הוא היה בטלפון של הלקוחות שלך?",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "he03",
+  "lang": "he",
+  "at": 246,
+  "text": "הלקוח סורק את הקוד בקופה.",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "he04",
+  "lang": "he",
+  "at": 364,
+  "text": "והכרטיס כבר בארנק שלו. בלי אפליקציה.",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "he05",
+  "lang": "he",
+  "at": 456,
+  "text": "הצבעים שלך, הלוגו, המתנה: הכול מוכן תוך שתי דקות.",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "he06",
+  "lang": "he",
+  "at": 578,
+  "text": "בכל ביקור, חותמת. וגם התראה.",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "he07",
+  "lang": "he",
+  "at": 728,
+  "text": "אחרי הארוחה: ביקורת בגוגל.",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "he08",
+  "lang": "he",
+  "at": 803,
+  "text": "יום הולדת: מתנה, לבד.",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "he09",
+  "lang": "he",
+  "at": 878,
+  "text": "הוא לא חוזר? הכרטיס מזכיר לו.",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "he10",
+  "lang": "he",
+  "at": 953,
+  "text": "הוא עובר ליד? הטלפון שלו מזכיר לו.",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "he11",
+  "lang": "he",
+  "at": 1026,
+  "text": "יש מבצע? הודעה אחת, וכל הלקוחות יודעים.",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "he12",
+  "lang": "he",
+  "at": 1146,
+  "text": "ואתה סוף סוף מכיר את הלקוחות הקבועים.",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "he13",
+  "lang": "he",
+  "at": 1250,
+  "text": "חבר מביא חבר, סטטיסטיקות, אפל וגוגל וולט.",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ },
+ {
+  "id": "he14",
+  "lang": "he",
+  "at": 1340,
+  "text": "כרטיס המועדון שלך. פשוט, יפה, בטלפון של הלקוחות.",
+  "cfg": 0.8,
+  "exaggeration": 0.45
+ }
 ]
