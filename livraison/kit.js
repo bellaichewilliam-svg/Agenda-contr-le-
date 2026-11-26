@@ -792,6 +792,8 @@ const CAMPS = [
 const FMT = { fiche: "🦘 Image officielle", detoure: "✂️ Sans fond (PNG)", post: "◻️ Post carré", story: "📱 Story", flyer: "🖨️ Flyer A5", g3: "1. Publier « P! »", g2: "2. Puis « O »", g1: "3. Puis « H »",
   g6: "1. « Pourquoi HOP! »", g5: "2. « Comment ça marche »", g4: "3. « Tout Netanya »" };
 const VIDEOS = [
+  // Nouveau (26/11) : « Spécial bureaux » : « Envie d'une cigarette ? d'un café ? … Restez au bureau, on y va pour vous », manège 3D des rubriques, néons, logo (39,5 s, video/src/Bureau.tsx)
+  { id: "bureau", aud: "client", title: "🏢 Nouveau · Spécial bureaux : envie d'une cigarette, d'un café, d'un repas ? Restez au bureau, on y va pour vous (40 s)" },
   // Nouveau (26/11) : « Choc » : phrases choc (« Arrêtez de payer plus de 40 ₪ »), écran de l'appli animé, logo HOP! qui se forme (44 s, video/src/Choc.tsx)
   { id: "choc", aud: "client", title: "💥 Nouveau · Arrêtez de payer plus de 40 ₪ : dès 25 ₪ en ville, comparateur, restos, Hoppy (44 s)" },
   // Nouveau (25/11) : « La révolution à Netanya » au nouveau design de l'appli (vraies captures, comparateur, restos, voix, 30 s, video/src/Revolution5.tsx)
