@@ -48,5 +48,8 @@ Il faut un **compte Apple Developer** : 99 $ / an.
 10. **Français ou hébreu**, au choix.
 Sans le Wallet (avant les clés), la même carte existe en page web (lien gardé sur le téléphone).
 
-## À décider (argent)
-- **Le prix de l'offre pour les commerces** (rien n'est affiché pour l'instant, pas de « jours offerts »). Dis-moi le tarif et je l'ajoute au site et à la vidéo.
+## Les prix (validés par le patron le 26/11/2026), hors TVA, sans engagement
+- **Essentiel 79 ₪ / mois** · **Pro 129 ₪ / mois** (recommandé) · **Plusieurs boutiques 199 ₪ / mois** (2 à 3 adresses).
+- 1er mois offert, mise en place offerte, chevalet de comptoir en option 49 ₪.
+- Pas de prix « à vie », pas d'offre « 10 premiers », pas de mois offerts à l'année.
+- Sur le site : `prix.js` (sous l'accueil). Pour l'instant toutes les fonctions marchent pour tous : la limite Essentiel / Pro n'est pas encore appliquée dans l'appli.
