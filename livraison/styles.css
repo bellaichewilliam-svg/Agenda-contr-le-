@@ -7914,3 +7914,9 @@ html.d4 .d4-promo .d4-sl small, html.d4 .d4-promo .d4-sl b { display: block; wid
 .sd-type textarea { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid #D5D9DF; border-radius: 10px; resize: vertical; }
 .sd-type .btn { margin-top: 8px; }
 .sd-heard .sd-miss { display: block; margin-top: 4px; color: #B42318; font-weight: 600; }
+.it-fav, .cg-boss { color: #111418; display: inline-flex; align-items: center; justify-content: center; }
+.it-fav svg, .cg-boss svg { display: block; }
+.it-fav.on { color: #E8590C; --fav-fill: #E8590C; }
+.it-mat { margin: 10px 0 4px; padding: 10px 12px; border: 1px solid #E6E8EB; border-radius: 12px; background: #fff; }
+.it-mat b { display: block; font-size: 13px; font-weight: 700; color: #111418; margin-bottom: 4px; }
+.it-mat p { margin: 0; font-size: 14px; line-height: 1.45; color: #5A6270; }
