@@ -4569,7 +4569,11 @@ document.addEventListener("click", e => {
 
 // ===== Design 5 « affiche de quartier » (patron, 24/11) : l'affiche du haut de l'accueil et le ticket qui défile =====
 // (le reste du style est dans d5.css ; ici seulement ce qui n'existait pas dans la page : surtitre, grand titre, Hoppy, repères)
-const d6RestoList = () => (state.showcase || []).filter(x => /restaurant|resto|food|cafe/i.test(x.kind || "") && !x.paused).slice(0, 10);
+// Ordre choisi par le patron dans son panneau (shops.rank : magasins 1, 2, 3… ; restos 501, 502…) ; sans rang : après
+// (patron 26/11 : « comment je choisis l'ordre ? » → réglage « Ordre des magasins » / « Ordre des restos »)
+const shopRank = x => (x && x.rank != null && x.rank !== "" && isFinite(Number(x.rank)) ? Number(x.rank) : 1e6);
+const byShopRank = l => l.map((x, k) => [x, k]).sort((a, b) => (shopRank(a[0]) - shopRank(b[0])) || (a[1] - b[1])).map(p => p[0]);
+const d6RestoList = () => byShopRank((state.showcase || []).filter(x => /restaurant|resto|food|cafe/i.test(x.kind || "") && !x.paused)).slice(0, 10);
 const D6_CARD = ["#1E9BF0", "#0B4A6F", "#FF5D73", "#13A88A", "#7C5CE0"];
 // Prix de départ d'une carte : boutique HOP! = le prix de sa page (zone industrielle : 35 ₪, patron 26/11 « 35 partout »)
 const d6From = x => isHopShop(x) ? proPrice(x) : CONFIG.pricing.fixedFromHome[CONFIG.homeCity];
@@ -4577,11 +4581,10 @@ const d6From = x => isHopShop(x) ? proPrice(x) : CONFIG.pricing.fixedFromHome[CO
 const d6FreeCard = () => `<button type="button" class="d6-rc d6-free" data-d4m-free style="--rc:#0F1F3D"><span class="d6-rp"><img src="img/hoppy-vit.webp" alt="" loading="lazy" /></span><span class="d6-st2">${UI.esc(t("d3Course"))}</span><b>${UI.esc(t("d6FreeT"))}</b><small>${UI.esc(t("d6FreeS", { price: money(CONFIG.pricing.fixedFromHome[CONFIG.homeCity]) }))}</small></button>`;
 const d6RestoCards = (list, tag) => list.map((x, k) => { const tg = typeof tag === "function" ? tag(x) : tag; const pic = UI.safeImg(x.cover) || UI.safeImg(x.logo), st = shopState(x), open = !x.paused && (!st || st.open);
   return `<button type="button" class="d6-rc" data-d4-pro="${UI.esc(x.code)}" style="--rc:${D6_CARD[k % D6_CARD.length]}"><span class="d6-rp"${pic ? ` style="background-image:url('${pic}')"` : ""}></span>${tg ? `<span class="d6-st2">${UI.esc(tg)}</span>` : ""}<b>${UI.esc(d4Nm(x))}</b><small>${UI.esc(open ? (I18N.lang === "he" ? `פתוח · החל מ־${d6From(x)} ₪` : `Ouvert · dès ${d6From(x)} ₪`) : (I18N.lang === "he" ? "סגור · אפשר לתזמן" : "Fermé · à programmer"))}</small></button>`; }).join("");
-// (patron 26/11 : « montre-leur qu'il y a bien Max Stock ») Max Stock en 2e carte : centrée au chargement, avec « Nouveau »
+// (patron 26/11 : « montre-leur qu'il y a bien Max Stock ») pastille « Nouveau » (sa place : n° 2 dans l'ordre du patron)
 const D6_NEW = ["HOPMAXSTOCK"];
-const d6ShopList = () => { const l = (state.showcase || []).filter(x => !/restaurant|resto|food|cafe/i.test(x.kind || "") && !x.paused);
-  const nw = l.filter(x => D6_NEW.includes(x.code)), rest = l.filter(x => !D6_NEW.includes(x.code));
-  return (nw.length ? rest.slice(0, 1).concat(nw, rest.slice(1)) : rest).slice(0, 12); };
+// (l'ordre est maintenant celui du patron ; D6_NEW ne sert plus qu'à la pastille « Nouveau »)
+const d6ShopList = () => byShopRank((state.showcase || []).filter(x => !/restaurant|resto|food|cafe/i.test(x.kind || "") && !x.paused)).slice(0, 12);
 const d6NewTag = x => D6_NEW.includes(x.code) ? (I18N.lang === "he" ? "חדש" : "Nouveau") : "";
 // (patron 26/11 : « je les préférais au milieu, qu'ils comprennent qu'il y a un avant et un après ») la 2e carte centrée au départ
 function d6Center(row) {
@@ -6998,7 +7001,7 @@ function d4MagRender() {
     .filter(x => d4mPass(x, d4m.f) && (!d4m.kosher || isKosher(x)))
     .filter(x => !words.length || (h => words.every(w => h.includes(w)))(hvFold(x.name + " " + (x.name_he || ""))))
     .map(x => ({ x, st: shopState(x) }))
-    .sort((a, b) => (d4m.f === "super" ? D4_SUPER.indexOf(String(a.x.code).toUpperCase()) - D4_SUPER.indexOf(String(b.x.code).toUpperCase()) : 0) || (d4m.f === "top" ? (Number(b.x.rating) - Number(a.x.rating)) || (Number(b.x.ratings) - Number(a.x.ratings)) : 0) || (isHopShop(b.x) - isHopShop(a.x)) || ((b.st ? b.st.open : 1) - (a.st ? a.st.open : 1)));
+    .sort((a, b) => (d4m.f === "top" ? 0 : shopRank(a.x) - shopRank(b.x)) || (d4m.f === "super" ? D4_SUPER.indexOf(String(a.x.code).toUpperCase()) - D4_SUPER.indexOf(String(b.x.code).toUpperCase()) : 0) || (d4m.f === "top" ? (Number(b.x.rating) - Number(a.x.rating)) || (Number(b.x.ratings) - Number(a.x.ratings)) : 0) || (isHopShop(b.x) - isHopShop(a.x)) || ((b.st ? b.st.open : 1) - (a.st ? a.st.open : 1)));
   // Filtres faits à partir des vrais commerces (patron 22/11 : jamais de filtre vide, aucun métier oublié)
   const pool = (state.showcase || []).filter(x => !x.paused);
   const kinds = [...new Set(pool.map(x => x.kind).filter(Boolean))].sort((a, b) => pool.filter(x => x.kind === b).length - pool.filter(x => x.kind === a).length);
