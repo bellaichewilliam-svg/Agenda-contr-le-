@@ -4566,8 +4566,10 @@ document.addEventListener("click", e => {
 // (le reste du style est dans d5.css ; ici seulement ce qui n'existait pas dans la page : surtitre, grand titre, Hoppy, repères)
 const d6RestoList = () => (state.showcase || []).filter(x => /restaurant|resto|food|cafe/i.test(x.kind || "") && !x.paused).slice(0, 10);
 const D6_CARD = ["#1E9BF0", "#0B4A6F", "#FF5D73", "#13A88A", "#7C5CE0"];
+// Prix de départ d'une carte : boutique HOP! = le prix de sa page (zone industrielle : 35 ₪, patron 26/11 « 35 partout »)
+const d6From = x => isHopShop(x) ? proPrice(x) : CONFIG.pricing.fixedFromHome[CONFIG.homeCity];
 const d6RestoCards = (list, tag) => list.map((x, k) => { const tg = typeof tag === "function" ? tag(x) : tag; const pic = UI.safeImg(x.cover) || UI.safeImg(x.logo), st = shopState(x), open = !x.paused && (!st || st.open);
-  return `<button type="button" class="d6-rc" data-d4-pro="${UI.esc(x.code)}" style="--rc:${D6_CARD[k % D6_CARD.length]}"><span class="d6-rp"${pic ? ` style="background-image:url('${pic}')"` : ""}></span>${tg ? `<span class="d6-st2">${UI.esc(tg)}</span>` : ""}<b>${UI.esc(d4Nm(x))}</b><small>${UI.esc(open ? (I18N.lang === "he" ? "פתוח · החל מ־25 ₪" : "Ouvert · dès 25 ₪") : (I18N.lang === "he" ? "סגור · אפשר לתזמן" : "Fermé · à programmer"))}</small></button>`; }).join("");
+  return `<button type="button" class="d6-rc" data-d4-pro="${UI.esc(x.code)}" style="--rc:${D6_CARD[k % D6_CARD.length]}"><span class="d6-rp"${pic ? ` style="background-image:url('${pic}')"` : ""}></span>${tg ? `<span class="d6-st2">${UI.esc(tg)}</span>` : ""}<b>${UI.esc(d4Nm(x))}</b><small>${UI.esc(open ? (I18N.lang === "he" ? `פתוח · החל מ־${d6From(x)} ₪` : `Ouvert · dès ${d6From(x)} ₪`) : (I18N.lang === "he" ? "סגור · אפשר לתזמן" : "Fermé · à programmer"))}</small></button>`; }).join("");
 // (patron 26/11 : « montre-leur qu'il y a bien Max Stock ») Max Stock en 2e carte : centrée au chargement, avec « Nouveau »
 const D6_NEW = ["HOPMAXSTOCK"];
 const d6ShopList = () => { const l = (state.showcase || []).filter(x => !/restaurant|resto|food|cafe/i.test(x.kind || "") && !x.paused);
