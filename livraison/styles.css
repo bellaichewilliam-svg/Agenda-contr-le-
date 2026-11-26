@@ -7920,3 +7920,21 @@ html.d4 .d4-promo .d4-sl small, html.d4 .d4-promo .d4-sl b { display: block; wid
 .it-mat { margin: 10px 0 4px; padding: 10px 12px; border: 1px solid #E6E8EB; border-radius: 12px; background: #fff; }
 .it-mat b { display: block; font-size: 13px; font-weight: 700; color: #111418; margin-bottom: 4px; }
 .it-mat p { margin: 0; font-size: 14px; line-height: 1.45; color: #5A6270; }
+/* (patron 26/11) Panneau patron : ordre des magasins / des restos, gros boutons faciles au doigt, jour et nuit */
+.vit-order .vo-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.vit-order .vo-list li { min-width: 0; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--line, #E6E8EB); border-radius: 12px; background: var(--panel, #fff); }
+.vit-order .vo-list li > span:first-child { max-width: none; min-width: 0; }
+.vit-order .vo-list li > .vo-n { max-width: none; flex: 0 0 26px; width: 26px; height: 26px; border-radius: 50%; background: #0F1F3D; color: #fff; font-weight: 700; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; }
+.vit-order .vo-lg { flex: 0 0 36px; width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: #F2F3F5; }
+.vit-order .vo-ini { display: inline-flex; align-items: center; justify-content: center; font-weight: 700; color: #0F1F3D; }
+.vit-order .vo-nm { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.vit-order .vo-nm b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vit-order .vo-nm small { color: var(--muted, #5A6270); font-size: 12px; }
+.vit-order .vo-pos { flex: 0 0 auto; width: auto; min-width: 66px; padding: 6px 4px; font-size: 13px; }
+.vit-order .vit-move { float: none; flex: 0 0 auto; gap: 6px; }
+.vit-order .vo-btn { min-width: 44px; min-height: 44px; padding: 0; font-size: 20px; font-weight: 700; line-height: 1; }
+.vit-order .vo-btn:disabled { opacity: .3; }
+@media (prefers-color-scheme: dark) { html.st .vit-order .vo-lg, html.st .vit-order .vo-ini { background: #24324d; color: #fff; } html.st .vit-order .vo-list li > .vo-n { background: #FF6A13; } }
+.vit-order .vo-list li { flex-wrap: wrap; row-gap: 6px; }
+.vit-order .vo-nm { flex: 1 1 calc(100% - 92px); }
+.vit-order .vo-pos { margin-inline-start: auto; }

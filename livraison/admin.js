@@ -1659,13 +1659,17 @@ async function saveDirPlace() {
     msg.textContent = /409|duplicate|unique/i.test(String(ex && ex.message)) ? "Déjà dans l'annuaire à cette adresse." : "⚠️ Non enregistré, vérifiez la connexion.";
   }
 }
-// Placer une enseigne à la position voulue (0 = en premier) : on renumérote 1, 2, 3… dans le nouvel ordre
+// Placer une enseigne à la position voulue (0 = en premier) dans SA liste (magasins ou restos), puis renuméroter
+// cette liste : magasins 1, 2, 3… ; restos 501, 502… (patron 26/11 : « comment je choisis l'ordre ? », « pareil page restau »)
+const vitResto = x => /restaurant|resto|food|cafe/i.test(String((x && x.kind) || ""));
+const vitGroup = x => vitrineShops().filter(y => vitResto(y) === vitResto(x));
 async function moveVitrine(id, to) {
-  const vit = vitrineShops(), i = vit.findIndex(x => x.id === id);
+  const me0 = shops.find(x => x.id === id); if (!me0) return render();
+  const vit = vitGroup(me0), base = vitResto(me0) ? 500 : 0, i = vit.findIndex(x => x.id === id);
   if (i < 0 || to < 0 || to >= vit.length || to === i) return render();
   const [x] = vit.splice(i, 1);
   vit.splice(to, 0, x);
-  try { await Promise.all(vit.map((y, k) => (y.rank === k + 1 ? null : Store.updateShop(y.id, { rank: k + 1 }))).filter(Boolean)); await load(); }
+  try { await Promise.all(vit.map((y, k) => (y.rank === base + k + 1 ? null : Store.updateShop(y.id, { rank: base + k + 1 }))).filter(Boolean)); await load(); }
   catch (ex) { alert("Non enregistré, vérifiez la connexion."); await load(); }
 }
 // Les enseignes de la vitrine de l'accueil, dans l'ordre des clients (le même que shops_showcase)
@@ -1716,6 +1720,20 @@ function prospectsCard() {
         ${g.phone ? `<a class="btn btn-sm" target="_blank" rel="noopener" href="${UI.esc(UI.waPersonal(g.phone, pitch(g)))}">💬 Proposer</a>` : `<button class="btn btn-sm" data-copy="${UI.esc(pitch(g))}" title="Pas de numéro : copier le message">📋 Message</button>`}
       </div>`).join("")}</div>` : `<p class="small">Pas encore de commande chez un commerce non partenaire ces 30 derniers jours.</p>`}
   </details>`;
+}
+// Une liste d'ordre (magasins ou restos) : gros ↑ ↓ et le numéro à choisir pour sauter directement à une place.
+// Chaque toucher est enregistré tout de suite ; les clients voient le nouvel ordre à la prochaine ouverture de l'appli.
+function vitOrderCard(list, fold, title, sub) {
+  return `<details class="card adm-fold vit-order" style="margin-bottom:14px" data-fold="${fold}"${foldOpen(fold)}>
+      <summary><b>${title}</b> <span class="muted small">(${list.length})</span></summary>
+      <p class="muted small" style="margin:4px 0 8px">${sub} Chaque flèche est enregistrée tout de suite ; les clients voient le nouvel ordre dès qu'ils rouvrent l'appli, sans mise en ligne.</p>
+      ${list.length ? `<ol class="vit-list vo-list">${list.map((x, i) => { const lg = UI.safeImg(x.logo);
+        return `<li><span class="vo-n">${i + 1}</span>${lg ? `<img class="vo-lg" src="${lg}" alt="" loading="lazy" />` : `<span class="vo-lg vo-ini">${UI.esc(String(x.name || "?").replace(/^HOP! chez /, "").slice(0, 1))}</span>`}
+        <span class="vo-nm"><b>${UI.esc(String(x.name || "").split(" · ")[0].replace(/^HOP! chez /, ""))}</b>${x.paused ? `<small>⏸️ en pause</small>` : ""}</span>
+        <select class="vo-pos" data-vpos="${UI.esc(x.id)}" aria-label="Choisir la place">${list.map((_, k) => `<option value="${k + 1}"${k === i ? " selected" : ""}>n° ${k + 1}</option>`).join("")}</select>
+        <span class="vit-move"><button class="btn vo-btn" data-vmove="${UI.esc(x.id)}" data-dir="-1"${i ? "" : " disabled"} aria-label="Monter">↑</button><button class="btn vo-btn" data-vmove="${UI.esc(x.id)}" data-dir="1"${i < list.length - 1 ? "" : " disabled"} aria-label="Descendre">↓</button></span></li>`; }).join("")}</ol>`
+        : `<p class="small">Aucun pour l'instant.</p>`}
+    </details>`;
 }
 function homeRowsCard() {
   const hr = homeRows(), vit = vitrineShops(), byCode = c => shops.find(x => x.code === c);
@@ -1818,13 +1836,8 @@ function renderShops(view) {
       ${demoOn ? `<div class="actions">${demos.map(d => `<a class="btn btn-sm btn-primary" href="${UI.esc(d.url)}" target="_blank" rel="noopener">${d.label}</a><a class="btn btn-sm" href="${UI.esc(d.space)}" target="_blank" rel="noopener" title="L'espace du commerçant : catalogue, prix, commandes (démo sur le téléphone)">🧑‍🍳 Espace</a><button class="btn btn-sm" data-copy="${UI.esc(d.url)}" title="Copier le lien">📋</button>`).join("")}</div>` : `<p class="small">⛔ Démos retirées : les liens ne montrent plus rien.</p>`}
       ${demoShops.length ? `<div class="actions" style="margin-top:8px"><button class="btn btn-sm" data-demos="${demoOn ? "suspendu" : "actif"}">${demoOn ? "⛔ Retirer les démos" : "✅ Remettre les démos"}</button></div>` : ""}
     </details>
-    <details class="card adm-fold" style="margin-bottom:14px" data-fold="c:vit"${foldOpen("c:vit")}>
-      <summary><b>🏠 Vitrine de l'accueil : ordre des enseignes</b> <span class="muted small">(${vit.length})</span></summary>
-      <p class="muted small" style="margin:4px 0 8px">L'ordre dans lequel les clients voient les enseignes sur l'accueil (n° 1 en premier ; les favoris d'un client passent avant, sur son téléphone). Les HOP! Pro y sont toujours ; une enseigne sans HOP! Pro (sans commande en ligne, comme une boutique) s'y ajoute avec « 🏠 Mettre dans la vitrine » sur sa fiche.</p>
-      ${vit.length ? `<ol class="vit-list">${vit.map((x, i) => `<li><span><b>${UI.esc(x.name)}</b>${Store.planActive(x) ? " · ⭐ Pro" : " · 💬 vitrine"}</span>
-        <span class="vit-move"><button class="btn btn-sm" data-vmove="${UI.esc(x.id)}" data-dir="-1"${i ? "" : " disabled"} aria-label="Monter">▲</button><button class="btn btn-sm" data-vmove="${UI.esc(x.id)}" data-dir="1"${i < vit.length - 1 ? "" : " disabled"} aria-label="Descendre">▼</button></span></li>`).join("")}</ol>`
-        : `<p class="small">Aucune enseigne dans la vitrine pour l'instant.</p>`}
-    </details>
+    ${vitOrderCard(vit.filter(x => !vitResto(x)), "c:vit", "🛒 Ordre des magasins", "L'ordre dans lequel les clients voient les magasins : page Magasins (Tous, Supermarchés…) et carrousel « Faites vos courses » de l'accueil. Le n° 1 passe en premier.")}
+    ${vitOrderCard(vit.filter(vitResto), "c:vitr", "🍽️ Ordre des restos", "L'ordre dans lequel les clients voient les restos : page des restos et carrousel « Les restos de Netanya » de l'accueil. Le n° 1 passe en premier.")}
     <details class="card adm-fold" style="margin-bottom:14px" data-fold="c:signup"${foldOpen("c:signup")}>
       <summary><b>🏪 Inscrire un commerce partenaire</b></summary>
       <p class="muted small" style="margin:4px 0 8px">Envoyez ce lien à un restaurant ou une boutique : il s'inscrit, puis vous le validez ici après avoir vérifié qu'il existe.</p>
@@ -1893,7 +1906,7 @@ function renderShops(view) {
           ${"featured" in x ? `<button class="btn btn-sm${x.featured ? " btn-primary" : ""}" data-sact="featured" title="Dans la rangée 🔥 Populaires de l'accueil, en tête, même sans commande ce mois-ci (l'automatique suit derrière)">${x.featured ? "🔥 Mis en avant ✓" : "🔥 Mettre en avant"}</button>` : ""}
           ${Store.planActive(x) ? `<button class="btn btn-sm" data-sact="planoff">Arrêter HOP! Pro</button>`
             : `<button class="btn btn-sm${x.showcase ? " btn-primary" : ""}" data-sact="showcase" title="Sa page (logo, photos, WhatsApp) sur l'accueil des clients, même sans HOP! Pro">${x.showcase ? "🏠 Dans la vitrine ✓" : "🏠 Mettre dans la vitrine"}</button>`}
-          ${vpos(x) < 1e9 ? `<label class="vit-pos">🏠 Position sur l'accueil <select data-vpos="${UI.esc(x.id)}">${vitIds.map((_, i) => `<option value="${i + 1}"${i === vpos(x) ? " selected" : ""}>${i + 1}${i === 0 ? " (en premier)" : i === vitIds.length - 1 ? " (en dernier)" : ""}</option>`).join("")}</select></label>` : ""}
+          ${vpos(x) < 1e9 ? (g => `<label class="vit-pos">${vitResto(x) ? "🍽️ Place parmi les restos" : "🛒 Place parmi les magasins"} <select data-vpos="${UI.esc(x.id)}">${g.map((_, i) => `<option value="${i + 1}"${g[i].id === x.id ? " selected" : ""}>${i + 1}${i === 0 ? " (en premier)" : i === g.length - 1 ? " (en dernier)" : ""}</option>`).join("")}</select></label>`)(vitGroup(x)) : ""}
           ${accessBtn(x)}
           ${chatBtn("s:" + x.id, `Commerce : ${x.name}`, x.phone, "💬 Message", shopWelcome(x))}
           <a class="btn btn-sm" target="_blank" rel="noopener" href="${UI.esc(UI.appUrl() + "?c=" + x.code)}">🛵 Commander pour lui</a>
@@ -3020,7 +3033,7 @@ async function onViewClick(e) {
   if (el.dataset.vmove) {
     e.preventDefault();   // (dans la ligne repliée : la fiche ne s'ouvre pas)
     el.disabled = true;
-    const vit = vitrineShops(), i = vit.findIndex(x => x.id === el.dataset.vmove);
+    const me0 = shops.find(x => x.id === el.dataset.vmove), vit = me0 ? vitGroup(me0) : [], i = vit.findIndex(x => x.id === el.dataset.vmove);
     return moveVitrine(el.dataset.vmove, i + Number(el.dataset.dir));
   }
   if (el.dataset.demos) {
