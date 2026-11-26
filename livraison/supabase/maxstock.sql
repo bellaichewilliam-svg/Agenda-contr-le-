@@ -1,0 +1,26 @@
+-- HOP! chez Max Stock (HOPMAXSTOCK) · mis en place le 26/11/2026 (accord du patron « 3 ok »)
+-- Succursale : Max Stock Netanya, פנחס בלקני 14 (centre Lev Yahalom). Autre : Max Stock Poleg, בני גאון 5.
+-- Source : API publique WooCommerce du site, https://www.maxstock.co.il/wp-json/wc/store/v1/products
+--   (prix en agorot : prices.regular_price / 100 = prix normal ; images[0].src sur cdn.maxstock.co.il).
+--
+-- Tables (RLS activée, aucun accès client) :
+--   maxstock_sync   (req, kind 'cat' | 'refresh', cat, batch)   requêtes pg_net envoyées
+--   maxstock_fr_in  (ms_id, cat, fr)                            noms français écrits par nous
+--   maxstock_items  (ms_id, product_id, cat, he, fr, img)       lien produit du site ↔ shop_products
+--   maxstock_assets (name, data)                                images récupérées (logo, couverture)
+--
+-- Fonctions :
+--   maxstock_fetch_cats(per int)  : demande les produits de chaque rayon racine (21 rayons)
+--   maxstock_import()             : crée la boutique si besoin, rayons « FR · HE », produits (md5('HOPMAXSTOCK:'||id))
+--   maxstock_cat_name(c), maxstock_cat_pos(c)
+--   maxstock_refresh()            : relit les mêmes produits (include=…, paquets de 100)
+--   maxstock_refresh_apply()      : met à jour prix / dispo ; produit absent = indisponible (jamais supprimé) ;
+--                                   le prix et le masquage décidés par le patron (boss_price, boss_hidden) sont gardés
+--
+-- Tâches automatiques (heure UTC) :
+--   hop-maxstock-fetch  '23 3 * * *'  select public.maxstock_refresh()
+--   hop-maxstock-import '33 3 * * *'  select public.maxstock_refresh_apply()
+--
+-- Ajouter des produits : insérer (ms_id, cat, fr) dans maxstock_fr_in, relancer maxstock_fetch_cats(80), attendre ~10 s,
+-- puis select public.maxstock_import();
+-- Vérifier : length(shop_catalog('HOPMAXSTOCK')::text) < 150000 (26/11 : 103 616).

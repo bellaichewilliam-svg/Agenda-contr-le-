@@ -1154,7 +1154,7 @@ const NEAR_HE = { pharm: "בית מרקחת", tabac: "קיוסק", bakery: "מא
 // Produit Carrefour des rayons (importé du site, id « cf… ») : le livreur le prend chez Carrefour
 const isCfItem = x => /^cf\d+$/.test(String((x && x.id) || ""));
 // Grands magasins HOP! proposés depuis la makolet (« Faites vos vraies courses »)
-const MAK_BIG = [["HOPCARREFOUR", "Carrefour", "קרפור"], ["HOPBOOOM", "BOOOM", "BOOOM"], ["HOPRAMILEVY", "Rami Lévy", "רמי לוי"], ["HOPVICTORY", "Victory", "ויקטורי"]];
+const MAK_BIG = [["HOPCARREFOUR", "Carrefour", "קרפור"], ["HOPBOOOM", "BOOOM", "BOOOM"], ["HOPMAXSTOCK", "Max Stock", "מקס סטוק"], ["HOPRAMILEVY", "Rami Lévy", "רמי לוי"], ["HOPVICTORY", "Victory", "ויקטורי"]];
 const rayonHasCf = () => { try { const r = rayonOn(); return !!r && rayonPicked(r).some(([k]) => /^cf\d+/.test(k.slice(r.id.length + 1))); } catch (e) { return false; } };
 // Où le livreur achète les articles du rayon : le magasin choisi, sinon le plus proche du client
 function rayonWhere(r) {
@@ -6894,7 +6894,7 @@ function d4Tiles() {
 }
 // Ordre des magasins dans la tuile promo (le patron peut demander de le changer)
 // Nom court d'un magasin HOP! dans les deux langues (« Rami Lévy », « רמי לוי »)
-const D4_NAMES = { LAHAV: ["Mahsanei Lahav", "מחסני להב"], HOPLAHAV: ["Mahsanei Lahav", "מחסני להב"], HOPYOHANANOF: ["Yohananof", "יוחננוף"], HOPOSHERAD: ["Osher Ad", "אושר עד"], HOPTIVTAAM: ["Tiv Taam", "טיב טעם"], HOPUNIVERSE: ["Universe", "יוניברס"], HOPSHUFERSAL: ["Shufersal", "שופרסל"], HOPROLADIN: ["Roladin", "רולדין"], HOPRAMILEVY: ["Rami Lévy", "רמי לוי"], HOPCARREFOUR: ["Carrefour", "קרפור"], HOPBOOOM: ["BOOOM", "BOOOM"], HOPPANZER: ["Panzer", "פנצר"], HOPVICTORY: ["Victory", "ויקטורי"], HOPLALINE: ["Laline", "ללין"] };
+const D4_NAMES = { LAHAV: ["Mahsanei Lahav", "מחסני להב"], HOPLAHAV: ["Mahsanei Lahav", "מחסני להב"], HOPYOHANANOF: ["Yohananof", "יוחננוף"], HOPOSHERAD: ["Osher Ad", "אושר עד"], HOPTIVTAAM: ["Tiv Taam", "טיב טעם"], HOPUNIVERSE: ["Universe", "יוניברס"], HOPSHUFERSAL: ["Shufersal", "שופרסל"], HOPROLADIN: ["Roladin", "רולדין"], HOPRAMILEVY: ["Rami Lévy", "רמי לוי"], HOPCARREFOUR: ["Carrefour", "קרפור"], HOPBOOOM: ["BOOOM", "BOOOM"], HOPMAXSTOCK: ["Max Stock", "מקס סטוק"], HOPPANZER: ["Panzer", "פנצר"], HOPVICTORY: ["Victory", "ויקטורי"], HOPLALINE: ["Laline", "ללין"] };
 const d4Nm = x => (D4_NAMES[x.code] || [])[I18N.lang === "he" ? 1 : 0] || mgShort(x.name).replace(/^הופ!\u200E?\s*ב-?/, "").replace(/^(HOP!|הופ!)\u200E?\s+/, "").trim();
 const D4_PROMO_ORDER = ["HOPRAMILEVY", "HOPCARREFOUR", "HOPSHUFERSAL", "HOPYOHANANOF", "HOPOSHERAD", "HOPUNIVERSE", "HOPVICTORY", "HOPLAHAV", "HOPTIVTAAM", "HOPBOOOM", "HOPPANZER"];
 function d4PromoSlides() {
@@ -8940,7 +8940,7 @@ async function hvPlaceCard(name) {
 // Ouvrir le suivi de la commande en cours : celle qu'on vient d'envoyer, sinon la dernière en cours (liste rechargée),
 // sinon « Mes courses »
 const HV_SHOW = /\b(montre|montrez|montre-moi|fais[- ]voir|faites[- ]voir|fais[- ]moi voir|affiche|ouvre|ouvrez|je veux voir|je voudrais voir|on peut voir|qu'est-ce qu'il y a|qu'est-ce que (?:tu as|vous avez)|quoi comme)\b|תראה|תראי|תראו|הראה|תפתח|פתח|מה יש/i;
-const HV_SHOP_ALIAS = { HOPCARREFOUR: ["carrefour", "carfour", "קרפור", "קארפור"], HOPBOOOM: ["booom", "boom", "בום"], HOPRAMILEVY: ["rami levy", "ramilevi", "רמי לוי"], HOPVICTORY: ["victory", "ויקטורי"] };
+const HV_SHOP_ALIAS = { HOPCARREFOUR: ["carrefour", "carfour", "קרפור", "קארפור"], HOPBOOOM: ["booom", "boom", "בום"], HOPMAXSTOCK: ["max stock", "maxstock", "מקס סטוק", "מקס"], HOPRAMILEVY: ["rami levy", "ramilevi", "רמי לוי"], HOPVICTORY: ["victory", "ויקטורי"] };
 function hvShowShop(text) {
   if (!HV_SHOW.test(text)) return null;
   const n = norm(text), list = state.showcase || [];
@@ -10161,7 +10161,7 @@ function promoOrder(list) {
 // En haut de l'accueil : « Les promos du moment » avec le nombre de promos et de magasins, un filtre par magasin (logo),
 // de grandes cartes (photo sur le fond pastel du magasin, remise, prix barré, logo du magasin) qui défilent toutes seules
 // avec une barre de progression façon « stories », et un « + » qui ajoute tout de suite au panier de ce magasin.
-const HP_TINT = { HOPRAMILEVY: "#FDEDEE", HOPVICTORY: "#E9F6EE", HOPCARREFOUR: "#EAF0FB", HOPBOOOM: "#FFF7D9", HOPPANZER: "#F6EEE8" };
+const HP_TINT = { HOPRAMILEVY: "#FDEDEE", HOPVICTORY: "#E9F6EE", HOPCARREFOUR: "#EAF0FB", HOPBOOOM: "#FFF7D9", HOPMAXSTOCK: "#FDECEC", HOPPANZER: "#F6EEE8" };
 const HP_MS = 3800;
 const deEnt = s => String(s || "").replace(/&#x27;|&#39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
 // Toutes les promos (la liste complète « Tout voir » si on l'a, sinon celles de l'accueil), le patron d'abord
@@ -10338,10 +10338,10 @@ $("#homePromos") && $("#homePromos").addEventListener("click", async e => {
 // 2 cartes par ligne (vraie photo, −xx %, « 3 pour 9 ₪ », jusqu'au…), « + » ajoute au panier de ce magasin (gardé),
 // un toucher sur la carte ouvre le magasin et la fiche du produit. Données : Store.promosAll() (promos_all, léger).
 const PA_PH = { r: "https://img.rami-levy.co.il/product/", c: "https://d226b0iufwcjmj.cloudfront.net/gs1-products/1540/medium/", b: "https://booomisrael.co.il/uploads/", v: "https://dlv1nnscfbvda.cloudfront.net/" };
-const PA_COLOR = { HOPUNIVERSE: "#E30613", HOPSHUFERSAL: "#E2001A", HOPTIVTAAM: "#6D2077", HOPYOHANANOF: "#C8102E", HOPOSHERAD: "#F2A900", HOPLAHAV: "#0B6E4F", HOPRAMILEVY: "#E30613", HOPCARREFOUR: "#1F4FA3", HOPBOOOM: "#FFD200", HOPPANZER: "#7A2E1C", HOPVICTORY: "#1F9D55" };
+const PA_COLOR = { HOPUNIVERSE: "#E30613", HOPSHUFERSAL: "#E2001A", HOPTIVTAAM: "#6D2077", HOPYOHANANOF: "#C8102E", HOPOSHERAD: "#F2A900", HOPLAHAV: "#0B6E4F", HOPRAMILEVY: "#E30613", HOPCARREFOUR: "#1F4FA3", HOPBOOOM: "#FFD200", HOPMAXSTOCK: "#E30613", HOPPANZER: "#7A2E1C", HOPVICTORY: "#1F9D55" };
 const pa = { data: null, shop: "", cat: -1, q: "" };
 const paPh = v => { const m = /^([rcbv]):(.*)$/.exec(v || ""); const u = m ? PA_PH[m[1]] + m[2] : v; return UI.extPic(u) ? u : ""; };
-const PA_NAMES = { HOPUNIVERSE: ["Universe", "יוניברס"], HOPSHUFERSAL: ["Shufersal", "שופרסל"], HOPTIVTAAM: ["Tiv Taam", "טיב טעם"], HOPYOHANANOF: ["Yohananof", "יוחננוף"], HOPOSHERAD: ["Osher Ad", "אושר עד"], HOPLAHAV: ["Mahsanei Lahav", "מחסני להב"], HOPRAMILEVY: ["Rami Lévy", "רמי לוי"], HOPCARREFOUR: ["Carrefour", "קרפור"], HOPBOOOM: ["BOOOM", "BOOOM"], HOPPANZER: ["Panzer", "פנצר"], HOPVICTORY: ["Victory", "ויקטורי"] };
+const PA_NAMES = { HOPUNIVERSE: ["Universe", "יוניברס"], HOPSHUFERSAL: ["Shufersal", "שופרסל"], HOPTIVTAAM: ["Tiv Taam", "טיב טעם"], HOPYOHANANOF: ["Yohananof", "יוחננוף"], HOPOSHERAD: ["Osher Ad", "אושר עד"], HOPLAHAV: ["Mahsanei Lahav", "מחסני להב"], HOPRAMILEVY: ["Rami Lévy", "רמי לוי"], HOPCARREFOUR: ["Carrefour", "קרפור"], HOPBOOOM: ["BOOOM", "BOOOM"], HOPMAXSTOCK: ["Max Stock", "מקס סטוק"], HOPPANZER: ["Panzer", "פנצר"], HOPVICTORY: ["Victory", "ויקטורי"] };
 const paShopName = code => { const sc = (state.showcase || []).find(x => x.code === code); return sc ? mgShort(sc.name) : (PA_NAMES[code] || [code.replace(/^HOP/, "")])[I18N.lang === "he" ? 1 : 0] || code; };
 function paItems() {
   const d = pa.data; if (!d) return [];
