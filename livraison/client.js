@@ -4682,8 +4682,12 @@ function d5Kinds() {
 function d5MoreIn(box) {
   const m = box.querySelector(".d5-more"); if (!m) return;
   if (!window.IntersectionObserver) { m.classList.add("in"); return; }
-  const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { m.classList.add("in"); io.disconnect(); } }, { threshold: .2 });
+  m.classList.add("wait");
+  const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { m.classList.add("in"); io.disconnect(); } }, { threshold: 0, rootMargin: "0px 0px -60px 0px" });
   io.observe(m);
+  // filet : si l'animation ne part pas (vieux téléphone, capture), les cartes s'affichent quand même
+  setTimeout(() => { const q = m.getBoundingClientRect(); if (q.top < innerHeight) m.classList.add("in"); }, 2500);
+  addEventListener("scroll", function once() { const q = m.getBoundingClientRect(); if (q.top < innerHeight) { m.classList.add("in"); removeEventListener("scroll", once); } }, { passive: true });
 }
 // (patron 24/11 : « on doit pouvoir cliquer sur les slides ») toucher n'importe où sur une grande image = son bouton ;
 // les noms de restos dessus ouvrent ce resto (data-d4-pro)
