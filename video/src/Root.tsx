@@ -2,6 +2,7 @@ import React from 'react';
 import { Composition, Still } from 'remotion';
 import { Revolution5, REVO5_FRAMES } from './Revolution5';
 import { Choc, CHOC_FRAMES } from './Choc';
+import { Fidelite, FID_FRAMES } from './Fidelite';
 import { Bureau, BUREAU_FRAMES } from './Bureau';
 import { Gta, GTA_FRAMES } from './Gta';
 import { Voix, VOIX_FRAMES } from './Voix';
@@ -31,6 +32,8 @@ export const Root: React.FC = () => (
   <>
     <Composition id="HopRevo5" component={Revolution5} durationInFrames={REVO5_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'fr' as const }} />
     <Composition id="HopRevo5He" component={Revolution5} durationInFrames={REVO5_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'he' as const }} />
+    <Composition id="Fidelite" component={Fidelite} durationInFrames={FID_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: false, lang: 'fr' as const }} />
+    <Composition id="FideliteHe" component={Fidelite} durationInFrames={FID_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: false, lang: 'he' as const }} />
     <Composition id="HopChoc" component={Choc} durationInFrames={CHOC_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: false, lang: 'fr' as const }} />
     <Composition id="HopChocHe" component={Choc} durationInFrames={CHOC_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: false, lang: 'he' as const }} />
     <Composition id="HopGta" component={Gta} durationInFrames={GTA_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'fr' as const }} />

@@ -88,6 +88,12 @@
 - **API** : fonction Edge `hop-api` (prix `/v1/quote`, créer `/v1/deliveries` avec `dry_run`, suivre, annuler) ; une clé `hop_live_…` par commerce (tables `api_keys` = empreinte seulement, `api_deliveries`) ; prix calculés avec `config.js` + `pricing.js` du site ; client qui paie le livreur ; webhook `orders_api_webhook` (en-tête `X-HOP-Webhook-Secret`). Patron : onglet « 🔌 API » (créer / copier une fois / couper). Doc : `api.html` (FR/EN). Le bac à sable ne joint pas supabase.co : tester via `extensions.http` dans la base.
 - **Vaisselle au mikvé** (tevilat kelim) : carré « Vaisselle au mikvé / טבילת כלים » (2e de « Ce qu'on livre »), page `#mikveSheet` (`mikveOpen()` dans `client.js`) : seulement l'adresse ; course aller-retour chez le client, prix fixe `config.pricing.mikve` = 35 + 50 = 85 ₪.
 
+## 6 ter. Carte fidélité Wallet : projet SÉPARÉ de HOP! (26/11)
+- Tout est dans le dossier `fidelite/` (site à part : https://carte-fidelite-wallet.vercel.app, projet Vercel `carte-fidelite-wallet`, mis en ligne par envoi de fichiers, sans lien avec le dépôt ni avec `hop-livraison`). Tables `fid_*`, fonction Edge `fid-wallet`, tâche `fid-daily`. Rien dans `livraison/`. Détail et marche à suivre Google / Apple : `fidelite/FIDELITE-WALLET.md`.
+- Les anciennes tables `loyalty_*` et la fonction `hop-wallet` (premier essai dans HOP!, vides) ne servent plus.
+- Vidéo explicative sans marque : `video/src/Fidelite.tsx` (`Fidelite` / `FideliteHe`), copies dans `fidelite/video/`.
+- Clients HOP! : la fidélité HOP! (10e course offerte, max 30 ₪) est **rallumée** (`config.js` `promos.loyalty.on`, patron 26/11).
+
 ## 7. Prix et argent (ne rien changer sans le patron)
 - Course **en ville 25 ₪** ; même zone 25 ₪ ; **ville ↔ zone industrielle / quartier à part (Agamim, Neot Shaked, Ir Yamim…) 30 ₪** (`pricing.areas`). Dire « dès 25 ₪ / en ville ».
 - Achat : petit (makolet, cigarettes) au prix de la course ; achat en boutique = + supplément (ex. 25 + 8 = 33 ₪). Autre magasin dans la même commande : +10 ₪.
