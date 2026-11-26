@@ -792,6 +792,8 @@ const CAMPS = [
 const FMT = { fiche: "🦘 Image officielle", detoure: "✂️ Sans fond (PNG)", post: "◻️ Post carré", story: "📱 Story", flyer: "🖨️ Flyer A5", g3: "1. Publier « P! »", g2: "2. Puis « O »", g1: "3. Puis « H »",
   g6: "1. « Pourquoi HOP! »", g5: "2. « Comment ça marche »", g4: "3. « Tout Netanya »" };
 const VIDEOS = [
+  // Nouveau (26/11) : « Aussi simple que ça » : la vidéo Gemini du patron (le livreur sort du panneau et tend le sac) puis rond bleu nuit et logo HOP! (13,5 s, video/src/SimpleHop.tsx)
+  { id: "simple-hop", aud: "client", title: "🛍️ Nouveau · C'est aussi simple que ça avec HOP! : le livreur sort du panneau et vous tend vos courses (13 s)" },
   // Nouveau (26/11) : « Vice City » : la vidéo du patron (menu burger au coucher de soleil) avec ouverture « Nouvelle mission : la faim à Netanya », HUD sobre, « Mission accomplie » et logo HOP! (23 s, video/src/Gta.tsx)
   { id: "gta", aud: "client", title: "🌴 Nouveau · Nouvelle mission : la faim à Netanya. Édition néon, mission accomplie avec HOP! (23 s)" },
   // Nouveau (26/11) : « Spécial bureaux » : « Envie d'une cigarette ? d'un café ? … Restez au bureau, on y va pour vous », manège 3D des rubriques, néons, logo (39,5 s, video/src/Bureau.tsx)
