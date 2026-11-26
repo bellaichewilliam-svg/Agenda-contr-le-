@@ -110,7 +110,16 @@ const pngRes = (b: Uint8Array) => new Response(b, { headers: { ...CORS, "Content
 // ================= GOOGLE WALLET =================
 const b64url = (s: Uint8Array) => { let bin = ""; for (const x of s) bin += String.fromCharCode(x); return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); };
 const b64urlStr = (s: string) => b64url(new TextEncoder().encode(s));
-function googleSa() { const raw = env("GOOGLE_WALLET_SA_JSON"); if (!raw || !env("GOOGLE_WALLET_ISSUER_ID")) return null; try { return JSON.parse(raw); } catch { return null; } }
+// Clés Google : secrets d'environnement, sinon le coffre-fort chiffré Supabase (Vault : fid_google_sa, fid_google_issuer)
+let GSA: any = undefined, GISS = "";
+async function loadGoogle() {
+  if (GSA !== undefined && GISS) return;
+  const vault = async (n: string) => { const { data } = await db.rpc("fid_vault", { p_name: n }); return (data as string) || ""; };
+  const raw = env("GOOGLE_WALLET_SA_JSON") || await vault("fid_google_sa");
+  try { GSA = raw ? JSON.parse(raw) : null; } catch { GSA = null; }
+  GISS = env("GOOGLE_WALLET_ISSUER_ID") || (await vault("fid_google_issuer")).trim();
+}
+function googleSa() { return GSA && GISS ? GSA : null; }
 async function rsaSign(pemKey: string, data: string) {
   const der = Uint8Array.from(atob(pemKey.replace(/-----[^-]+-----/g, "").replace(/\s+/g, "")), ch => ch.charCodeAt(0));
   const key = await crypto.subtle.importKey("pkcs8", der, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]);
@@ -132,7 +141,7 @@ async function googleToken(sa: any) {
   gTok = { at: Date.now(), v: j.access_token };
   return gTok.v;
 }
-const gIds = (c: Card, s: Shop) => { const iss = env("GOOGLE_WALLET_ISSUER_ID"); return { cls: `${iss}.fid_${s.code.toLowerCase()}`, obj: `${iss}.c_${c.id.replace(/-/g, "")}` }; };
+const gIds = (c: Card, s: Shop) => { const iss = GISS; return { cls: `${iss}.fid_${s.code.toLowerCase()}`, obj: `${iss}.c_${c.id.replace(/-/g, "")}` }; };
 const loc = (fr: string, hb: string) => ({ defaultValue: { language: "fr", value: fr || hb }, translatedValues: [{ language: "iw", value: hb || fr }] });
 function gClass(c: Card, s: Shop) {
   return { id: gIds(c, s).cls, issuerName: s.name, programName: s.name, localizedProgramName: loc(s.name, s.name_he || s.name),
@@ -309,6 +318,7 @@ Deno.serve(async req => {
   const url = new URL(req.url);
   const path = url.pathname.replace(/^.*\/fid-wallet\/?/, "").split("/").filter(Boolean);
   try {
+    await loadGoogle();
     if (path[0] === "apple") return await appleService(req, path.slice(1));
     if (path[0] === "logo" && path[1]) return pngRes(await logoPng(path[1].replace(/\.png$/, "").toUpperCase()));
     if (path[0] === "hero" && path[1]) {

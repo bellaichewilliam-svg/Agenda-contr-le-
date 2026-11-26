@@ -334,3 +334,8 @@ grant execute on function public.fid_signup(text, text, text), public.fid_pro_ge
 
 -- Chaque matin 7 h 17 UTC : anniversaires et relances dans les Wallet
 -- select cron.schedule('fid-daily', '17 7 * * *', $$select net.http_post(url := 'https://qwabzgmlpkazzvwhzfki.supabase.co/functions/v1/fid-wallet', body := '{"action":"daily"}'::jsonb, headers := '{"Content-Type":"application/json"}'::jsonb)$$);
+
+-- ===== Clés Google Wallet dans le coffre-fort chiffré Supabase (Vault) =====
+-- fid_store_secret(jeton à usage unique, valeur) : dépose un secret fid_* (jeton créé dans fid_once, valable 1 h).
+-- fid_vault(nom) : lecture réservée à la fonction serveur fid-wallet (clé service). Secrets : fid_google_sa, fid_google_issuer.
+-- (migration fid_vault_secrets du 26/11/2026)
