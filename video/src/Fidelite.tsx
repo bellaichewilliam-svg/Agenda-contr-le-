@@ -8,7 +8,7 @@ import '@fontsource/rubik/900.css';
 // Style demandé (vidéo de référence du patron) : illustration à plat, gros contours noirs + ombre décalée, aplats vifs
 // orange / lilas / vert / pêche, titres en majuscules blancs cernés de noir avec un mot surligné dans une étiquette,
 // téléphones dessinés, notifications sur l'écran verrouillé, pastilles qui défilent. Tutoiement (on parle au commerçant).
-// 48,5 s, 1080 × 1920, 30 i/s. Musique : python3 scripts/fidelite_music.py
+// 48,5 s, 1080 × 1920, 30 i/s. Musique : python3 scripts/fidelite_music.py ; voix off (Chatterbox) : scripts/fidelite_voix_mix.py (prop voice)
 export const FID_FRAMES = 1455;
 type Lang = 'fr' | 'he';
 const K = { ink: '#141414', orange: '#F7841B', lilac: '#E79BF9', green: '#8BE36A', peach: '#FFE1CC', white: '#FFFFFF', sun: '#FFD43B', red: '#E5484D', sky: '#9FD8FF', screen: '#FFE9DA' };
@@ -170,8 +170,8 @@ const Notif: React.FC<{ at: number; text: string; name: string; y: number; w?: n
       background: K.white, borderRadius: 30, padding: '18px 20px', display: 'flex', gap: 16, alignItems: 'center', boxShadow: '0 8px 0 rgba(20,20,20,.12)', direction: dir() }}>
       <div style={{ width: 70, height: 70, borderRadius: 18, background: color, border: `3px solid ${K.ink}`, flex: 'none', display: 'grid', placeItems: 'center' }}><Ic d="cup" s={40} c={K.white} /></div>
       <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: FONT }}><b style={{ fontSize: 26, fontWeight: 900, color: K.ink }}>{name}</b><span style={{ fontSize: 22, color: '#666' }}>{S.now}</span></div>
-        <div style={{ fontFamily: FONT, fontWeight: 600, fontSize: 28, color: K.ink, lineHeight: 1.25 }}>{text}</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: FONT }}><b style={{ fontSize: 28, fontWeight: 900, color: K.ink }}>{name}</b><span style={{ fontSize: 24, color: '#666' }}>{S.now}</span></div>
+        <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 33, color: K.ink, lineHeight: 1.22 }}>{text}</div>
       </div>
     </div>
   );
@@ -322,8 +322,8 @@ const S7: React.FC = () => {
         {[0, 1, 2, 3].map(i => {
           const at = i * 75 + 14;
           if (f < at) return null;
-          const pos = (step - i) * 172;   // la plus récente en haut, les autres glissent dessous
-          return <Notif key={i} at={at} text={S.notifs[i]} name={S.shops[[0, 0, 1, 1][i]][0]} y={330 + pos} w={500} color={['#C8382E', '#C8382E', '#5B3A24', '#5B3A24'][i]} />;
+          const pos = (step - i) * 214;   // la plus récente en haut, les autres glissent dessous
+          return <Notif key={i} at={at} text={S.notifs[i]} name={S.shops[[0, 0, 1, 1][i]][0]} y={300 + pos} w={510} color={['#C8382E', '#C8382E', '#5B3A24', '#5B3A24'][i]} />;
         })}
       </Phone>
       <Star x={50} y={760} c={K.orange} at={30} /><Star x={900} y={900} c={K.white} at={40} s={70} /><Star x={930} y={1050} c={K.green} at={50} s={60} />
@@ -369,7 +369,7 @@ const S9: React.FC = () => {
           const q = sp(f, 24 + i * 7, 12, 220, 0.6);
           return <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 22, padding: '22px 0', borderTop: '3px solid #EEE', transform: `translateX(${(1 - q) * (RTL ? -300 : 300)}px)`, opacity: Math.min(1, q * 2) }}>
             <div style={{ width: 86, height: 86, borderRadius: '50%', background: [K.lilac, K.orange, K.green, K.sky, K.sun][i], border: `4px solid ${K.ink}`, display: 'grid', placeItems: 'center', fontFamily: FONT, fontWeight: 900, fontSize: 32 }}>{n.split(' ').map(x => x[0]).join('')}</div>
-            <div style={{ flex: 1 }}><div style={{ fontFamily: FONT, fontWeight: 800, fontSize: 38 }}>{n}</div><div style={{ fontFamily: FONT, fontSize: 26, color: '#777' }}>{S.last} : {w}</div></div>
+            <div style={{ flex: 1 }}><div style={{ fontFamily: FONT, fontWeight: 800, fontSize: 38 }}>{n}</div><div style={{ fontFamily: FONT, fontWeight: 600, fontSize: 30, color: '#666' }}>{S.last} : {w}</div></div>
             <div style={{ ...box(K.peach, 999, 4), padding: '6px 18px', fontFamily: FONT, fontWeight: 800, fontSize: 26 }}>{v}</div>
           </div>;
         })}
@@ -412,13 +412,13 @@ const S11: React.FC = () => {
 
 // ================= MONTAGE =================
 export const CUTS = [0, 120, 240, 360, 450, 570, 720, 1020, 1140, 1245, 1335];
-export const Fidelite: React.FC<{ lang: Lang; music?: boolean }> = ({ lang, music = true }) => {
+export const Fidelite: React.FC<{ lang: Lang; music?: boolean; voice?: boolean }> = ({ lang, music = true, voice = false }) => {
   S = STR[lang]; RTL = lang === 'he';
   const scenes = [S1, S2, S3, S4, S5, S6, S7, S8, S9, S10, S11];
   return (
     <AbsoluteFill style={{ background: K.peach }}>
       {scenes.map((Sc, i) => <Sequence key={i} from={CUTS[i]} durationInFrames={(CUTS[i + 1] ?? FID_FRAMES) - CUTS[i]}><Sc /></Sequence>)}
-      {music ? <Audio src={staticFile(`fidelite-music-${lang}.wav`)} /> : null}
+      {music ? <Audio src={staticFile(voice ? `fidelite-mix-${lang}.wav` : `fidelite-music-${lang}.wav`)} /> : null}
     </AbsoluteFill>
   );
 };
