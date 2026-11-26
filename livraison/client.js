@@ -6,6 +6,9 @@
 (function () {
 "use strict";
 
+// Icônes dessinées (le design épuré retire les émojis : 🤍 et ✏️ laissaient un rond blanc vide, patron 26/11)
+const HEART_IC = `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-7.5-10.1A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 7.5 2.8c0 5.5-7.5 10.1-7.5 10.1z" fill="var(--fav-fill,none)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`;
+const PEN_IC = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 const $ = s => document.querySelector(s);
 // Paramètres de l'adresse au lancement (l'adresse est nettoyée ensuite : ?cart=1 de la notification « panier » s'y perdait)
 const BOOT_Q = new URLSearchParams(location.search);
@@ -1408,13 +1411,13 @@ function renderPharma() {
       : `<button type="button" class="cg-plus" data-ph-plus="${k}" aria-label="${UI.esc(t("cgAdd"))} ${UI.esc(phName(x))}">+</button>`;
     const sel2 = x.opt ? `<select data-ph-opt="${r.id}:${x.id}" aria-label="${UI.esc(phName(x))}">${x.opt.map((o2, i) => `<option value="${i}"${i === sel ? " selected" : ""}>${UI.esc(phName(o2))}${state.pharma[key(x, i)] ? ` (×${state.pharma[key(x, i)]})` : ""}</option>`).join("")}</select>` : "";
     // Rubrique sans images (tabac : la loi interdit les visuels) : une liste nette, une ligne par produit, prix bien visible
-    if (rows) return `<div class="ph-line${qn ? " in" : ""}${x.hidden ? " off" : ""}">${rEdit ? `<button type="button" class="pl-boss" data-ray-edit="${UI.esc(x.id)}" aria-label="Modifier">✏️</button>` : ""}<span class="pl-txt"><b>${UI.esc(phName(x))}${x.adult ? ` <i class="ph-18">18+</i>` : ""}</b>${sel2}</span>
+    if (rows) return `<div class="ph-line${qn ? " in" : ""}${x.hidden ? " off" : ""}">${rEdit ? `<button type="button" class="pl-boss" data-ray-edit="${UI.esc(x.id)}" aria-label="Modifier">${PEN_IC}</button>` : ""}<span class="pl-txt"><b>${UI.esc(phName(x))}${x.adult ? ` <i class="ph-18">18+</i>` : ""}</b>${sel2}</span>
       ${pr ? `<span class="pl-price"><b>≈ ${priceTxt(pr)}</b>${x.c === "cig" && x.id !== "cartouche" ? `<small>${UI.esc(t("phPerPack"))}</small>` : ""}</span>` : ""}
       <span class="pl-act">${step}</span></div>`;
     const src = state.boss && rEdit ? rayPicSrc(x) : null;
     return `<div class="ph-item${qn ? " in" : ""}${x.hidden ? " off" : ""}" data-ph-open="${UI.esc(x.id)}">
       <div class="ph-pic${x.photo ? " photo" : ""}${UI.extPic(x.photo) ? " pack" : ""}">${pic(x)}
-        ${rEdit ? `<button type="button" class="cg-boss" data-ray-edit="${UI.esc(x.id)}" aria-label="Modifier">✏️</button>` : ""}
+        ${rEdit ? `<button type="button" class="cg-boss" data-ray-edit="${UI.esc(x.id)}" aria-label="Modifier">${PEN_IC}</button>` : ""}
         ${isCfItem(x) ? `<span class="ph-store">Carrefour</span>` : ""}
         ${qn ? `<span class="cg-qty"><button type="button" data-ph-minus="${k}" aria-label="−">−</button><b>${qn}</b><button type="button" data-ph-plus="${k}" aria-label="+">+</button></span>`
           : `<button type="button" class="cg-plus" data-ph-plus="${k}" aria-label="${UI.esc(t("cgAdd"))} ${UI.esc(phName(x))}">+</button>`}</div>
@@ -4568,6 +4571,8 @@ const d6RestoList = () => (state.showcase || []).filter(x => /restaurant|resto|f
 const D6_CARD = ["#1E9BF0", "#0B4A6F", "#FF5D73", "#13A88A", "#7C5CE0"];
 // Prix de départ d'une carte : boutique HOP! = le prix de sa page (zone industrielle : 35 ₪, patron 26/11 « 35 partout »)
 const d6From = x => isHopShop(x) ? proPrice(x) : CONFIG.pricing.fixedFromHome[CONFIG.homeCity];
+// (patron 26/11 : « rajoute une pancarte course libre ») la dernière carte : n'importe quel magasin, on y va pour vous
+const d6FreeCard = () => `<button type="button" class="d6-rc d6-free" data-d4m-free style="--rc:#0F1F3D"><span class="d6-rp"><img src="img/hoppy-vit.webp" alt="" loading="lazy" /></span><span class="d6-st2">${UI.esc(t("d3Course"))}</span><b>${UI.esc(t("d6FreeT"))}</b><small>${UI.esc(t("d6FreeS", { price: money(CONFIG.pricing.fixedFromHome[CONFIG.homeCity]) }))}</small></button>`;
 const d6RestoCards = (list, tag) => list.map((x, k) => { const tg = typeof tag === "function" ? tag(x) : tag; const pic = UI.safeImg(x.cover) || UI.safeImg(x.logo), st = shopState(x), open = !x.paused && (!st || st.open);
   return `<button type="button" class="d6-rc" data-d4-pro="${UI.esc(x.code)}" style="--rc:${D6_CARD[k % D6_CARD.length]}"><span class="d6-rp"${pic ? ` style="background-image:url('${pic}')"` : ""}></span>${tg ? `<span class="d6-st2">${UI.esc(tg)}</span>` : ""}<b>${UI.esc(d4Nm(x))}</b><small>${UI.esc(open ? (I18N.lang === "he" ? `פתוח · החל מ־${d6From(x)} ₪` : `Ouvert · dès ${d6From(x)} ₪`) : (I18N.lang === "he" ? "סגור · אפשר לתזמן" : "Fermé · à programmer"))}</small></button>`; }).join("");
 // (patron 26/11 : « montre-leur qu'il y a bien Max Stock ») Max Stock en 2e carte : centrée au chargement, avec « Nouveau »
@@ -4588,7 +4593,7 @@ function d6Center(row) {
 function d6Fill() {
   const r = document.getElementById("d6RRow"); if (!r) return;
   const html = d6RestoCards(d6RestoList()); if (r.dataset.html !== html) { r.innerHTML = html; r.dataset.html = html; d6Center(r); }
-  const m = document.getElementById("d6SRow"); if (m) { const h2 = d6RestoCards(d6ShopList(), d6NewTag); if (m.dataset.html !== h2) { m.innerHTML = h2; m.dataset.html = h2; d6Center(m); } }
+  const m = document.getElementById("d6SRow"); if (m) { const h2 = d6RestoCards(d6ShopList(), d6NewTag) + d6FreeCard(); if (m.dataset.html !== h2) { m.innerHTML = h2; m.dataset.html = h2; d6Center(m); } }
   const b = document.getElementById("d5Tick"); if (b && !b.dataset.names && (state.showcase || []).length) { b.dataset.names = "1"; d5Home(); }
 }
 function d5Home() {
@@ -4664,7 +4669,7 @@ function d5Home() {
   if (!sh) { sh = document.createElement("section"); sh.id = "d6Shops"; sh.className = "d6-block d6-shops"; sheet.appendChild(sh); }
   sh.innerHTML = `<svg class="d6-torn" viewBox="0 0 390 16" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0H390V6L374 14 360 5 346 13 330 6 316 15 300 7 286 14 270 5 256 13 240 6 226 15 210 7 196 14 180 5 166 13 150 6 136 15 120 7 106 14 90 5 76 13 60 6 46 15 30 7 16 14 0 6Z"/></svg>
     <h2 class="d6-bt">${UI.esc(he ? "עושים קניות" : "Faites vos courses")}</h2><p class="d6-bs">${UI.esc(he ? "כל החנויות, הכי זול מנצח" : "Tous les magasins, le moins cher gagne")}</p>
-    <div class="d6-rrow" id="d6SRow">${d6RestoCards(d6ShopList(), d6NewTag)}</div>
+    <div class="d6-rrow" id="d6SRow">${d6RestoCards(d6ShopList(), d6NewTag)}${d6FreeCard()}</div>
     <button type="button" class="d6-btn" data-d5go="d4:shops">${UI.esc(he ? "לכל החנויות" : "Tous les magasins")} ${A === "›" ? "<i>›</i>" : "<i>‹</i>"}</button>`;
   // 4. Le dernier bloc : partager HOP!, WhatsApp — en grosses pilules pleine couleur
   let en = document.getElementById("d6End");
@@ -5095,7 +5100,7 @@ function renderCatalog() {
         <div class="cg-info"><b>${q ? `<em class="cg-n"><bdi>${q}×</bdi></em> ` : ""}<bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></b>${p.description && !(grocShop() && promoOf(p)) ? `<small>${UI.esc(UI.bi(p.description))}</small>` : ""}${grocShop() && !multi ? cgPaPrice(p) : `<span class="cg-price">${UI.esc(groupPrice(p))}</span>`}${multi ? `<span class="cg-sizes">${UI.esc(sizesOf(p).map(x => UI.bi(sizeOf(x))).join(" · "))}</span>` : ""}${tileShop() ? tileMeta(p, multi) : ""}</div>
         <div class="cg-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" loading="lazy" />` : document.documentElement.classList.contains("d5") ? svcIcon(p) : shopArt(p)}
         ${p.available && promoOf(p) ? `<em class="cg-promo${promoOf(p).lot > 1 ? " lot" : ""}"><bdi>${UI.esc(grocShop() ? `−${promoOf(p).off} %` : promoTag(promoOf(p)))}</bdi></em>` : ""}
-        ${bossEditOn() ? `<button type="button" class="cg-boss" data-boss-edit="${UI.esc(p.id)}" aria-label="Modifier">✏️</button>` : ""}
+        ${bossEditOn() ? `<button type="button" class="cg-boss" data-boss-edit="${UI.esc(p.id)}" aria-label="Modifier">${PEN_IC}</button>` : ""}
         ${!p.available ? `<span class="cg-out">${bossEditOn() ? "🙈 Masqué" : UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</span>`
           : multi ? `<button type="button" class="cg-plus" data-cg-pick="${UI.esc(p.id)}" aria-label="${UI.esc(t("cgAdd"))}">${q ? `<b>${q}</b>` : "+"}</button>`
           : q ? `<span class="cg-qty"><button type="button" data-cg-minus="${UI.esc(p.id)}" aria-label="−">−</button><b>${q}</b><button type="button" data-cg-plus="${UI.esc(p.id)}" aria-label="+">+</button></span>`
@@ -5516,7 +5521,7 @@ function renderItem() {
   const p = cgProducts().find(x => x.id === item.id);
   if (!p) return;
   const inCart = state.cart[p.id] || 0, photo = UI.safeImg(p.photo);
-  $("#itemBody").innerHTML = `<div class="it-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" />` : shopArt(p)}<button type="button" class="it-fav${isFav(p.id) ? " on" : ""}" data-it-fav="${UI.esc(p.id)}" aria-label="${UI.esc(t("favAdd"))}" aria-pressed="${isFav(p.id)}">${isFav(p.id) ? "❤️" : "🤍"}</button></div>
+  $("#itemBody").innerHTML = `<div class="it-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" />` : shopArt(p)}<button type="button" class="it-fav${isFav(p.id) ? " on" : ""}" data-it-fav="${UI.esc(p.id)}" aria-label="${UI.esc(t("favAdd"))}" aria-pressed="${isFav(p.id)}">${HEART_IC}</button></div>
     <div class="it-txt"><h3><bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></h3>${grocShop() && packInfo(p) ? `<p class="it-pack"><bdi dir="ltr">${UI.esc(packInfo(p).label)}</bdi></p>` : ""}<div class="it-prow"><span class="cg-price">${UI.money(p.price)}</span>${grocShop() && unitPrice(p, true) ? `<span class="it-unit"><bdi dir="ltr">${UI.esc(unitPrice(p, true))}</bdi></span>` : ""}</div>
       ${promoOf(p) ? (pr => `<div class="it-promo"><b><bdi>🔥 ${UI.esc(pr.lot > 1 ? t("paLot", { n: pr.lot, price: money(pr.price) }) : money(pr.price))}</bdi></b><span><s>${UI.esc(money(pr.old))}</s><em dir="ltr">−${pr.off} %</em></span></div>`)(promoOf(p))
         : p.description ? `<p>${UI.esc(UI.bi(p.description))}</p>` : ""}
@@ -6996,6 +7001,7 @@ function d4MagRender() {
   const mako = (d4m.f === "k:epicerie" || (!d4m.f && !words.length)) ? `<button type="button" class="d4m-card d4m-mako" data-d4m-mako><span class="d4m-ph"><img src="img/hoppy-vit.webp" alt="" loading="lazy" /></span><b class="d4m-nm">${UI.esc(t("d4Mako"))}</b><small>${UI.esc(t("d4MakoS"))}</small></button>` : "";
   // Pressing : après nos pressings, « Un autre pressing » (on va chercher et on rapporte, au pressing de votre choix)
   const press = d4m.f === "k:pressing" ? `<button type="button" class="d4m-card d4m-mako" data-d4m-press><span class="d4m-ph"><img src="img/hoppy-vit.webp" alt="" loading="lazy" /></span><b class="d4m-nm">${UI.esc(t("d4Press"))}</b><small>${UI.esc(t("d4PressS"))}</small></button>` : "";
+  const free = d4m.f === "super" ? `<button type="button" class="d4m-card d4m-mako" data-d4m-free><span class="d4m-ph"><img src="img/hoppy-vit.webp" alt="" loading="lazy" /></span><b class="d4m-nm">${UI.esc(t("d3Course"))}</b><small>${UI.esc(t("d6FreeT"))}</small></button>` : "";
   box.querySelector(".d4m-list").innerHTML = mako + (list.length ? list.map(({ x, st }) => {
     // (patron 22/11) : grandes cartes photo, deux par ligne, logo sur la photo, statut court
     const cover = UI.safeImg(x.cover), logo = UI.safeImg(x.logo), open = !x.paused && (!st || st.open);
@@ -7005,7 +7011,7 @@ function d4MagRender() {
     return `<button type="button" class="d4m-card" data-d4m-pro="${UI.esc(x.code)}"><span class="d4m-ph"${cover ? ` style="background-image:url('${cover}')"` : ""}>${isKosher(x) ? kosherTag("k-on-cover") : ""}${logo ? `<img src="${logo}" alt="" loading="lazy" onerror="this.remove()" />` : `<b>${UI.esc(nm.slice(0, 1))}</b>`}</span>
 ${d4Reco(x) ? `<em class="d4-reco">${UI.esc(t("d4Reco"))}</em>` : ""}
       <b class="d4m-nm"><bdi>${UI.esc(nm)}</bdi>${d4Stars(x)}</b><small><i class="${open ? "op" : "cl"}"></i>${UI.esc(stx)}</small>${sub ? `<small class="d4m-sub">${UI.esc(sub)}</small>` : ""}</button>`;
-  }).join("") : (mako || press) ? "" : `<p class="d4m-none">${UI.esc(t("d4mNone"))}</p>`) + press;
+  }).join("") : (mako || press) ? "" : `<p class="d4m-none">${UI.esc(t("d4mNone"))}</p>`) + press + free;
 }
 function d4MagOpen() {
   let box = $("#d4Mag");
@@ -7016,6 +7022,7 @@ function d4MagOpen() {
       const f = e.target.closest("[data-d4m-f]"); if (f) { d4m.f = f.dataset.d4mF; d4MagRender(); return; }
       if (e.target.closest("[data-d4m-kosher]")) { d4m.kosher = !d4m.kosher; d4MagRender(); return; }
       const r = e.target.closest("[data-d4m-pro]"); if (r) { d4MagClose(true); state.shopDir = ""; loadShop(r.dataset.d4mPro); return; }
+      if (e.target.closest("[data-d4m-free]")) { d4MagClose(true); setTimeout(() => $("#vitCourse").click(), 60); return; }
       if (e.target.closest("[data-d4m-press]")) { d4MagClose(true); setTimeout(() => { const kb = document.querySelector('#homeKinds [data-kind="pressing"]'); if (kb) kb.click(); }, 60); return; }
       if (e.target.closest("[data-d4m-mako]")) { d4MagClose(true); setTimeout(() => { const kb = document.querySelector('#homeKinds [data-kind="shop"]'); if (kb) kb.click(); }, 60); return; }
       if (e.target.closest("[data-d4m-any]")) { d4MagClose(true); setTimeout(() => $("#vitCourse").click(), 60); }
@@ -7043,6 +7050,7 @@ function d4MagClose(viaApp) {
 }
 window.addEventListener("popstate", () => { if (d4MagIsOpen() && !(history.state && history.state.d4m)) d4MagClose(false); });
 document.addEventListener("click", e => {
+  if (e.target.closest("#d6SRow [data-d4m-free]")) { UI.track("d6_free"); const vc = $("#vitCourse"); if (vc) vc.click(); return; }
   const pr = e.target.closest("[data-d4-pro]");
   if (pr) { UI.track("d4_shop", { shop_code: pr.dataset.d4Pro }); state.shopDir = ""; loadShop(pr.dataset.d4Pro); return; }
   const b = e.target.closest("[data-d4]");

@@ -1364,3 +1364,7 @@ html.d5 body .k-sup .d6-si { height: 250px !important; max-width: 66% !important
 html.d5 body .k-sup .d6-bub.b0 { display: none !important; }
 html.d5 body .k-sup .d6-bub.b1 { top: 164px !important; inset-inline-start: 34px; }
 html.d5 body .k-sup .d6-halo { width: 230px; height: 230px; bottom: 56px; inset-inline-end: 0; }
+/* (patron 26/11) carte « Course libre » au bout du carrousel des magasins : Hoppy entier, jamais coupé */
+html.d5 #d6SRow .d6-free .d6-rp{background:#E8F2FF;display:flex;align-items:center;justify-content:center}
+html.d5 #d6SRow .d6-free .d6-rp img{max-width:78%;max-height:88%;object-fit:contain}
+html.d5 #d6SRow .d6-free b{font-size:20px!important;white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important}
