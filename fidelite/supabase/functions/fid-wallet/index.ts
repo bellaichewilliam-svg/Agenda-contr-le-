@@ -110,7 +110,6 @@ const pngRes = (b: Uint8Array) => new Response(b, { headers: { ...CORS, "Content
 // ================= GOOGLE WALLET =================
 const b64url = (s: Uint8Array) => { let bin = ""; for (const x of s) bin += String.fromCharCode(x); return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); };
 const b64urlStr = (s: string) => b64url(new TextEncoder().encode(s));
-// Clés Google : secrets d'environnement, sinon le coffre-fort chiffré Supabase (Vault : fid_google_sa, fid_google_issuer)
 let GSA: any = undefined, GISS = "";
 async function loadGoogle() {
   if (GSA !== undefined && GISS) return;
@@ -144,7 +143,8 @@ async function googleToken(sa: any) {
 const gIds = (c: Card, s: Shop) => { const iss = GISS; return { cls: `${iss}.fid_${s.code.toLowerCase()}`, obj: `${iss}.c_${c.id.replace(/-/g, "")}` }; };
 const loc = (fr: string, hb: string) => ({ defaultValue: { language: "fr", value: fr || hb }, translatedValues: [{ language: "iw", value: hb || fr }] });
 function gClass(c: Card, s: Shop) {
-  return { id: gIds(c, s).cls, issuerName: s.name, programName: s.name, localizedProgramName: loc(s.name, s.name_he || s.name),
+  return { id: gIds(c, s).cls, issuerName: s.name, programName: "Carte de fidélité", localizedProgramName: loc("Carte de fidélité", "כרטיס מועדון"),
+    localizedIssuerName: loc(s.name, s.name_he || s.name),
     programLogo: { sourceUri: { uri: logoUrl(s) } }, hexBackgroundColor: s.color || "#7A3E1D", reviewStatus: "UNDER_REVIEW", countryCode: "IL",
     multipleDevicesAndHoldersAllowedStatus: "ONE_USER_ALL_DEVICES",
     ...(s.lat != null && s.lon != null ? { merchantLocations: [{ latitude: s.lat, longitude: s.lon }] } : {}) };
@@ -177,7 +177,7 @@ async function googleSync(c: Card, s: Shop, message?: string) {
   if (!sa) return false;
   const tk = await googleToken(sa), h = { Authorization: "Bearer " + tk, "Content-Type": "application/json" };
   const base = "https://walletobjects.googleapis.com/walletobjects/v1/";
-  fetch(base + "loyaltyClass/" + gIds(c, s).cls, { method: "PATCH", headers: h, body: JSON.stringify(gClass(c, s)) }).catch(() => {});
+  await fetch(base + "loyaltyClass/" + gIds(c, s).cls, { method: "PATCH", headers: h, body: JSON.stringify(gClass(c, s)) }).catch(() => {});
   const o = gObject(c, s), url = base + "loyaltyObject/" + o.id;
   const r = await fetch(url, { method: "PATCH", headers: h, body: JSON.stringify({ loyaltyPoints: o.loyaltyPoints, secondaryLoyaltyPoints: o.secondaryLoyaltyPoints,
     heroImage: o.heroImage, textModulesData: o.textModulesData, linksModuleData: o.linksModuleData }) });
