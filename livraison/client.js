@@ -754,13 +754,21 @@ document.addEventListener("click", e => {
   if (e.target.closest("[data-buy-info]")) { e.preventDefault(); return openBuyInfo(); }
   if ((e.target.id === "buyInfo" && Date.now() - biOpenedAt > 400) || e.target.closest("#biClose") || e.target.closest("[data-bi-ok]")) $("#buyInfo").classList.add("hidden");
 });
+// Boutique HOP! en zone industrielle (Max Stock, BOOOM…), adresse du client pas encore choisie : on compte une livraison
+// en ville (zone → ville = 30 ₪ + 5 ₪ d'achat = 35 ₪), le même prix que la pastille du haut (patron, 26/11 : « 35 partout »)
+function hopZoneTo() {
+  const s = state.shop;
+  if (!s || !proShopOn() || !isHopShop(s) || !hopZone(s)) return null;
+  const c = (CONFIG.cities || []).find(x => x.id === CONFIG.homeCity);
+  return c && c.lat != null ? { lat: c.lat, lon: c.lon } : null;
+}
 function baseQuote() {
   if (val("payment_method") === "carnet" && carnetOk()) {
     return { total: carnetUnit(), known: true, distanceKm: 0, lines: [{ key: "qCarnet", vars: { n: state.pro.credits - 1 }, amount: carnetUnit() }] };
   }
   return Pricing.computeQuote({
     fromCity: nearMode() ? cityOf("to") : cityOf("from"), toCity: cityOf("to"),
-    fromPoint: nearMode() ? state.toPoint : state.fromPoint, toPoint: state.toPoint,
+    fromPoint: nearMode() ? state.toPoint : state.fromPoint, toPoint: state.toPoint || hopZoneTo(),
     service: hopBuyOn() ? "achat" : val("service"), urgency: val("urgency"), size: val("size"), quickBuy: tobaccoOnly(),
     units: hopBuyOn() ? cartCount() + hopExtraUnits() : rayonUnits(), purchaseKind: hopBuyOn() ? "shop" : purchaseKind(), hopShop: hopBuyOn() || rayonHasCf(), itemsIncluded: hopBuyOn() ? HOP_INC : null,
     couriers: (home.nearby || []).filter(c => c.free),
@@ -4172,6 +4180,11 @@ document.addEventListener("error", e => {
   // le panier…) : le navigateur la refuse. On la recharge une fois sans « crossorigin » (patron, 25/11 : paninis Rendez-Vous vides)
   if (el.hasAttribute("crossorigin") && !el.dataset.nocors) {
     el.dataset.nocors = "1"; const s = el.src; el.removeAttribute("crossorigin"); el.src = ""; el.src = s; return;
+  }
+  // Photos de Max Stock : leur site refuse l'image quand elle est demandée depuis HOP! (protection des photos par
+  // l'adresse d'origine) ; sans dire d'où on vient, elle passe (patron, 26/11 : « les photos ? »)
+  if (!el.dataset.noref && el.referrerPolicy !== "no-referrer" && UI.extPic(el.src)) {
+    el.dataset.noref = "1"; const s = el.src; el.referrerPolicy = "no-referrer"; el.src = ""; el.src = s; return;
   }
   el.dataset.miss = "1";
   const m = document.createElement("span");
