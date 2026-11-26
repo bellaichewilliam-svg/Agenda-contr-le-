@@ -8,6 +8,8 @@
 
 // Icônes dessinées (le design épuré retire les émojis : 🤍 et ✏️ laissaient un rond blanc vide, patron 26/11)
 const HEART_IC = `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-7.5-10.1A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 7.5 2.8c0 5.5-7.5 10.1-7.5 10.1z" fill="var(--fav-fill,none)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`;
+// Fiche d'un vêtement / textile (Max Stock, patron 26/11 : « au minimum les compositions des tissus ») : bloc « Matière »
+const isMatTxt = d => /Composition exacte|Matière :|הרכב המדויק|חומר:/.test(String(d || ""));
 const PEN_IC = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 const $ = s => document.querySelector(s);
 // Paramètres de l'adresse au lancement (l'adresse est nettoyée ensuite : ?cart=1 de la notification « panier » s'y perdait)
@@ -5097,7 +5099,7 @@ function renderCatalog() {
       const q = groupQty(p), multi = sizesOf(p).length > 1 || needsDrink(p), photo = UI.safeImg(p.photo);
       const bm = bossEditOn() && (state.bossMap || {})[p.id];
       return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}${bm ? " boss-ch" : ""}${!photo ? " nopic" : ""}${!photo && svcIcon(p) ? " has-ic" : ""}" data-cg-open="${UI.esc(p.id)}">
-        <div class="cg-info"><b>${q ? `<em class="cg-n"><bdi>${q}×</bdi></em> ` : ""}<bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></b>${p.description && !(grocShop() && promoOf(p)) ? `<small>${UI.esc(UI.bi(p.description))}</small>` : ""}${grocShop() && !multi ? cgPaPrice(p) : `<span class="cg-price">${UI.esc(groupPrice(p))}</span>`}${multi ? `<span class="cg-sizes">${UI.esc(sizesOf(p).map(x => UI.bi(sizeOf(x))).join(" · "))}</span>` : ""}${tileShop() ? tileMeta(p, multi) : ""}</div>
+        <div class="cg-info"><b>${q ? `<em class="cg-n"><bdi>${q}×</bdi></em> ` : ""}<bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></b>${p.description && !isMatTxt(p.description) && !(grocShop() && promoOf(p)) ? `<small>${UI.esc(UI.bi(p.description))}</small>` : ""}${grocShop() && !multi ? cgPaPrice(p) : `<span class="cg-price">${UI.esc(groupPrice(p))}</span>`}${multi ? `<span class="cg-sizes">${UI.esc(sizesOf(p).map(x => UI.bi(sizeOf(x))).join(" · "))}</span>` : ""}${tileShop() ? tileMeta(p, multi) : ""}</div>
         <div class="cg-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" loading="lazy" />` : document.documentElement.classList.contains("d5") ? svcIcon(p) : shopArt(p)}
         ${p.available && promoOf(p) ? `<em class="cg-promo${promoOf(p).lot > 1 ? " lot" : ""}"><bdi>${UI.esc(grocShop() ? `−${promoOf(p).off} %` : promoTag(promoOf(p)))}</bdi></em>` : ""}
         ${bossEditOn() ? `<button type="button" class="cg-boss" data-boss-edit="${UI.esc(p.id)}" aria-label="Modifier">${PEN_IC}</button>` : ""}
@@ -5524,6 +5526,7 @@ function renderItem() {
   $("#itemBody").innerHTML = `<div class="it-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" />` : shopArt(p)}<button type="button" class="it-fav${isFav(p.id) ? " on" : ""}" data-it-fav="${UI.esc(p.id)}" aria-label="${UI.esc(t("favAdd"))}" aria-pressed="${isFav(p.id)}">${HEART_IC}</button></div>
     <div class="it-txt"><h3><bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></h3>${grocShop() && packInfo(p) ? `<p class="it-pack"><bdi dir="ltr">${UI.esc(packInfo(p).label)}</bdi></p>` : ""}<div class="it-prow"><span class="cg-price">${UI.money(p.price)}</span>${grocShop() && unitPrice(p, true) ? `<span class="it-unit"><bdi dir="ltr">${UI.esc(unitPrice(p, true))}</bdi></span>` : ""}</div>
       ${promoOf(p) ? (pr => `<div class="it-promo"><b><bdi>🔥 ${UI.esc(pr.lot > 1 ? t("paLot", { n: pr.lot, price: money(pr.price) }) : money(pr.price))}</bdi></b><span><s>${UI.esc(money(pr.old))}</s><em dir="ltr">−${pr.off} %</em></span></div>`)(promoOf(p))
+        : p.description && isMatTxt(p.description) ? `<div class="it-mat"><b>${UI.esc(t("itMat"))}</b><p>${UI.esc(UI.bi(p.description))}</p></div>`
         : p.description ? `<p>${UI.esc(UI.bi(p.description))}</p>` : ""}
       ${itBuilder(p)}
       ${p.available ? "" : `<p class="it-out">${UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</p>`}</div>`;
@@ -10263,12 +10266,15 @@ function hpShops() {
 function d6PromoFill() {
   const g = document.querySelector(".d6-slide.k-prod .d6-pg"); if (!g) return;
   let list = []; try { list = hpList().filter(x => x.ph && !pzSlow(x)).slice(0, 4); } catch (e) { list = []; }
-  if (list.length < 3) { g.closest(".d6-slide").classList.remove("has-pg"); return; }
+  if (list.length < 3) { g.closest(".d6-slide").classList.remove("has-pg"); g.closest(".d6-slide").querySelectorAll(".d6-bub").forEach(b => b.classList.add("hidden")); return; }
   const html = list.map((x, k) => `<span class="d6-pi p${k}"><img src="${UI.esc(x.ph)}" alt="" loading="lazy" decoding="async" /><b dir="ltr">${UI.esc(money(x.p))}</b>${x.f ? `<em dir="ltr">−${Number(x.f)}%</em>` : ""}</span>`).join("");
   if (g.dataset.html !== html) { g.innerHTML = html; g.dataset.html = html; }
   // photo qui ne charge pas : sa carte disparaît (jamais de cadre vide)
   if (!g.dataset.err) { g.dataset.err = "1"; g.addEventListener("error", e => { const c = e.target.closest && e.target.closest(".d6-pi"); if (c) c.remove(); }, true); }
   g.closest(".d6-slide").classList.add("has-pg");
+  // (patron 26/11 : « pourquoi y a Rami ? ») les bulles = les vrais magasins des produits montrés, pas des noms écrits d'avance
+  const shops = []; list.forEach(x => { if (x.code && !shops.includes(x.code)) shops.push(x.code); });
+  g.closest(".d6-slide").querySelectorAll(".d6-bub").forEach((b, k) => { const c = shops[k]; b.classList.toggle("hidden", !c); if (c) b.textContent = paShopName(c); });
 }
 function renderPromos() {
   try { d4Tiles(); } catch (e) { /* ignore */ }
