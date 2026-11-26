@@ -1,8 +1,8 @@
-"""Mixe la voix off (Chatterbox) avec la musique + bruitages de « Fidelite ».
+"""Mixe la voix off (Gemini, voix Sulafat, via la fonction fid-tts ; avant : Chatterbox) avec la musique + bruitages de « Fidelite ».
 1) /root/cbx/bin/python scripts/voix_chatterbox.py public/fidelite-voix/lignes.json public/fidelite-voix [voix_reference.wav]
 2) python3 scripts/fidelite_voix_mix.py  ->  public/fidelite-mix-fr.wav et fidelite-mix-he.wav (utilisés par src/Fidelite.tsx)
 Chaque phrase démarre à son image (« at » dans lignes.json) ; si elle déborde sur la phrase suivante, elle est accélérée
-(au plus ×1,18, sans changer la hauteur de la voix, filtre atempo de ffmpeg). La musique baisse de 9 dB sous la voix.
+(au plus ×1,12, sans changer la hauteur de la voix, filtre atempo de ffmpeg). La musique baisse de 9 dB sous la voix.
 """
 import json, os, subprocess, wave
 import numpy as np
@@ -41,15 +41,13 @@ def trim(v, thr=0.01):
 
 
 def voice_fx(v):
-    """Voix « pub » : coupe les graves sourds, petite présence, compression douce."""
-    sos = butter(2, 90, "highpass", fs=SR, output="sos")
+    """Voix naturelle (Gemini) : coupe juste les graves sourds et met au bon niveau, sans durcir le son."""
+    sos = butter(2, 70, "highpass", fs=SR, output="sos")
     v = np.stack([sosfilt(sos, c) for c in v])
-    pres = butter(2, [2500, 6000], "bandpass", fs=SR, output="sos")
-    v = v + 0.25 * np.stack([sosfilt(pres, c) for c in v])
-    v = np.tanh(v / (np.abs(v).max() + 1e-9) * 1.8) / np.tanh(1.8)
-    return v * 0.92
+    return v / (np.abs(v).max() + 1e-9) * 0.85
 
 
+VDIR = os.environ.get("VOIX", "gemini")   # dossier des phrases : gemini (voix Sulafat) ou "." (anciennes Chatterbox)
 lines = json.load(open(os.path.join(PUB, "fidelite-voix", "lignes.json"), encoding="utf-8"))
 for lang in ("fr", "he"):
     music = read(os.path.join(PUB, f"fidelite-music-{lang}.wav"))
@@ -58,7 +56,7 @@ for lang in ("fr", "he"):
     mine = [l for l in lines if l["lang"] == lang]
     cursor = 0.0   # fin de la phrase précédente (s) : une phrase qui déborde décale légèrement la suivante
     for i, l in enumerate(mine):
-        p = os.path.join(PUB, "fidelite-voix", l["id"] + ".wav")
+        p = os.path.join(PUB, "fidelite-voix", VDIR, l["id"] + ".wav")
         if not os.path.exists(p):
             print("manque", p); continue
         nxt = mine[i + 1]["at"] if i + 1 < len(mine) else END - 12
@@ -66,7 +64,7 @@ for lang in ("fr", "he"):
         v = trim(read(p))
         dur = v.shape[1] / SR
         if dur > room:
-            f = min(1.2, dur / room)
+            f = min(1.12, dur / room)
             v = trim(read(tempo(p, f)))
             print(f"{l['id']} {dur:.2f}s > {room:.2f}s : accéléré x{f:.2f} -> {v.shape[1] / SR:.2f}s")
         v = voice_fx(v)

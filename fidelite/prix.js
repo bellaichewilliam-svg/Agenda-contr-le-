@@ -17,32 +17,32 @@
       foot: ["ההקמה עלינו: יוצרים איתכם את הכרטיס תוך 2 דקות.", "מעמד לדלפק עם קוד ה-QR שלכם: 49 ₪ (אופציונלי)."] }
   };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const css = `.prices{margin-top:34px}.prices .grid3{display:grid;gap:16px}@media(min-width:900px){.prices .grid3{grid-template-columns:repeat(3,1fr);align-items:start}}
-    .plan{position:relative}.plan.best{transform:rotate(-1deg)}.plan .pname{display:inline-block;font-weight:700;font-size:20px;padding:2px 14px;border:2.5px solid var(--ink);border-radius:999px;box-shadow:2px 2px 0 var(--ink)}
-    .plan .price{font-weight:700;font-size:46px;line-height:1;margin:14px 0 4px}.plan .price small{font-size:17px;font-weight:600;color:var(--muted)}
-    .plan ul{margin:12px 0 0;padding:0;list-style:none}.plan li{padding:7px 0 7px 30px;position:relative;border-top:2px dashed #EFE3D6;font-size:16px}[dir=rtl] .plan li{padding:7px 30px 7px 0}
-    .plan li:first-child{border-top:0}.plan li::before{content:"";position:absolute;inset-inline-start:2px;top:11px;width:18px;height:18px;border-radius:50%;background:var(--green);border:2px solid var(--ink)}
-    .plan .reco{position:absolute;top:-14px;inset-inline-end:16px;background:var(--ink);color:#fff;font-weight:700;font-size:14px;padding:4px 12px;border-radius:999px;box-shadow:2px 2px 0 var(--orange)}`;
+  const css = `.prices .grid3{display:grid;gap:12px}@media(min-width:900px){.prices .grid3{grid-template-columns:repeat(3,1fr);align-items:stretch;gap:14px}}
+    .plan{position:relative;margin:0;padding:22px 20px}.plan.best{border:2px solid var(--navy)}.plan .pname{display:inline-block;font-weight:700;font-size:15px;padding:4px 12px;border-radius:999px;background:var(--p-blue);color:var(--navy)}
+    .plan:nth-child(1) .pname{background:var(--p-yellow);color:#7A5300}.plan:nth-child(3) .pname{background:var(--p-violet);color:#5B2A86}
+    .plan .price{font-weight:800;font-size:42px;line-height:1;margin:16px 0 4px;letter-spacing:-1px}.plan .price small{font-size:16px;font-weight:500;color:var(--muted);letter-spacing:0}
+    .plan ul{margin:14px 0 0;padding:0;list-style:none}.plan li{padding:8px 0 8px 28px;position:relative;border-top:1px solid var(--line);font-size:15px}[dir=rtl] .plan li{padding:8px 28px 8px 0}
+    .plan li:first-child{border-top:0}.plan li::before{content:"";position:absolute;inset-inline-start:0;top:12px;width:18px;height:18px;border-radius:50%;background:var(--p-green) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2314532D' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4L18 8'/%3E%3C/svg%3E") center/12px no-repeat}
+    .plan .reco{position:absolute;top:-12px;inset-inline-end:16px;background:var(--navy);color:#fff;font-weight:700;font-size:13px;padding:3px 12px;border-radius:999px}
+    .prices .pfoot{display:grid;gap:6px;margin-top:12px}.prices .pfoot div{display:flex;gap:8px;align-items:flex-start;color:var(--muted);font-size:15px}`;
   function render(app) {
     const L = document.documentElement.lang === "he" ? "he" : "fr", t = T[L];
     const sec = document.createElement("section");
-    sec.className = "prices";
-    sec.innerHTML = `<h2 class="h1" style="font-size:30px">${L === "he" ? `<span class="tag t-green">${esc(t.tag)}</span>` : `Les <span class="tag t-green">${esc(t.tag)}</span>`}</h2>
-      <p class="sub">${esc(t.s)}</p>
+    sec.className = "prices sec";
+    sec.innerHTML = `<div class="sec-h"><h2 class="h3s">${esc(t.t)}</h2><p>${esc(t.s)}</p></div>
       <div class="grid3">${t.plans.map(([n, p, c, f], i) => `<div class="box plan${i === 1 ? " best" : ""}">${i === 1 ? `<span class="reco">${esc(t.reco)}</span>` : ""}
         <span class="pname ${c}">${esc(n)}</span>
         <div class="price"><bdi dir="ltr">${p} ₪</bdi> <small>${esc(t.m)}</small></div>
         <ul>${f.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`).join("")}</div>
-      <div class="box soft">${t.foot.map(x => `<div style="margin:4px 0">${esc(x)}</div>`).join("")}</div>
-      <a class="btn orange big" href="pro.html">${esc(t.go)}</a>`;
-    const foot = app.querySelector(".foot");
-    app.insertBefore(sec, foot || null);
+      <div class="box soft pfoot">${t.foot.map(x => `<div>${esc(x)}</div>`).join("")}</div>`;
+    const slot = app.querySelector("#prix");
+    if (slot) slot.appendChild(sec); else app.insertBefore(sec, app.querySelector(".foot") || null);
   }
   function boot() {
     const app = document.getElementById("app");
     if (!app) return;
     const st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);
-    const ensure = () => { if (app.querySelector(".grid2") && !app.querySelector(".prices")) render(app); };
+    const ensure = () => { if (app.querySelector("#fonctions") && !app.querySelector(".prices")) render(app); };
     new MutationObserver(ensure).observe(app, { childList: true });
     ensure();
   }
