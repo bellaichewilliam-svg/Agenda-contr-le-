@@ -590,7 +590,7 @@ const extPic = s => typeof s === "string" && EXT_PIC.test(s);
 const safeImg = s => (typeof s !== "string" ? "" : /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(s) || /^img\/[a-z0-9-]+\/[a-z0-9-]+\.(webp|png|jpg)$/.test(s) || extPic(s) ? s : picUrl(s));
 // Image d'une autre adresse (photo servie par la base) : « crossorigin » pour que l'appli puisse voir si son fond est blanc
 // (pas pour les photos des magasins : leur site ne le permet pas ; ce sont des produits sur fond blanc)
-const imgCors = src => (/^https:/.test(src || "") && !extPic(src) ? ' crossorigin="anonymous"' : "");
+const imgCors = src => (/^https:/.test(src || "") && !extPic(src) ? ' crossorigin="anonymous"' : extPic(src) ? ' referrerpolicy="no-referrer"' : "");
 // Vitrines de démonstration : leurs images sont des fichiers de l'appli (img/demo/demo-resto-cover.jpg…)
 const demoImg = (s, k) => (s && s.demo && /^DEMO-[A-Z]+$/.test(s.code || "") ? `img/demo/${s.code.toLowerCase()}-${k}.jpg` : "");
 function proCard(s, o) {
