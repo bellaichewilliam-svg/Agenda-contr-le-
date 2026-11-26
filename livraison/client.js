@@ -9671,7 +9671,7 @@ function vitFindRender(q, products, shops, staple, box) {
   const cmpBox = !Array.isArray(cmpData) ? (cmpData === null ? `<section class="fr-cmp fr-cmp2 wait"><div class="fr-cmp-h"><b>${UI.esc(t("cmpT"))}</b><small>${UI.esc(t("cmpWait"))}</small></div><i class="fr-cmp-sk"></i><i class="fr-cmp-sk"></i></section>` : cmpHtml)
     : !cmpData.length ? cmpHtml : `<section class="fr-cmp fr-cmp2"><div class="fr-cmp-h"><b>${UI.esc(t("cmpT"))}</b><small>${UI.esc(t("cmpS"))}</small></div>${cmpData.map(g => {
       const st = (g.st || []).filter(x => x && x.s && Number(x.p) > 0), lo = Math.min(...st.map(x => Number(x.p))), hi = Math.max(...st.map(x => Number(x.p)));
-      const ph = UI.safeImg(g.ph), nm = g.fr ? frName(g.fr) : `<b class="fr-prod">${UI.esc(g.he || "")}</b>`, gap = Math.round((hi - lo) * 100) / 100;
+      const ph = UI.safeImg(g.ph), nm = I18N.lang === "he" && g.he ? frName(g.he) : g.fr ? frName(g.fr) : `<b class="fr-prod">${UI.esc(g.he || "")}</b>`, gap = Math.round((hi - lo) * 100) / 100;
       const nLo = st.filter(x => Number(x.p) === lo).length, shown = st.slice(0, Math.max(3, nLo)), more = st.length - shown.length;
       return `<div class="fr-cmp2-row"><div class="fr-cmp2-top"><span class="fr-cmp-pic">${ph ? `<img src="${ph}"${UI.imgCors(ph)} alt="" loading="lazy" onerror="this.remove()" />` : ""}</span>
         <span class="fr-cmp-nm">${nm}<small class="fr-cmp2-sum">${UI.esc(t(gap > 0 ? "cmpSum" : "cmpSame", { n: st.length, gap: money(gap) }))}</small></span></div>
