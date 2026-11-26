@@ -67,7 +67,7 @@
   "id": "fr09",
   "lang": "fr",
   "at": 878,
-  "text": "Il ne revient plus ? La carte le relance.",
+  "text": "Il ne revient plus ? On le relance.",
   "cfg": 0.8,
   "exaggeration": 0.45
  },
@@ -83,7 +83,7 @@
   "id": "fr11",
   "lang": "fr",
   "at": 1026,
-  "text": "Une promo ? Un message, et tous tes clients sont prévenus.",
+  "text": "Une promo ? Tous tes clients sont prévenus.",
   "cfg": 0.8,
   "exaggeration": 0.45
  },
@@ -99,7 +99,7 @@
   "id": "fr13",
   "lang": "fr",
   "at": 1250,
-  "text": "Parrainage, statistiques, Apple et Google Wallet.",
+  "text": "Parrainage, statistiques, Apple et Google.",
   "cfg": 0.8,
   "exaggeration": 0.45
  },
@@ -107,7 +107,7 @@
   "id": "fr14",
   "lang": "fr",
   "at": 1340,
-  "text": "Ta carte de fidélité. Simple, jolie, dans le téléphone de tes clients.",
+  "text": "Ta carte de fidélité, dans le téléphone de tes clients.",
   "cfg": 0.8,
   "exaggeration": 0.45
  },
@@ -211,7 +211,7 @@
   "id": "he13",
   "lang": "he",
   "at": 1250,
-  "text": "חבר מביא חבר, סטטיסטיקות, אפל וגוגל וולט.",
+  "text": "חבר מביא חבר, סטטיסטיקות, אפל וגוגל.",
   "cfg": 0.8,
   "exaggeration": 0.45
  },
@@ -219,7 +219,7 @@
   "id": "he14",
   "lang": "he",
   "at": 1340,
-  "text": "כרטיס המועדון שלך. פשוט, יפה, בטלפון של הלקוחות.",
+  "text": "כרטיס המועדון שלך, בטלפון של הלקוחות.",
   "cfg": 0.8,
   "exaggeration": 0.45
  }

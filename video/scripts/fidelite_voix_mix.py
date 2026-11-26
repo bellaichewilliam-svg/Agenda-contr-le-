@@ -74,7 +74,8 @@ for lang in ("fr", "he"):
         s = int(start * SR)
         cursor = start + v.shape[1] / SR
         e = min(N, s + v.shape[1])
-        voice[:, s:e] += v[:, : e - s]
+        if e > s:
+            voice[:, s:e] += v[:, : e - s]
     # Baisse de la musique sous la voix (enveloppe lissée, attaque 80 ms, relâche 350 ms)
     env = (np.abs(voice).max(0) > 0.02).astype(np.float32)
     k = np.ones(int(0.35 * SR)) / int(0.35 * SR)
