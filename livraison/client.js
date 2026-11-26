@@ -4598,6 +4598,15 @@ function d6Fill() {
   const m = document.getElementById("d6SRow"); if (m) { const h2 = d6RestoCards(d6ShopList(), d6NewTag) + d6FreeCard(); if (m.dataset.html !== h2) { m.innerHTML = h2; m.dataset.html = h2; d6Center(m); } }
   const b = document.getElementById("d5Tick"); if (b && !b.dataset.names && (state.showcase || []).length) { b.dataset.names = "1"; d5Home(); }
 }
+// (patron 26/11 : « rends plus jolie cette première affiche ») une seule ligne d'info, les logos alignés, Max Stock en
+// petite étiquette « Nouveau » : rien ne se chevauche, rien n'est penché
+function d6SupInfo(he) {
+  return `<div class="d6-sup">
+    <span class="d6-sup-p">${UI.esc(he ? "החל מ־25 ₪ בעיר" : "Dès 25 ₪ en ville")}</span>
+    <span class="d6-sup-l">${UI.esc(he ? "רמי לוי, קרפור, ויקטורי ועוד 6" : "Rami Lévy, Carrefour, Victory et 6 autres")}</span>
+    <span class="d6-sup-mx"><img src="img/maxstock/logo.webp" alt="" /><span><small>${UI.esc(he ? "חדש" : "Nouveau")}</small><b>${UI.esc(he ? "מקס סטוק" : "Max Stock")}</b></span></span>
+  </div>`;
+}
 function d5Home() {
   if (!document.documentElement.classList.contains("d5")) return;
   const top = document.getElementById("vitTop"), sheet = document.getElementById("homeSheet");
@@ -4605,12 +4614,12 @@ function d5Home() {
   const he = I18N.lang === "he", A = he ? "‹" : "›";
   // 1. Les grands blocs en slides (pleine couleur, photo détourée, titre, bulles) — ils défilent tout seuls, on glisse au doigt
   const S = he ? [
-    ["c1", "light", "עושים לכם", "את הקניות", "במחיר הכי טוב, מבטיחים", ["הכי מהר", "החל מ־25 ₪ בעיר"], "img/v4/super-he.webp", "sup", "d4:super", "לסופרמרקטים"],
+    ["c1", "light", "עושים לכם", "את הקניות", "במחיר הכי טוב, מבטיחים", ["הכי מהר", "החל מ־25 ₪ בעיר"], "img/v4/super-bag.webp", "sup", "d4:super", "לסופרמרקטים"],
     ["c3", "light", "המסעדות", "שלכם", "האוכל מגיע חם", ["סמאש איט", "רפאלו", "ג׳פן ג׳פן"], "img/smashit/burger-royal.webp", "dish", "kind:resto", "למסעדות"],
     ["c2", "dark", "כל המבצעים", "במקום אחד", "עד ‎−50%‎", ["Carrefour", "רמי לוי"], "img/v4/bamba.webp", "prod", "d4:promo", "למבצעים"],
     ["c4", "dark", "בית מרקחת", "בלי לזוז", "בלי מרשם, עד הבית", ["אקמול", "חיתולים"], "", "cross", "d4:pharm", "להזמנה"],
   ] : [
-    ["c1", "light", "On fait vos", "courses", "pour vous, promis", ["au plus vite", "dès 25 ₪ en ville"], "img/v4/super-fr.webp", "sup", "d4:super", "Vos supermarchés"],
+    ["c1", "light", "On fait vos", "courses", "pour vous, promis", ["au plus vite", "dès 25 ₪ en ville"], "img/v4/super-bag.webp", "sup", "d4:super", "Vos supermarchés"],
     ["c3", "light", "Vos restos", "préférés", "votre plat arrive chaud", ["Smash It", "Raffaello", "Japan Japan"], "img/smashit/burger-royal.webp", "dish", "kind:resto", "Voir les restos"],
     ["c2", "dark", "Toutes les", "promos", "jusqu'à −50 %", ["Carrefour", "Rami Lévy"], "img/v4/bamba.webp", "prod", "d4:promo", "Voir les promos"],
     ["c4", "dark", "La pharmacie", "sans bouger", "sans ordonnance, chez vous", ["Acamol", "couches"], "", "cross", "d4:pharm", "Commander"],
@@ -4620,7 +4629,7 @@ function d5Home() {
   const cross = `<span class="d6-cross"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/></svg></span>`;
   sl.innerHTML = `<div class="d6-track">${S.map(([c, tone, a, b, note, bubs, img, kind, go, btn], k) => `<article class="d6-slide ${tone} k-${kind}" style="--s:var(--${c})">
       <h2 class="d6-st"><span>${UI.esc(a)}</span><span>${UI.esc(b)}</span></h2><p class="d6-sn">${UI.esc(note)}</p>
-      ${kind === "dish" && d6RestoList().length ? d6RestoList().slice(0, 3).map((x, n) => `<button type="button" class="d6-bub b${n}" data-d4-pro="${UI.esc(x.code)}">${UI.esc(d4Nm(x))}</button>`).join("") : bubs.map((x, n) => `<span class="d6-bub b${n}">${UI.esc(x)}</span>`).join("")}
+      ${kind === "sup" ? d6SupInfo(he) : kind === "dish" && d6RestoList().length ? d6RestoList().slice(0, 3).map((x, n) => `<button type="button" class="d6-bub b${n}" data-d4-pro="${UI.esc(x.code)}">${UI.esc(d4Nm(x))}</button>`).join("") : bubs.map((x, n) => `<span class="d6-bub b${n}">${UI.esc(x)}</span>`).join("")}
       ${img ? `<i class="d6-halo" aria-hidden="true"></i><i class="d6-ground" aria-hidden="true"></i><img class="d6-si" src="${img}" alt="" ${k ? 'loading="lazy"' : ""} />` : cross}${kind === "prod" ? `<span class="d6-pg" aria-hidden="true"></span>` : ""}
       <button type="button" class="d6-btn" data-d5go="${go}">${UI.esc(btn)} <i>${A}</i></button></article>`).join("")}</div>
     <div class="d6-dots">${S.map((_, k) => `<i class="${k ? "" : "on"}"></i>`).join("")}</div>

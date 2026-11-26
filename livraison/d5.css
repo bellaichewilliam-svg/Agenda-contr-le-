@@ -1368,3 +1368,18 @@ html.d5 body .k-sup .d6-halo { width: 230px; height: 230px; bottom: 56px; inset-
 html.d5 #d6SRow .d6-free .d6-rp{background:#E8F2FF;display:flex;align-items:center;justify-content:center}
 html.d5 #d6SRow .d6-free .d6-rp img{max-width:78%;max-height:88%;object-fit:contain}
 html.d5 #d6SRow .d6-free b{font-size:20px!important;white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important}
+/* (patron 26/11 : « rends plus jolie cette première affiche ») slide 1 épuré : titre → sous-titre → une ligne d'info → logos → bouton ;
+   le sac en entier à droite, rien de penché, rien qui se chevauche */
+html.d5 body .k-sup .d6-bub { display: none !important; }
+html.d5 body .k-sup .d6-sup { position: absolute; z-index: 4; inset-inline-start: 38px; top: 180px; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+html.d5 body .k-sup .d6-sup-p { display: inline-block; padding: 7px 13px; border-radius: 999px; background: #fff; color: var(--ink); font: 800 13px/1.2 Heebo, sans-serif; white-space: nowrap; box-shadow: 0 6px 14px rgba(11,40,80,.18); }
+html.d5 body .k-sup .d6-sup-l { display: block; max-width: max(128px, min(168px, calc(100vw - 236px))); color: #fff; font: 700 13px/1.35 Heebo, sans-serif; opacity: .95; }
+html.d5 body .k-sup .d6-sup-mx { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px 4px 4px; border-radius: 999px; background: rgba(15,31,61,.22); color: #fff; }
+html[dir=rtl].d5 body .k-sup .d6-sup-mx { padding: 4px 4px 4px 12px; }
+html.d5 body .k-sup .d6-sup-mx img { width: 30px; height: 30px; border-radius: 50%; background: #fff; object-fit: cover; }
+html.d5 body .k-sup .d6-sup-mx span { display: flex; flex-direction: column; line-height: 1.05; }
+html.d5 body .k-sup .d6-sup-mx small { font: 800 10px Heebo, sans-serif; letter-spacing: .04em; text-transform: uppercase; color: #FFE14A; }
+html.d5 body .k-sup .d6-sup-mx b { font: 800 13px Heebo, sans-serif; }
+html.d5 body .k-sup .d6-si { height: 228px !important; max-width: 50% !important; bottom: 58px !important; inset-inline-end: 12px !important; transform: none !important; }
+html.d5 body .k-sup .d6-halo { width: 220px; height: 220px; bottom: 64px; inset-inline-end: 0; }
+html.d5 body .k-sup .d6-ground { inset-inline-end: 34px; bottom: 54px; width: 150px; }
