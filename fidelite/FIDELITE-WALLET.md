@@ -8,7 +8,8 @@
 - Un nouveau commerçant crée sa carte lui-même : https://carte-fidelite-wallet.vercel.app/pro.html
 
 ## Séparé de HOP!
-- Dossier `fidelite/` du dépôt, site Vercel à part (`carte-fidelite-wallet`), mis en ligne par envoi de fichiers : un changement dans HOP! ne touche pas ce site, et inversement.
+- Dossier `fidelite/` du dépôt, site Vercel à part (`carte-fidelite-wallet`, dossier racine `fidelite`). Mise en ligne : `create_deployment` avec `gitSource` (GitHub, branche + commit) sur le projet `prj_MW67xDRVR8juT7lbCjh377fC0RA4`, cible production. Le projet n'est pas relié au dépôt : un changement dans HOP! ne touche pas ce site, et inversement.
+- Design (refonte du 26/11/2026, demande du patron) : même style que le côté client de HOP! (fond blanc, Heebo, lignes fines, carrés pastel, un seul orange pour l'action, onglet actif bleu nuit, pas d'ombre ni d'émoji). Accueil avec démo interactive, 10 fonctions, étapes, prix, questions ; espace commerçant avec idées de messages, liste des clients en Excel, lien par WhatsApp.
 - Base : tables `fid_shops`, `fid_cards`, `fid_events`, `fid_apple_devices` (aucun lien avec les tables de HOP!). Même projet Supabase, mais rien de partagé.
 - Fonction serveur `fid-wallet` (Google + Apple + images des tampons). Tâche du matin `fid-daily` (7 h 17 UTC : anniversaires, relances).
 
