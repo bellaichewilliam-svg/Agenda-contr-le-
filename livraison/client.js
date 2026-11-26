@@ -4566,14 +4566,27 @@ document.addEventListener("click", e => {
 // (le reste du style est dans d5.css ; ici seulement ce qui n'existait pas dans la page : surtitre, grand titre, Hoppy, repères)
 const d6RestoList = () => (state.showcase || []).filter(x => /restaurant|resto|food|cafe/i.test(x.kind || "") && !x.paused).slice(0, 10);
 const D6_CARD = ["#1E9BF0", "#0B4A6F", "#FF5D73", "#13A88A", "#7C5CE0"];
-const d6RestoCards = (list, tag) => list.map((x, k) => { const pic = UI.safeImg(x.cover) || UI.safeImg(x.logo), st = shopState(x), open = !x.paused && (!st || st.open);
-  return `<button type="button" class="d6-rc" data-d4-pro="${UI.esc(x.code)}" style="--rc:${D6_CARD[k % D6_CARD.length]}"><span class="d6-rp"${pic ? ` style="background-image:url('${pic}')"` : ""}></span>${tag ? `<span class="d6-st2">${UI.esc(tag)}</span>` : ""}<b>${UI.esc(d4Nm(x))}</b><small>${UI.esc(open ? (I18N.lang === "he" ? "פתוח · החל מ־25 ₪" : "Ouvert · dès 25 ₪") : (I18N.lang === "he" ? "סגור · אפשר לתזמן" : "Fermé · à programmer"))}</small></button>`; }).join("");
-const d6ShopList = () => (state.showcase || []).filter(x => !/restaurant|resto|food|cafe/i.test(x.kind || "") && !x.paused).slice(0, 12);
+const d6RestoCards = (list, tag) => list.map((x, k) => { const tg = typeof tag === "function" ? tag(x) : tag; const pic = UI.safeImg(x.cover) || UI.safeImg(x.logo), st = shopState(x), open = !x.paused && (!st || st.open);
+  return `<button type="button" class="d6-rc" data-d4-pro="${UI.esc(x.code)}" style="--rc:${D6_CARD[k % D6_CARD.length]}"><span class="d6-rp"${pic ? ` style="background-image:url('${pic}')"` : ""}></span>${tg ? `<span class="d6-st2">${UI.esc(tg)}</span>` : ""}<b>${UI.esc(d4Nm(x))}</b><small>${UI.esc(open ? (I18N.lang === "he" ? "פתוח · החל מ־25 ₪" : "Ouvert · dès 25 ₪") : (I18N.lang === "he" ? "סגור · אפשר לתזמן" : "Fermé · à programmer"))}</small></button>`; }).join("");
+// (patron 26/11 : « montre-leur qu'il y a bien Max Stock ») Max Stock en 2e carte : centrée au chargement, avec « Nouveau »
+const D6_NEW = ["HOPMAXSTOCK"];
+const d6ShopList = () => { const l = (state.showcase || []).filter(x => !/restaurant|resto|food|cafe/i.test(x.kind || "") && !x.paused);
+  const nw = l.filter(x => D6_NEW.includes(x.code)), rest = l.filter(x => !D6_NEW.includes(x.code));
+  return (nw.length ? rest.slice(0, 1).concat(nw, rest.slice(1)) : rest).slice(0, 12); };
+const d6NewTag = x => D6_NEW.includes(x.code) ? (I18N.lang === "he" ? "חדש" : "Nouveau") : "";
+// (patron 26/11 : « je les préférais au milieu, qu'ils comprennent qu'il y a un avant et un après ») la 2e carte centrée au départ
+function d6Center(row) {
+  if (!row || row.dataset.touched) return;
+  const c = row.children[1] || row.children[0]; if (!c) return;
+  requestAnimationFrame(() => { const r = row.getBoundingClientRect(), b = c.getBoundingClientRect(); if (!r.width) return;
+    row.scrollLeft += (b.left + b.width / 2) - (r.left + r.width / 2); });
+  if (!row.dataset.cw) { row.dataset.cw = "1"; ["touchstart", "pointerdown", "wheel"].forEach(ev => row.addEventListener(ev, () => { row.dataset.touched = "1"; }, { passive: true })); }
+}
 // (les commerces arrivent après l'accueil : la rangée des restos et la bande de noms se remplissent quand ils sont là)
 function d6Fill() {
   const r = document.getElementById("d6RRow"); if (!r) return;
-  const html = d6RestoCards(d6RestoList()); if (r.dataset.html !== html) { r.innerHTML = html; r.dataset.html = html; }
-  const m = document.getElementById("d6SRow"); if (m) { const h2 = d6RestoCards(d6ShopList()); if (m.dataset.html !== h2) { m.innerHTML = h2; m.dataset.html = h2; } }
+  const html = d6RestoCards(d6RestoList()); if (r.dataset.html !== html) { r.innerHTML = html; r.dataset.html = html; d6Center(r); }
+  const m = document.getElementById("d6SRow"); if (m) { const h2 = d6RestoCards(d6ShopList(), d6NewTag); if (m.dataset.html !== h2) { m.innerHTML = h2; m.dataset.html = h2; d6Center(m); } }
   const b = document.getElementById("d5Tick"); if (b && !b.dataset.names && (state.showcase || []).length) { b.dataset.names = "1"; d5Home(); }
 }
 function d5Home() {
@@ -4583,12 +4596,12 @@ function d5Home() {
   const he = I18N.lang === "he", A = he ? "‹" : "›";
   // 1. Les grands blocs en slides (pleine couleur, photo détourée, titre, bulles) — ils défilent tout seuls, on glisse au doigt
   const S = he ? [
-    ["c1", "light", "עושים לכם", "את הקניות", "במחיר הכי טוב, מבטיחים", ["הכי מהר", "החל מ־25 ₪ בעיר"], "img/v4/hoppy.webp", "hop", "d4:shops", "להזמנה"],
+    ["c1", "light", "עושים לכם", "את הקניות", "במחיר הכי טוב, מבטיחים", ["הכי מהר", "החל מ־25 ₪ בעיר"], "img/v4/super-he.webp", "sup", "d4:super", "לסופרמרקטים"],
     ["c3", "light", "המסעדות", "שלכם", "האוכל מגיע חם", ["סמאש איט", "רפאלו", "ג׳פן ג׳פן"], "img/smashit/burger-royal.webp", "dish", "kind:resto", "למסעדות"],
     ["c2", "dark", "כל המבצעים", "במקום אחד", "עד ‎−50%‎", ["Carrefour", "רמי לוי"], "img/v4/bamba.webp", "prod", "d4:promo", "למבצעים"],
     ["c4", "dark", "בית מרקחת", "בלי לזוז", "בלי מרשם, עד הבית", ["אקמול", "חיתולים"], "", "cross", "d4:pharm", "להזמנה"],
   ] : [
-    ["c1", "light", "On fait vos", "courses", "pour vous, promis", ["au plus vite", "dès 25 ₪ en ville"], "img/v4/hoppy.webp", "hop", "d4:shops", "Commander"],
+    ["c1", "light", "On fait vos", "courses", "pour vous, promis", ["au plus vite", "dès 25 ₪ en ville"], "img/v4/super-fr.webp", "sup", "d4:super", "Vos supermarchés"],
     ["c3", "light", "Vos restos", "préférés", "votre plat arrive chaud", ["Smash It", "Raffaello", "Japan Japan"], "img/smashit/burger-royal.webp", "dish", "kind:resto", "Voir les restos"],
     ["c2", "dark", "Toutes les", "promos", "jusqu'à −50 %", ["Carrefour", "Rami Lévy"], "img/v4/bamba.webp", "prod", "d4:promo", "Voir les promos"],
     ["c4", "dark", "La pharmacie", "sans bouger", "sans ordonnance, chez vous", ["Acamol", "couches"], "", "cross", "d4:pharm", "Commander"],
@@ -4649,7 +4662,7 @@ function d5Home() {
   if (!sh) { sh = document.createElement("section"); sh.id = "d6Shops"; sh.className = "d6-block d6-shops"; sheet.appendChild(sh); }
   sh.innerHTML = `<svg class="d6-torn" viewBox="0 0 390 16" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0H390V6L374 14 360 5 346 13 330 6 316 15 300 7 286 14 270 5 256 13 240 6 226 15 210 7 196 14 180 5 166 13 150 6 136 15 120 7 106 14 90 5 76 13 60 6 46 15 30 7 16 14 0 6Z"/></svg>
     <h2 class="d6-bt">${UI.esc(he ? "עושים קניות" : "Faites vos courses")}</h2><p class="d6-bs">${UI.esc(he ? "כל החנויות, הכי זול מנצח" : "Tous les magasins, le moins cher gagne")}</p>
-    <div class="d6-rrow" id="d6SRow">${d6RestoCards(d6ShopList())}</div>
+    <div class="d6-rrow" id="d6SRow">${d6RestoCards(d6ShopList(), d6NewTag)}</div>
     <button type="button" class="d6-btn" data-d5go="d4:shops">${UI.esc(he ? "לכל החנויות" : "Tous les magasins")} ${A === "›" ? "<i>›</i>" : "<i>‹</i>"}</button>`;
   // 4. Le dernier bloc : partager HOP!, WhatsApp — en grosses pilules pleine couleur
   let en = document.getElementById("d6End");
@@ -4657,6 +4670,7 @@ function d5Home() {
   en.innerHTML = `<h2 class="d6-bt">${UI.esc(he ? "HOP! עם החברים" : "HOP! entre amis")}</h2><p class="d6-bs">${UI.esc(he ? "שתפו את האפליקציה, או שלחו לנו רשימה בוואטסאפ" : "Partagez l'appli, ou envoyez-nous votre liste sur WhatsApp")}</p>
     <div class="d6-pills"><button type="button" class="d6-big" data-share-app>${UI.esc(he ? "לשתף את HOP!" : "Partager HOP!")}</button><button type="button" class="d6-big wa" data-d6wa>${UI.esc(he ? "רשימה בוואטסאפ" : "Ma liste sur WhatsApp")}</button></div>`;
   en.querySelector("[data-d6wa]").onclick = () => { const a = document.querySelector("#homeSheet .vit-wa, #homeSheet a.wa-list"); if (a) a.click(); };
+  d6Center(document.getElementById("d6RRow")); d6Center(document.getElementById("d6SRow"));
 }
 d5Home(); window.addEventListener("hop:lang", d5Home);
 // Accueil en affiches (patron, 24/11 : « on ne fait plus ces tuiles ») : les rubriques en affiches de couleur, mot géant + vraie
@@ -4716,7 +4730,9 @@ document.addEventListener("click", e => {
   // (la tuile « promo » change de forme selon les promos du jour, le bouton ne la trouvait plus)
   UI.track("d5_go", { page: g.dataset.d5go });
   if (id === "promo") return openPromosAll("");
-  if (id === "shops") return d4MagOpen();
+  if (id === "shops") { d4m.f = ""; d4m.q = ""; return d4MagOpen(); }
+  // (patron 26/11 : « quand il clique, il tombe uniquement sur les super ») le slide des courses : nos supermarchés seulement
+  if (id === "super") { d4m.f = "super"; d4m.q = ""; return d4MagOpen(); }
   if (id === "mikve") return mikveOpen();
   // (patron 24/11 : « Tous les restos ne fonctionne pas ») la liste des restaurants, directement
   if (id === "resto") { d4m.f = "k:restaurant"; d4m.q = ""; return d4MagOpen(); }
@@ -6943,11 +6959,14 @@ const d4m = { q: "", f: "" };
 const d4Top = x => Number(x.ratings) >= 3 && Number(x.rating) >= 4.5;
 const d4Reco = x => Number(x.ratings) >= 5 && Number(x.rating) >= 4.5;
 const d4Stars = x => Number(x.ratings) > 0 ? `<span class="d4-rt">★ ${UI.esc(String(x.rating).replace(".", ","))} <i>(${Number(x.ratings)})</i></span>` : "";
+// Nos supermarchés (slide « On fait vos courses » et filtre « Supermarchés »), dans cet ordre ; Max Stock (ouvert le 26/11) en dernier
+const D4_SUPER = ["HOPRAMILEVY", "HOPCARREFOUR", "HOPOSHERAD", "HOPSHUFERSAL", "HOPVICTORY", "HOPYOHANANOF", "HOPTIVTAAM", "HOPUNIVERSE", "HOPLAHAV", "HOPMAXSTOCK"];
 function d4mPass(x, f) {
   if (!f) return true;
   if (f === "hop") return isHopShop(x) || /^HOP/.test(String(x.code || ""));
   if (f === "open") { const st = shopState(x); return !st || st.open; }
   if (f === "top") return d4Top(x);
+  if (f === "super") return D4_SUPER.includes(String(x.code || "").toUpperCase());
   if (f === "kosher") return isKosher(x) && (x.kind === "restaurant" || x.kind === "traiteur");
   return x.kind === f.slice(2);
 }
@@ -6960,11 +6979,11 @@ function d4MagRender() {
     .filter(x => d4mPass(x, d4m.f) && (!d4m.kosher || isKosher(x)))
     .filter(x => !words.length || (h => words.every(w => h.includes(w)))(hvFold(x.name + " " + (x.name_he || ""))))
     .map(x => ({ x, st: shopState(x) }))
-    .sort((a, b) => (d4m.f === "top" ? (Number(b.x.rating) - Number(a.x.rating)) || (Number(b.x.ratings) - Number(a.x.ratings)) : 0) || (isHopShop(b.x) - isHopShop(a.x)) || ((b.st ? b.st.open : 1) - (a.st ? a.st.open : 1)));
+    .sort((a, b) => (d4m.f === "super" ? D4_SUPER.indexOf(String(a.x.code).toUpperCase()) - D4_SUPER.indexOf(String(b.x.code).toUpperCase()) : 0) || (d4m.f === "top" ? (Number(b.x.rating) - Number(a.x.rating)) || (Number(b.x.ratings) - Number(a.x.ratings)) : 0) || (isHopShop(b.x) - isHopShop(a.x)) || ((b.st ? b.st.open : 1) - (a.st ? a.st.open : 1)));
   // Filtres faits à partir des vrais commerces (patron 22/11 : jamais de filtre vide, aucun métier oublié)
   const pool = (state.showcase || []).filter(x => !x.paused);
   const kinds = [...new Set(pool.map(x => x.kind).filter(Boolean))].sort((a, b) => pool.filter(x => x.kind === b).length - pool.filter(x => x.kind === a).length);
-  const fl = [["", t("d4mAll")], ["top", t("d4mTop")], ["hop", t("d4mHop")], ["open", t("d4mOpenF")]].concat(kinds.map(k => ["k:" + k, ((t("shKinds") || {})[k] || k).replace(/^\P{L}+/u, "")]))
+  const fl = [["", t("d4mAll")], ["super", I18N.lang === "he" ? "סופרמרקטים" : "Supermarchés"], ["top", t("d4mTop")], ["hop", t("d4mHop")], ["open", t("d4mOpenF")]].concat(kinds.map(k => ["k:" + k, ((t("shKinds") || {})[k] || k).replace(/^\P{L}+/u, "")]))
     .filter(([k]) => !k || pool.some(x => d4mPass(x, k)));
   if (!fl.some(([k]) => k === d4m.f)) d4m.f = "";
   if (d4m.f !== "k:restaurant") d4m.kosher = false;
@@ -7036,7 +7055,7 @@ document.addEventListener("click", e => {
   if (k === "again") return reorderGo(0);
   if (k === "first") return hvOpenTalk();   // « Tapez ou parlez » : le micro de Hoppy s'ouvre
   if (k === "mikve") return mikveOpen();
-  if (k === "shops") return d4MagOpen();
+  if (k === "shops") { if (d4m.f === "super") d4m.f = ""; return d4MagOpen(); }
   if (k === "anyshop") { const vc = $("#vitCourse"); if (vc) vc.click(); return; }
   const kb = document.querySelector(`#homeKinds [data-kind="${k}"]`);
   if (kb) kb.click(); else if (k === "poste") { const vc = $("#vitCourse"); if (vc) vc.click(); }
@@ -7923,7 +7942,7 @@ if (D3) (() => {
     const b = e.target.closest("[data-d3nav]"); if (!b) return;
     const k = b.dataset.d3nav;
     if (k !== "shops") d4MagClose(true);
-    if (k === "shops") { home(); d4MagOpen(); }
+    if (k === "shops") { home(); if (d4m.f === "super") d4m.f = ""; d4MagOpen(); }
     if (k === "home") { home(); $("#accueil").classList.remove("d3c"); window.scrollTo({ top: 0, behavior: "smooth" }); }
     if (k === "course") { home(); setTimeout(() => $("#vitCourse").click(), 60); }
     if (k === "orders" || k === "me") {

@@ -1355,3 +1355,12 @@ html.d5 body #vitTop:has(#homeFindList:not(.hidden)) { overflow: visible !import
 html.d5 body #homeFindList:not(.hidden) { z-index: 90 !important; box-shadow: 0 18px 40px rgba(11,74,111,.25) !important; }
 html.d5 body #homeFindList#homeFindList :is(b, bdi, .fr-nm, h5, .fr-name b, .fi-txt b) { color: #0B4A6F !important; }
 html.d5 body #homeFindList#homeFindList .fr-nm { color: #24384A !important; }
+/* (patron 26/11) carrousels des restos et des magasins : la carte au milieu, un bout de celle d'avant et de celle d'après */
+html.d5 body .d6-rrow { scroll-snap-type: x mandatory; padding-inline: max(22px, calc(50vw - 84px)) !important; scroll-padding-inline: 0; }
+html.d5 body .d6-rrow > .d6-rc { scroll-snap-align: center; }
+html.d5 body .d6-shops .d6-rc .d6-st2 { background: #FFE14A; }
+/* slide « On fait vos courses » : le sac de courses avec nos supermarchés */
+html.d5 body .k-sup .d6-si { height: 250px !important; max-width: 66% !important; bottom: 40px !important; inset-inline-end: 0 !important; }
+html.d5 body .k-sup .d6-bub.b0 { display: none !important; }
+html.d5 body .k-sup .d6-bub.b1 { top: 164px !important; inset-inline-start: 34px; }
+html.d5 body .k-sup .d6-halo { width: 230px; height: 230px; bottom: 56px; inset-inline-end: 0; }
