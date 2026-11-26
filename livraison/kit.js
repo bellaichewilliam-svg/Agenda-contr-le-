@@ -792,6 +792,8 @@ const CAMPS = [
 const FMT = { fiche: "🦘 Image officielle", detoure: "✂️ Sans fond (PNG)", post: "◻️ Post carré", story: "📱 Story", flyer: "🖨️ Flyer A5", g3: "1. Publier « P! »", g2: "2. Puis « O »", g1: "3. Puis « H »",
   g6: "1. « Pourquoi HOP! »", g5: "2. « Comment ça marche »", g4: "3. « Tout Netanya »" };
 const VIDEOS = [
+  // Nouveau (26/11) : « Vice City » : la vidéo du patron (menu burger au coucher de soleil) avec ouverture « Nouvelle mission : la faim à Netanya », HUD sobre, « Mission accomplie » et logo HOP! (23 s, video/src/Gta.tsx)
+  { id: "gta", aud: "client", title: "🌴 Nouveau · Nouvelle mission : la faim à Netanya. Édition néon, mission accomplie avec HOP! (23 s)" },
   // Nouveau (26/11) : « Spécial bureaux » : « Envie d'une cigarette ? d'un café ? … Restez au bureau, on y va pour vous », manège 3D des rubriques, néons, logo (39,5 s, video/src/Bureau.tsx)
   { id: "bureau", aud: "client", title: "🏢 Nouveau · Spécial bureaux : envie d'une cigarette, d'un café, d'un repas ? Restez au bureau, on y va pour vous (40 s)" },
   // Nouveau (26/11) : « Choc » : phrases choc (« Arrêtez de payer plus de 40 ₪ »), écran de l'appli animé, logo HOP! qui se forme (44 s, video/src/Choc.tsx)
