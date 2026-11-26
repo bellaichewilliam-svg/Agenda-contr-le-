@@ -24,3 +24,11 @@
 -- Ajouter des produits : insérer (ms_id, cat, fr) dans maxstock_fr_in, relancer maxstock_fetch_cats(80), attendre ~10 s,
 -- puis select public.maxstock_import();
 -- Vérifier : length(shop_catalog('HOPMAXSTOCK')::text) < 150000 (26/11 : 103 616).
+--
+-- 26/11 (patron : « pour les vêtements, au minimum la composition des tissus ») :
+--   le site Max Stock ne publie AUCUNE composition (ni l'API WooCommerce, ni la page produit : titre, prix, taille, nb de pièces, code-barres).
+--   Les 40 articles Vêtements + Linge de maison ont une description « FR · HE » dans shop_products.description :
+--   matière quand le magasin la nomme (flanelle, sherpa, 100 % coton, chenille, microfibre, maille côtelée / lycra, molleton, tricot),
+--   taille, nombre de pièces, puis « Composition exacte non indiquée par le magasin ». Affichée dans la fiche (bloc « Matière et composition »).
+--   maxstock_import / maxstock_refresh_apply ne touchent jamais à description : rien n'est effacé la nuit.
+--   Table maxstock_pages (ms_id, req, fetched_at) : pages produit lues pour cette vérification (RLS, aucun accès client).
