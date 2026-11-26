@@ -1602,15 +1602,37 @@ function sdHeard(text, n) {
   p.classList.remove("hidden");
 }
 let sdRec = null, sdAsk = null;
+const SD_IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+// Case de dictée (micro du clavier) : la phrase tapée ou dictée remplit la fiche ; ce qui manque est montré en rouge
+function sdTypeBox() {
+  let box = $("#sdType");
+  if (!box) {
+    box = document.createElement("div"); box.id = "sdType"; box.className = "sd-type";
+    box.innerHTML = `<p>${UI.esc(t("sdIosHint"))}</p><textarea rows="3" dir="auto" placeholder="${UI.esc(t("sdVoiceEx"))}"></textarea><button type="button" class="btn btn-primary btn-sm">${UI.esc(t("sdIosGo"))}</button>`;
+    $("#sdHeard").before(box);
+    box.querySelector("button").addEventListener("click", () => {
+      const ta = box.querySelector("textarea"), said = ta.value.trim(); if (!said) return ta.focus();
+      const n = sdApply(sdParse(said)); sdHeard(said, n); ta.value = "";
+      const f = $("#spSend"), miss = sdMissing();
+      miss.forEach(k => { const el = f.elements[k]; if (el && el.classList && !el.value) el.classList.add("field-bad"); });
+      if (miss.length) {
+        const lbl = k => k === "payer" ? t("sdQ_payer") : k === "how" ? t("sdQ_how") : ((f.elements[k] && f.elements[k].closest("label") && f.elements[k].closest("label").querySelector("span")) || {}).textContent || k;
+        const p = $("#sdHeard"); p.insertAdjacentHTML("beforeend", `<span class="sd-miss">${UI.esc(t("sdMissT", { list: miss.filter(k => k !== "payer" && k !== "how").map(lbl).join(" · ") || miss.map(lbl).join(" · ") }))}</span>`);
+      }
+    });
+  }
+  box.classList.remove("hidden");
+  const ta = box.querySelector("textarea"); try { ta.focus(); } catch (x) { /* rien */ }
+}
 // Écoute une phrase (micro du téléphone) ; continuous = la course dictée d'une traite, sinon une seule réponse
 function sdListen(continuous, onText) {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition, btn = $("#sdMic"), sub = $("#sdVoiceSub");
-  if (!SR) { const typed = prompt(sdAsk ? t("sdQ_" + sdAsk) : t("sdVoiceType")); onText(typed || ""); return; }
+  if (!SR) { sdAsk = null; return sdTypeBox(); }
   const r = new SR(); sdRec = r; let said = "";
   r.lang = I18N.lang === "he" ? "he-IL" : "fr-FR"; r.interimResults = true; r.continuous = continuous; r.maxAlternatives = 1;
   btn.classList.add("on"); if (!sdAsk) sub.textContent = t("sdVoiceListen");
   r.onresult = ev => { said = [...ev.results].map(x => x[0].transcript).join(" "); sub.textContent = said; };
-  r.onerror = ev => { if (ev.error === "not-allowed" || ev.error === "service-not-allowed") alert(t("micDenied")); };
+  r.onerror = ev => { if (ev.error === "no-speech" || ev.error === "aborted") return; sdRec = null; sdAsk = null; btn.classList.remove("on"); sub.textContent = t("sdVoiceEx"); sdTypeBox(); };
   r.onend = () => { if (sdRec !== r) return; sdRec = null; btn.classList.remove("on"); sub.textContent = t("sdVoiceEx"); onText(said.trim()); };
   try { r.start(); } catch (x) { sdRec = null; btn.classList.remove("on"); }
   setTimeout(() => { if (sdRec === r) try { r.stop(); } catch (x) { /* fin */ } }, continuous ? 20000 : 9000);
@@ -1661,6 +1683,9 @@ $("#spSend").addEventListener("click", e => {
   e.preventDefault();
   // toucher le micro pendant l'écoute ou les questions : on arrête tout
   if (sdRec || sdAsk) { const r = sdRec; sdRec = null; sdAsk = null; try { r && r.stop(); } catch (x) { /* déjà arrêté */ } try { speechSynthesis.cancel(); } catch (x) { /* rien */ } $("#sdMic").classList.remove("on"); $("#sdVoiceSub").textContent = t("sdVoiceEx"); return; }
+  // iPhone (appli posée sur l'écran d'accueil) : la reconnaissance du navigateur y est bloquée → on dicte avec le micro
+  // du clavier dans une case, et l'appli remplit la fiche pareil (rien n'est envoyé à l'IA)
+  if (SD_IOS || !(window.SpeechRecognition || window.webkitSpeechRecognition)) return sdTypeBox();
   sdListen(true, said => {
     if (!said) return;
     const n = sdApply(sdParse(said));

@@ -7909,3 +7909,8 @@ html.d4 .d4-promo .d4-sl small, html.d4 .d4-promo .d4-sl b { display: block; wid
 #spSend input.sd-filled { box-shadow: 0 0 0 2px #12B76A !important; transition: box-shadow .4s; }
 @media (prefers-reduced-motion: reduce) { .sd-mic.on { animation: none; } }
 .sd-heard .sd-q { font-size: 15px; color: #0F1F3D; margin: 0; }
+.sd-type { margin: 0 0 10px; padding: 10px 12px; border-radius: 12px; background: #F2F3F5; }
+.sd-type p { margin: 0 0 6px; font-size: 13px; line-height: 1.4; color: #0F1F3D; }
+.sd-type textarea { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid #D5D9DF; border-radius: 10px; resize: vertical; }
+.sd-type .btn { margin-top: 8px; }
+.sd-heard .sd-miss { display: block; margin-top: 4px; color: #B42318; font-weight: 600; }
