@@ -1464,8 +1464,8 @@ function rayonMeter(n) {
 function rayBossBar(r) {
   const all = r.items.filter(i => !r.cats.some(c => c.id === i.c && c.hidden));
   const noPic = all.filter(i => !i.hidden && rayPicSrc(i)[0] === "no").length, hid = all.filter(i => i.hidden).length;
-  return `<div class="boss-bar"><span>👑 <b>Mode patron</b>${bossEditOn() ? ` · touchez ✏️ sur un article${noPic ? ` · ${noPic} sans vraie photo` : ""}${hid ? ` · ${hid} masqué${hid > 1 ? "s" : ""}` : ""}` : " · vue client"}</span>
-    <button type="button" class="btn btn-sm" data-ray-boss-toggle>${bossEditOn() ? "👁️ Vue client" : "✏️ Modifier"}</button></div>`;
+  return `<div class="boss-bar"><span><b>Mode patron</b>${bossEditOn() ? `&nbsp;· touchez le crayon sur un article${noPic ? ` · ${noPic} sans vraie photo` : ""}${hid ? ` · ${hid} masqué${hid > 1 ? "s" : ""}` : ""}` : " · vue client"}</span>
+    <button type="button" class="btn btn-sm" data-ray-boss-toggle>${bossEditOn() ? "Vue client" : "Modifier"}</button></div>`;
 }
 // Photo prise sur le téléphone : carrée, légère (comme dans le panneau patron)
 function rayPhotoCrop(file) {
@@ -4364,7 +4364,7 @@ function d6HeroHtml(s, logo, cover) {
   return `<div class="d6h${brand ? " d6h-brand" : ""}"${brand ? ` style="${brand.accent ? `--brand-ac:${UI.esc(brand.accent)};` : ""}${brand.font ? `--brand-font:'${UI.esc(brand.font)}';` : ""}${brand.fontHe ? `--brand-font-he:'${UI.esc(brand.fontHe)}';` : ""}${brand.fontLine ? `--brand-font-line:'${UI.esc(brand.fontLine)}';` : ""}"` : ""}>
     <div class="d6h-bubs">${st ? `<span class="d6h-b ${st.open ? "on" : "off"}"><i></i>${UI.esc(openLabel(st))}</span>` : ""}<span class="d6h-b w">${D6_SCOOT}${UI.esc(s.shop_pays ? t("scGift") : t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) }))}</span>${isKosher(s) ? `<span class="d6h-b k">${KOSHER_STAR}${UI.esc(he ? "כשר" : "Casher")}</span>` : ""}</div>
     ${brand && brand.logo !== false && (brand.logo || logo) ? `<img class="d6h-blogo${brand.logo ? "" : " auto"}${brand.logoShape === "wide" ? " wide" : ""}" src="${UI.esc(brand.logo || logo)}" alt=""${brand.logoBg ? ` style="background:${UI.esc(brand.logoBg)}"` : ""} />` : ""}
-    ${(() => { const nm = (brand && brand.name && (brand.name[he ? "he" : "fr"] || brand.name.fr)) || UI.bi(s.name); return `<h1 class="d6h-name${Math.max(...nm.split(/\s+/).map(w => w.length)) > 6 ? " long" : ""}">${UI.esc(nm)}</h1>`; })()}
+    ${(() => { const nm = (brand && brand.name && (brand.name[he ? "he" : "fr"] || brand.name.fr)) || (D4_NAMES[s.code] || [])[he ? 1 : 0] || UI.bi(s.name); return `<h1 class="d6h-name${Math.max(...nm.split(/\s+/).map(w => w.length)) > 6 ? " long" : ""}">${UI.esc(nm)}</h1>`; })()}
     ${brand && brand.line ? `<p class="d6h-bline">${String(brand.line[he ? "he" : "fr"] || brand.line.fr || "").split(/\s*·\s*/).map((w, i, a) => `<span>${UI.esc(w)}${i < a.length - 1 ? " ·" : ""}</span>`).join(" ")}</p>` : `<p class="d6h-tag">${UI.esc(UI.shopText(s, "tagline") || (t("shKinds") || {})[s.kind] || "")}</p>`}
     ${pic ? `${cut ? `<i class="d6-halo h" aria-hidden="true"></i><i class="d6-ground h" aria-hidden="true"></i>${s.kind === "restaurant" && !(brand && brand.steam === false) ? `<i class="d6-steam" aria-hidden="true"><b></b><b></b><b></b></i>` : ""}` : ""}<img class="d6h-pic${cut ? " cut" : ""}" src="${UI.esc(pic)}" alt="" />` : logo && !brand ? `<img class="d6h-logo" src="${UI.esc(logo)}" alt="" />` : ""}
     <div class="d6h-acts"><button type="button" class="d6h-a" data-sh-info="1">${UI.esc(t("shInfoBtn2"))}</button>${wa ? `<a class="d6h-a wa" href="https://wa.me/${UI.esc(wa)}?text=${encodeURIComponent(t("shWaHello", { name: UI.bi(s.name) }))}" target="_blank" rel="noopener">WhatsApp</a>` : ""}${at ? `<button type="button" class="d6h-a when" data-sl-goto>${UI.esc(vitWhenLong(at))} · ${UI.esc(t("slChange"))}</button>` : ""}</div>
@@ -4777,8 +4777,8 @@ document.addEventListener("click", e => {
 // le choix du patron reste par-dessus chaque mise à jour, et « Revenir au magasin » remet ce que dit le magasin.
 function bossBar() {
   const n = ((state.catalog && state.catalog.products) || []).filter(p => p.available === false).length;
-  return `<div class="boss-bar"><span>👑 <b>Mode patron</b>${bossEditOn() ? ` · touchez ✏️ sur un produit${n ? ` · ${n} masqué${n > 1 ? "s" : ""}` : ""}` : " · vue client"}</span>
-    <button type="button" class="btn btn-sm" data-boss-toggle>${bossEditOn() ? "👁️ Vue client" : "✏️ Modifier"}</button></div>`;
+  return `<div class="boss-bar"><span><b>Mode patron</b>${bossEditOn() ? `&nbsp;· touchez le crayon sur un produit${n ? ` · ${n} masqué${n > 1 ? "s" : ""}` : ""}` : " · vue client"}</span>
+    <button type="button" class="btn btn-sm" data-boss-toggle>${bossEditOn() ? "Vue client" : "Modifier"}</button></div>`;
 }
 async function bossMapLoad(code) {
   try { const m = await Store.adminShopBoss(code); if (state.shop && state.shop.code === code) { state.bossMap = m || {}; renderCatalog(); } } catch (e) { /* le crayon marche quand même */ }

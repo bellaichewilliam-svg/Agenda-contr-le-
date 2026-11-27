@@ -1383,3 +1383,8 @@ html.d5 body .k-sup .d6-sup-mx b { font: 800 13px Heebo, sans-serif; }
 html.d5 body .k-sup .d6-si { height: 228px !important; max-width: 50% !important; bottom: 58px !important; inset-inline-end: 12px !important; transform: none !important; }
 html.d5 body .k-sup .d6-halo { width: 220px; height: 220px; bottom: 64px; inset-inline-end: 0; }
 html.d5 body .k-sup .d6-ground { inset-inline-end: 34px; bottom: 54px; width: 150px; }
+/* Haut de boutique : les boutons suivent le texte (plus jamais de phrase cachée dessous), 27/11 */
+html.d5 body #shopHero .d6h { padding-bottom: 22px !important; }
+html.d5 body #shopHero .d6h-acts { position: relative !important; left: auto !important; right: auto !important; bottom: auto !important; margin-top: 18px; z-index: 3; }
+html.d5 body .boss-bar { height: auto !important; min-height: 0 !important; overflow: visible !important; }
+html.d5 body .boss-bar > span { flex: 1 1 auto; min-width: 0; line-height: 1.35; white-space: normal; }
