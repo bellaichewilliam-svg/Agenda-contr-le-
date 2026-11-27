@@ -1388,3 +1388,22 @@ html.d5 body #shopHero .d6h { padding-bottom: 22px !important; }
 html.d5 body #shopHero .d6h-acts { position: relative !important; left: auto !important; right: auto !important; bottom: auto !important; margin-top: 18px; z-index: 3; }
 html.d5 body .boss-bar { height: auto !important; min-height: 0 !important; overflow: visible !important; }
 html.d5 body .boss-bar > span { flex: 1 1 auto; min-width: 0; line-height: 1.35; white-space: normal; }
+/* Carrousels qui défilent seuls (27/11) : la carte du milieu en avant, les voisines un peu en retrait */
+html.d5 body .d6-rrow.d6-gliding { scroll-snap-type: none !important; }
+html.d5 body .d6-rrow > .d6-rc { transition: transform .6s cubic-bezier(.22,.8,.3,1), opacity .6s ease; transform: scale(.93); opacity: .82; }
+html.d5 body .d6-rrow > .d6-rc.d6-c { transform: scale(1); opacity: 1; }
+@media (prefers-reduced-motion: reduce) { html.d5 body .d6-rrow > .d6-rc { transform: none; opacity: 1; } }
+/* Barre « Chercher un magasin » : un seul contour, pas de 2e cadre dedans (27/11) */
+html.d5 body #d4Mag .d4m-find { display: flex !important; align-items: center !important; gap: 10px !important; padding: 0 18px !important; }
+html.d5 body #d4Mag .d4m-find input, html.d5 body #d4Mag .d4m-find input:focus { border: 0 !important; outline: 0 !important; box-shadow: none !important; background: transparent !important; padding: 0 !important; height: 52px !important; flex: 1 1 auto; min-width: 0; -webkit-appearance: none; appearance: none; border-radius: 0 !important; }
+html.d5 body #d4Mag .d4m-find:focus-within { box-shadow: 0 0 0 4px rgba(15,31,61,.12) !important; }
+html.d5 body #d4Mag .d4m-find svg { flex: none; width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+/* Cartes Magasins : note des clients + cœur favori ; « Casher » toujours lisible */
+html.d5 body #d4Mag .d4m-card { position: relative; }
+html.d5 body #d4Mag .d4m-card .k-badge { color: #fff !important; }
+html.d5 body #d4Mag .d4m-fav { position: absolute; top: 22px; inset-inline-end: 22px; z-index: 4; width: 44px; height: 44px; border-radius: 50%; background: #fff; color: #0F1F3D !important; display: grid; place-items: center; }
+html.d5 body #d4Mag .d4m-fav.on { color: #E8590C !important; --fav-fill: #E8590C; }
+html.d5 body #d4Mag .d4m-card .d4-rt, html.d5 body #d4Mag .d4m-card .d4-rt0 { display: inline-flex; align-items: center; gap: 4px; margin: 0 6px 4px; padding: 4px 10px; border-radius: 20px; background: rgba(255,255,255,.92); color: #0F1F3D !important; font: 700 14px/1.2 Heebo !important; letter-spacing: 0; }
+html.d5 body #d4Mag .d4m-card .d4-rt i { color: #5A6270 !important; font-style: normal; font-weight: 500; }
+html.d5 body #d4Mag .d4m-card .d4-rt::first-letter, html.d5 body #d4Mag .d4m-card .d4-rt0 b { color: #F5A400 !important; }
+html.d5 body #d4Mag .d4m-card .d4-rt, html.d5 body #d4Mag .d4m-card .d4-rt0 { align-self: flex-start; justify-self: start; width: max-content; max-width: calc(100% - 12px); }

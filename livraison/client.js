@@ -4593,6 +4593,42 @@ function d6Center(row) {
   requestAnimationFrame(() => { const r = row.getBoundingClientRect(), b = c.getBoundingClientRect(); if (!r.width) return;
     row.scrollLeft += (b.left + b.width / 2) - (r.left + r.width / 2); });
   if (!row.dataset.cw) { row.dataset.cw = "1"; ["touchstart", "pointerdown", "wheel"].forEach(ev => row.addEventListener(ev, () => { row.dataset.touched = "1"; }, { passive: true })); }
+  d6Auto(row);
+}
+// (patron 27/11) Les deux carrousels défilent tout seuls : une carte à la fois, glissé doux, aller puis retour
+// (d'un bout à l'autre, jamais de saut brusque). Le client touche : on s'arrête 8 s puis ça reprend.
+// Seulement quand le carrousel est à l'écran ; rien si le téléphone demande moins d'animations.
+const D6_EASE = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+function d6Mark(row) {
+  const r = row.getBoundingClientRect(), mid = r.left + r.width / 2; let best = null, bd = 1e9;
+  [...row.children].forEach(c => { const b = c.getBoundingClientRect(), d = Math.abs(b.left + b.width / 2 - mid); if (d < bd) { bd = d; best = c; } });
+  [...row.children].forEach(c => c.classList.toggle("d6-c", c === best));
+  return best;
+}
+function d6Glide(row, to) {
+  const from = row.scrollLeft, d = to - from; if (Math.abs(d) < 2) return;
+  const t0 = performance.now(), dur = 950; row.classList.add("d6-gliding");
+  const step = now => { const k = Math.min(1, (now - t0) / dur); row.scrollLeft = from + d * D6_EASE(k); d6Mark(row);
+    if (k < 1 && row.dataset.gl === String(t0)) requestAnimationFrame(step); else row.classList.remove("d6-gliding"); };
+  row.dataset.gl = String(t0); requestAnimationFrame(step);
+}
+function d6Auto(row) {
+  if (row.dataset.auto) return; row.dataset.auto = "1";
+  if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  let dir = 1, onScreen = false, rest = 0;
+  const hold = () => { rest = Date.now() + 8000; row.dataset.gl = ""; row.classList.remove("d6-gliding"); };
+  ["touchstart", "pointerdown", "wheel"].forEach(ev => row.addEventListener(ev, hold, { passive: true }));
+  row.addEventListener("scroll", () => { if (!row.classList.contains("d6-gliding")) d6Mark(row); }, { passive: true });
+  if ("IntersectionObserver" in window) new IntersectionObserver(es => { onScreen = es[0].isIntersecting; }, { threshold: .5 }).observe(row); else onScreen = true;
+  setInterval(() => {
+    if (!onScreen || Date.now() < rest || document.hidden || !row.isConnected || row.children.length < 2) return;
+    const cur = d6Mark(row); if (!cur) return;
+    const kids = [...row.children], i = kids.indexOf(cur);
+    if (i + dir < 0 || i + dir >= kids.length) dir = -dir;
+    const nx = kids[i + dir]; if (!nx) return;
+    const r = row.getBoundingClientRect(), b = nx.getBoundingClientRect();
+    d6Glide(row, row.scrollLeft + (b.left + b.width / 2) - (r.left + r.width / 2));
+  }, 3400);
 }
 // (les commerces arrivent après l'accueil : la rangée des restos et la bande de noms se remplissent quand ils sont là)
 function d6Fill() {
@@ -7025,7 +7061,8 @@ function d4MagRender() {
     const nm = isHopShop(x) || /^HOP/.test(String(x.code || "")) ? d4Nm(x) : d3Name(UI.bi(x.name));
     return `<button type="button" class="d4m-card" data-d4m-pro="${UI.esc(x.code)}"><span class="d4m-ph"${cover ? ` style="background-image:url('${cover}')"` : ""}>${isKosher(x) ? kosherTag("k-on-cover") : ""}${logo ? `<img src="${logo}" alt="" loading="lazy" onerror="this.remove()" />` : `<b>${UI.esc(nm.slice(0, 1))}</b>`}</span>
 ${d4Reco(x) ? `<em class="d4-reco">${UI.esc(t("d4Reco"))}</em>` : ""}
-      <b class="d4m-nm"><bdi>${UI.esc(nm)}</bdi>${d4Stars(x)}</b><small><i class="${open ? "op" : "cl"}"></i>${UI.esc(stx)}</small>${sub ? `<small class="d4m-sub">${UI.esc(sub)}</small>` : ""}</button>`;
+      <span class="d4m-fav${favs().includes(x.code) ? " on" : ""}" role="button" tabindex="0" data-d4m-fav="${UI.esc(x.code)}" aria-label="${UI.esc(t("a11yFav"))}" aria-pressed="${favs().includes(x.code)}">${HEART_IC}</span>
+      <b class="d4m-nm"><bdi>${UI.esc(nm)}</bdi></b>${Number(x.ratings) > 0 ? d4Stars(x) : `<span class="d4-rt0"><b>★</b>${UI.esc(t("d4mNewRt"))}</span>`}<small><i class="${open ? "op" : "cl"}"></i>${UI.esc(stx)}</small>${sub ? `<small class="d4m-sub">${UI.esc(sub)}</small>` : ""}</button>`;
   }).join("") : (mako || press) ? "" : `<p class="d4m-none">${UI.esc(t("d4mNone"))}</p>`) + press + free;
 }
 function d4MagOpen() {
@@ -7034,13 +7071,14 @@ function d4MagOpen() {
     box = document.createElement("div"); box.id = "d4Mag"; box.className = "d4m hidden"; box.setAttribute("role", "dialog"); box.setAttribute("aria-label", t("d4NavShops"));
     document.body.appendChild(box);
     box.addEventListener("click", e => {
+      const fv = e.target.closest("[data-d4m-fav]"); if (fv) { e.stopPropagation(); toggleFav(fv.dataset.d4mFav); d4MagRender(); return; }
       const f = e.target.closest("[data-d4m-f]"); if (f) { d4m.f = f.dataset.d4mF; d4MagRender(); return; }
       if (e.target.closest("[data-d4m-kosher]")) { d4m.kosher = !d4m.kosher; d4MagRender(); return; }
-      const r = e.target.closest("[data-d4m-pro]"); if (r) { d4MagClose(true); state.shopDir = ""; loadShop(r.dataset.d4mPro); return; }
-      if (e.target.closest("[data-d4m-free]")) { d4MagClose(true); setTimeout(() => $("#vitCourse").click(), 60); return; }
-      if (e.target.closest("[data-d4m-press]")) { d4MagClose(true); setTimeout(() => { const kb = document.querySelector('#homeKinds [data-kind="pressing"]'); if (kb) kb.click(); }, 60); return; }
-      if (e.target.closest("[data-d4m-mako]")) { d4MagClose(true); setTimeout(() => { const kb = document.querySelector('#homeKinds [data-kind="shop"]'); if (kb) kb.click(); }, 60); return; }
-      if (e.target.closest("[data-d4m-any]")) { d4MagClose(true); setTimeout(() => $("#vitCourse").click(), 60); }
+      const r = e.target.closest("[data-d4m-pro]"); if (r) { const code = r.dataset.d4mPro; d4MagClose(true).then(() => { state.shopDir = ""; loadShop(code); }); return; }
+      if (e.target.closest("[data-d4m-free]")) { d4MagClose(true).then(() => $("#vitCourse").click()); return; }
+      if (e.target.closest("[data-d4m-press]")) { d4MagClose(true).then(() => { const kb = document.querySelector('#homeKinds [data-kind="pressing"]'); if (kb) kb.click(); }); return; }
+      if (e.target.closest("[data-d4m-mako]")) { d4MagClose(true).then(() => { const kb = document.querySelector('#homeKinds [data-kind="shop"]'); if (kb) kb.click(); }); return; }
+      if (e.target.closest("[data-d4m-any]")) { d4MagClose(true).then(() => $("#vitCourse").click()); }
     });
     box.addEventListener("input", e => { if (e.target.matches(".d4m-q")) { d4m.q = e.target.value; d4MagRender(); } });
   }
@@ -7057,11 +7095,15 @@ function d4MagOpen() {
   UI.track("d4_shops_open");
   document.dispatchEvent(new Event("d4m"));
 }
+// (27/11) Le « retour » qui ferme la liste arrive parfois en retard sur un téléphone lent : il renvoyait à l'accueil
+// APRÈS l'ouverture du magasin touché. On rend la main seulement quand ce retour est fini.
 function d4MagClose(viaApp) {
-  const box = $("#d4Mag"); if (!box || box.classList.contains("hidden")) return;
+  const box = $("#d4Mag"); if (!box || box.classList.contains("hidden")) return Promise.resolve();
   box.classList.add("hidden"); document.documentElement.classList.remove("d4m-on");
-  if (viaApp && history.state && history.state.d4m) history.back();
+  let wait = Promise.resolve();
+  if (viaApp && history.state && history.state.d4m) wait = new Promise(res => { const done = () => { window.removeEventListener("popstate", done); clearTimeout(tm); setTimeout(res, 0); }, tm = setTimeout(done, 1500); window.addEventListener("popstate", done); history.back(); });
   document.dispatchEvent(new Event("d4m"));
+  return wait;
 }
 window.addEventListener("popstate", () => { if (d4MagIsOpen() && !(history.state && history.state.d4m)) d4MagClose(false); });
 document.addEventListener("click", e => {
