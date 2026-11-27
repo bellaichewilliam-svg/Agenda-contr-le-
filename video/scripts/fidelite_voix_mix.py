@@ -40,6 +40,18 @@ def trim(v, thr=0.01):
     return v[:, max(0, idx[0] - 400): idx[-1] + 2200] if len(idx) else v
 
 
+def tighten(v, max_pause=0.14):
+    """Raccourcit les silences à l'intérieur d'une phrase (au plus 0,14 s) pour que la voix reste calée sur les images."""
+    hop = int(SR * 0.01)
+    lvl = np.array([np.abs(v[:, i:i + hop]).max() for i in range(0, v.shape[1], hop)])
+    keep, run = [], 0
+    for k, x in enumerate(lvl):
+        run = run + 1 if x < 0.012 else 0
+        if run * 0.01 <= max_pause:
+            keep.append(v[:, k * hop:(k + 1) * hop])
+    return np.concatenate(keep, axis=1)
+
+
 def voice_fx(v):
     """Voix naturelle (Gemini) : coupe juste les graves sourds et met au bon niveau, sans durcir le son."""
     sos = butter(2, 70, "highpass", fs=SR, output="sos")
@@ -61,11 +73,11 @@ for lang in ("fr", "he"):
             print("manque", p); continue
         nxt = mine[i + 1]["at"] if i + 1 < len(mine) else END - 12
         room = (nxt - l["at"]) / FPS - 0.12
-        v = trim(read(p))
+        v = tighten(trim(read(p)))
         dur = v.shape[1] / SR
         if dur > room:
-            f = min(1.12, dur / room)
-            v = trim(read(tempo(p, f)))
+            f = min(1.15, dur / room)
+            v = tighten(trim(read(tempo(p, f))))
             print(f"{l['id']} {dur:.2f}s > {room:.2f}s : accéléré x{f:.2f} -> {v.shape[1] / SR:.2f}s")
         v = voice_fx(v)
         start = max(l["at"] / FPS, cursor + 0.12)
