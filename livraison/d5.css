@@ -1407,3 +1407,9 @@ html.d5 body #d4Mag .d4m-card .d4-rt, html.d5 body #d4Mag .d4m-card .d4-rt0 { di
 html.d5 body #d4Mag .d4m-card .d4-rt i { color: #5A6270 !important; font-style: normal; font-weight: 500; }
 html.d5 body #d4Mag .d4m-card .d4-rt::first-letter, html.d5 body #d4Mag .d4m-card .d4-rt0 b { color: #F5A400 !important; }
 html.d5 body #d4Mag .d4m-card .d4-rt, html.d5 body #d4Mag .d4m-card .d4-rt0 { align-self: flex-start; justify-self: start; width: max-content; max-width: calc(100% - 12px); }
+/* (patron 27/11 : « un peu plus large ») cartes des carrousels plus larges, les voisines dépassent encore des deux côtés */
+html.d5 body .d6-rrow > .d6-rc { width: min(70vw, 300px) !important; height: 268px !important; }
+html.d5 body .d6-rrow { padding-inline: calc(50vw - min(35vw, 150px)) !important; gap: 12px !important; }
+html.d5 body .d6-rrow > .d6-rc .d6-rp { inset: 0 0 70px 0 !important; }
+html.d5 body .d6-rrow > .d6-rc b { font-size: 26px !important; bottom: 30px !important; }
+html.d5 body .d6-rrow > .d6-rc small { font-size: 14px !important; bottom: 10px !important; }
