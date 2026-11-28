@@ -4328,11 +4328,13 @@ async function loadCatalogFor(shop) {
   if (!shop || !shop.pro) return;
   // Réseau du téléphone qui coupe : on réessaie (3 fois, de plus en plus espacé) au lieu de laisser le commerce sans menu
   let cat = null;
+  state.catLoading = shop.code; renderCatalog();
   for (let i = 0; i < 3 && !cat; i++) {
     if (i) await new Promise(r => setTimeout(r, 1200 * i));
     if (seq !== shopSeq) return;
     try { cat = await Store.shopCatalog(shop.code); } catch (e) { cat = null; }
   }
+  if (state.catLoading === shop.code) state.catLoading = null;
   // Le client a touché un autre commerce entre-temps : ce menu-là n'est plus le bon
   if (seq !== shopSeq || !state.shop || state.shop.code !== shop.code) return;
   state.catalog = cat;
@@ -5076,6 +5078,10 @@ function payTop() {
 function renderCatalog() {
   try { viewTitle(); } catch (e) { /* titre */ }
   const box = $("#catalogBox"), on = catalogOn();
+  // (28/11) les produits arrivent (réseau lent) : des cartes grises qui respirent, jamais la case « Ex. : 2 shawarma »
+  const wait = !on && !!state.shop && state.catLoading === state.shop.code;
+  document.body.classList.toggle("cg-wait", wait);
+  if (wait) { box.classList.remove("hidden"); box.dataset.html = ""; box.dataset.shell = ""; box.innerHTML = `<div class="cg-skel" role="status" aria-label="${UI.esc(t("cgLoading"))}"><p>${UI.esc(t("cgLoading"))}</p>${"<i></i>".repeat(6)}</div>`; return; }
   box.classList.toggle("hidden", !on);
   vtRender();
   requestAnimationFrame(ksRender);
@@ -6270,18 +6276,35 @@ document.addEventListener("click", async e => {
 
 // Chaque ouverture de commerce a son numéro : une réponse en retard d'un commerce touché avant est ignorée
 let shopSeq = 0;
+// (patron 28/11 : « quand je clique sur Max Stock, je retourne à l'accueil ») Sur un réseau lent, la fiche du magasin met
+// plusieurs secondes à arriver et rien ne bougeait : on montre tout de suite « Ouverture de Max Stock… » avec son logo.
+function shopLoading(code, on) {
+  let el = document.getElementById("shopLoad");
+  if (!on) { if (el) el.remove(); return; }
+  const sc = (state.showcase || []).find(x => x.code === code) || {};
+  const nm = (D4_NAMES[code] || [])[I18N.lang === "he" ? 1 : 0] || (sc.name ? d3Name(UI.bi(sc.name)) : "");
+  const lg = UI.safeImg(sc.logo);
+  if (!el) { el = document.createElement("div"); el.id = "shopLoad"; el.className = "shop-load"; el.setAttribute("role", "status"); document.body.appendChild(el); }
+  el.innerHTML = `<div class="sl-in">${lg ? `<img src="${UI.esc(lg)}" alt="" />` : `<img src="img/hoppy-vit.webp" alt="" />`}<b>${UI.esc(t("shopOpening", { name: nm || "HOP!" }))}</b><i class="sl-bar"><i></i></i></div>`;
+}
 async function loadShop(code, stay) {
   if (state.shop && state.shop.code !== code) multiPark();
   else if (!state.shop) multiParkStored(code);
   const seq = ++shopSeq;
+  if (!stay) shopLoading(code, true);
   // On vide tout de suite le menu affiché : rien du commerce précédent ne doit rester pendant le chargement
   state.catalog = null; state.cart = {};
   renderCatalog();
   let shop = null;
-  try { shop = await Store.shopByCode(code); } catch (e) { shop = null; }
+  // réseau qui coupe : on réessaie deux fois avant d'abandonner
+  for (let i = 0; i < 3 && !shop; i++) {
+    if (i) await new Promise(r => setTimeout(r, 1200 * i));
+    if (seq !== shopSeq) return;
+    try { shop = await Store.shopByCode(code); } catch (e) { shop = null; }
+  }
   if (seq !== shopSeq) return;
   state.shop = shop;
-  if (!state.shop) return;
+  if (!state.shop) { shopLoading(code, false); toastCart(t("shopOpenFail"), 5000); return; }
   UI.track("shop_view", { shop_code: state.shop.code });
   // Sur le téléphone du commerce : son carnet pro
   const token = Store.shopTokenFor(state.shop.code);
@@ -6292,6 +6315,7 @@ async function loadShop(code, stay) {
     } catch (e) { /* pas de carnet */ }
   }
   applyShop();
+  setTimeout(() => shopLoading(code, false), stay ? 0 : 350);
   // Commerces à créneaux (patron, 15/11 : Roladin) : toujours programmé, le calendrier de la semaine (jour + heure) s'ouvre tout de suite
   if ((CONFIG.slotShops || []).includes(String(state.shop.code || "").toUpperCase())) {
     const pr = form.querySelector('input[name=urgency][value=programmee]');

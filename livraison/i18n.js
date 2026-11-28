@@ -901,7 +901,7 @@ fr: {
   hopSent: "Commande envoyée !",
   // Note de la livraison
   srTitle: "⭐ Et {name}, c'était comment ?", srSub: "Produits, préparation, accueil : votre avis aide les autres clients et le commerce.", srPh: "Un mot sur {name} (facultatif, publié avec votre prénom)", srSend: "Publier mon avis", srThanks: "Merci ! Votre avis sur {name} est publié 💛", srYours: "Votre avis sur {name} : {stars}",
-  scRating: "⭐ {avg} ({n})", d4mNewRt: "Pas encore d'avis", resumeT: "Votre panier {name} vous attend", resumeN: "{n} articles gardés", resume1: "1 article gardé", resumeGo: "Reprendre", resumeOff: "Plus tard", shReviews: "⭐ {avg} · {n} avis", shReviewsNone: "Pas encore d'avis", shReviewsSee: "Voir les avis", spReviews: "⭐ Avis de vos clients", spReviewsNone: "Pas encore d'avis : vos clients peuvent vous noter après chaque livraison.", spReviewsAvg: "{avg} sur 5 · {n} avis",
+  scRating: "⭐ {avg} ({n})", d4mNewRt: "Pas encore d'avis", shopOpening: "Ouverture de {name}…", cgLoading: "Les produits arrivent…", shopOpenFail: "La connexion est lente : le magasin ne s'est pas ouvert. Réessayez.", resumeT: "Votre panier {name} vous attend", resumeN: "{n} articles gardés", resume1: "1 article gardé", resumeGo: "Reprendre", resumeOff: "Plus tard", shReviews: "⭐ {avg} · {n} avis", shReviewsNone: "Pas encore d'avis", shReviewsSee: "Voir les avis", spReviews: "⭐ Avis de vos clients", spReviewsNone: "Pas encore d'avis : vos clients peuvent vous noter après chaque livraison.", spReviewsAvg: "{avg} sur 5 · {n} avis",
   rtTitle: "Comment s'est passée la livraison ?", rtSub: "Votre avis aide votre livreur et HOP! 💛",
   rt_fast: "⚡ Rapide", rt_nice: "😊 Sympa", rt_care: "📦 Soigneux", rt_found: "📍 Bien trouvé",
   rt_late: "⏰ En retard", rt_damaged: "💔 Colis abîmé", rt_rude: "😕 Pas aimable", rt_lost: "❓ Colis perdu",
@@ -1801,7 +1801,7 @@ he: {
   hopSent: "ההזמנה נשלחה!",
   // דירוג המשלוח
   srTitle: "⭐ ואיך היה ב-{name}?", srSub: "מוצרים, הכנה, שירות: הדעה שלכם עוזרת ללקוחות אחרים ולחנות.", srPh: "מילה על {name} (לא חובה, מתפרסם עם השם הפרטי)", srSend: "לפרסם את הביקורת", srThanks: "תודה! הביקורת שלכם על {name} פורסמה 💛", srYours: "הביקורת שלכם על {name}: {stars}",
-  scRating: "⭐ {avg} ({n})", d4mNewRt: "עדיין אין ביקורות", resumeT: "הסל שלכם ב{name} מחכה", resumeN: "{n} מוצרים שמורים", resume1: "מוצר אחד שמור", resumeGo: "להמשיך", resumeOff: "אחר כך", shReviews: "⭐ {avg} · {n} ביקורות", shReviewsNone: "עדיין אין ביקורות", shReviewsSee: "לביקורות", spReviews: "⭐ ביקורות הלקוחות", spReviewsNone: "עדיין אין ביקורות: הלקוחות יכולים לדרג אחרי כל משלוח.", spReviewsAvg: "{avg} מתוך 5 · {n} ביקורות",
+  scRating: "⭐ {avg} ({n})", d4mNewRt: "עדיין אין ביקורות", shopOpening: "פותחים את {name}…", cgLoading: "המוצרים בדרך…", shopOpenFail: "החיבור איטי: החנות לא נפתחה. נסו שוב.", resumeT: "הסל שלכם ב{name} מחכה", resumeN: "{n} מוצרים שמורים", resume1: "מוצר אחד שמור", resumeGo: "להמשיך", resumeOff: "אחר כך", shReviews: "⭐ {avg} · {n} ביקורות", shReviewsNone: "עדיין אין ביקורות", shReviewsSee: "לביקורות", spReviews: "⭐ ביקורות הלקוחות", spReviewsNone: "עדיין אין ביקורות: הלקוחות יכולים לדרג אחרי כל משלוח.", spReviewsAvg: "{avg} מתוך 5 · {n} ביקורות",
   rtTitle: "איך היה המשלוח?", rtSub: "הדעה שלכם עוזרת לשליח ולהופ! 💛",
   rt_fast: "⚡ מהיר", rt_nice: "😊 נחמד", rt_care: "📦 זהיר", rt_found: "📍 מצא בקלות",
   rt_late: "⏰ איחור", rt_damaged: "💔 החבילה נפגעה", rt_rude: "😕 לא אדיב", rt_lost: "❓ החבילה אבדה",
