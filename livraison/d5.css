@@ -1434,3 +1434,22 @@ html.d5 body .d6-res em { padding: 10px 12px !important; }
 /* barre du bas : « Commandes » jamais coupé en deux sur petit écran */
 html.d3 body .d3-nav button[data-d3nav] span { white-space: nowrap !important; overflow: visible !important; }
 @media (max-width: 374px) { html.d3 body .d3-nav button[data-d3nav] span { font-size: 12px !important; letter-spacing: -.01em; } }
+/* (28/11) « Ouverture de Max Stock… » : tout de suite à l'écran quand le réseau est lent */
+.shop-load { position: fixed; inset: 0; z-index: 9000; display: grid; place-items: center; background: rgba(244,248,252,.96); animation: slIn .25s ease .12s both; }
+.shop-load .sl-in { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 24px; text-align: center; }
+.shop-load img { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; background: #fff; border: 4px solid #fff; box-shadow: 0 10px 24px rgba(15,31,61,.12); animation: slPulse 1.4s ease-in-out infinite; }
+.shop-load b { font: 800 20px/1.25 Heebo, sans-serif; color: #0F1F3D; }
+.shop-load .sl-bar { display: block; width: 160px; height: 6px; border-radius: 6px; background: #DCE6F0; overflow: hidden; }
+.shop-load .sl-bar i { display: block; width: 40%; height: 100%; border-radius: 6px; background: #FF6A13; animation: slBar 1.1s ease-in-out infinite; }
+@keyframes slIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slPulse { 50% { transform: scale(1.06); } }
+@keyframes slBar { 0% { transform: translateX(-100%); } 100% { transform: translateX(260%); } }
+@media (prefers-reduced-motion: reduce) { .shop-load img, .shop-load .sl-bar i { animation: none; } }
+/* produits en cours d'arrivée : cartes grises, la case de texte libre cachée */
+body.cg-wait #shopOrderBox { display: none !important; }
+.cg-skel { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 14px 16px 120px; }
+.cg-skel p { grid-column: 1 / -1; margin: 4px 2px; font: 700 15px/1.3 Heebo, sans-serif; color: #5A6270; }
+.cg-skel i { display: block; height: 190px; border-radius: 22px; background: linear-gradient(100deg, #EEF2F6 30%, #F8FAFC 50%, #EEF2F6 70%); background-size: 300% 100%; animation: cgSk 1.3s ease-in-out infinite; }
+@keyframes cgSk { from { background-position: 100% 0; } to { background-position: 0 0; } }
+@media (prefers-reduced-motion: reduce) { .cg-skel i { animation: none; } }
+.shop-load .sl-bar > i { background: #FF6A13 !important; border: 0 !important; box-shadow: none !important; } .shop-load .sl-bar { background: #DCE6F0 !important; border: 0 !important; }
