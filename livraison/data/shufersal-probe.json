@@ -3,7 +3,7 @@
  "pages": {
   "home": {
    "status": 200,
-   "len": 40979,
+   "len": 40989,
    "selects": [
     [
      "0",
@@ -423,49 +423,49 @@
    "status": 200,
    "count": 1,
    "sample": [
-    "https://pricesprodpublic.blob.core.windows.net/stores/Stores7290027600007-000-20261127-020.gz"
+    "https://pricesprodpublic.blob.core.windows.net/stores/Stores7290027600007-000-20261128-020.gz"
    ]
   },
   "2": {
    "status": 200,
    "count": 20,
    "sample": [
-    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-001-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-002-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-003-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-004-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-005-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-007-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-009-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-011-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-017-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-019-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-020-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-022-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-023-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-024-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-027-20261127-040048.gz"
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-001-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-002-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-003-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-004-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-005-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-007-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-009-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-011-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-017-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-019-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-020-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-022-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-023-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-024-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-027-20261128-030000.gz"
    ]
   },
   "4": {
    "status": 200,
    "count": 20,
    "sample": [
-    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-000-878-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-001-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-002-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-003-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-004-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-005-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-007-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-009-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-011-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-017-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-019-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-020-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-022-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-023-20261127-040048.gz",
-    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-024-20261127-040048.gz"
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-000-878-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-001-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-002-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-003-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-004-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-005-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-007-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-009-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-011-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-017-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-019-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-020-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-022-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-023-20261128-030000.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-024-20261128-030000.gz"
    ]
   }
  }
