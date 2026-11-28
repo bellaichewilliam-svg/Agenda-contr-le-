@@ -1413,3 +1413,24 @@ html.d5 body .d6-rrow { padding-inline: calc(50vw - min(35vw, 150px)) !important
 html.d5 body .d6-rrow > .d6-rc .d6-rp { inset: 0 0 70px 0 !important; }
 html.d5 body .d6-rrow > .d6-rc b { font-size: 26px !important; bottom: 30px !important; }
 html.d5 body .d6-rrow > .d6-rc small { font-size: 14px !important; bottom: 10px !important; }
+/* (28/11) Hébreu : flèche « aller » vers la gauche. Le code met « ‹ » mais le sens de lecture la retournait : on la fige */
+html[dir=rtl] body .d5-more-it i, html[dir=rtl] body .d6-btn i { transform: scaleX(-1); }
+/* (28/11) Rappel « Votre panier vous attend » en haut de l'accueil */
+html.d5 body .d6-resume { position: relative; margin: 12px 16px 4px; }
+html.d5 body .d6-res { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 44px 12px 12px; border: 0; border-radius: 22px; background: #fff; color: var(--ink, #0F1F3D); text-align: start; box-shadow: 0 8px 20px rgba(15,31,61,.10); }
+html[dir=rtl].d5 body .d6-res { padding: 12px 12px 12px 44px; }
+html.d5 body .d6-res-pics { display: flex; flex: none; }
+html.d5 body .d6-res-pics img { width: 44px; height: 44px; border-radius: 12px; object-fit: contain; background: #F2F5F9; border: 2px solid #fff; }
+html.d5 body .d6-res-pics img + img { margin-inline-start: -14px; }
+html.d5 body .d6-res-t { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+html.d5 body .d6-res-t b { font: 800 15px/1.2 Heebo, sans-serif; }
+html.d5 body .d6-res-t small { font: 600 13px/1.2 Heebo, sans-serif; color: #5A6270; }
+html.d5 body .d6-res em { flex: none; font-style: normal; font: 800 14px/1 Heebo, sans-serif; color: #fff; background: #FF6A13; padding: 10px 14px; border-radius: 20px; }
+html.d5 body .d6-res-x { position: absolute; top: 6px; inset-inline-end: 6px; width: 32px; height: 32px; border: 0; border-radius: 50%; background: transparent; color: #8A919C; font-size: 22px; line-height: 1; }
+html.d5 body .d6-res-t { flex: 1 1 0% !important; width: auto !important; max-width: none !important; }
+html.d5 body .d6-res-t b, html.d5 body .d6-res-t small { display: block; width: auto !important; max-width: none !important; white-space: normal !important; }
+html.d5 body .d6-res { padding-inline-end: 36px !important; gap: 10px !important; }
+html.d5 body .d6-res em { padding: 10px 12px !important; }
+/* barre du bas : « Commandes » jamais coupé en deux sur petit écran */
+html.d3 body .d3-nav button[data-d3nav] span { white-space: nowrap !important; overflow: visible !important; }
+@media (max-width: 374px) { html.d3 body .d3-nav button[data-d3nav] span { font-size: 12px !important; letter-spacing: -.01em; } }

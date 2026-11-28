@@ -41,6 +41,7 @@ function setView(v, push) {
   document.body.dataset.view = v;
   viewTitle();
   try { d6ShopColor(); } catch (e) { /* design 5 */ }
+  if (v === "home") { try { d6Resume(); } catch (e) { /* ignore */ } }
   // Analytique : la commande ouverte (une fois par visite)
   if (v === "order") setTimeout(fillKnown, 0);
   if (v === "order") { let s = null; try { s = sessionStorage.getItem("hop.started"); sessionStorage.setItem("hop.started", "1"); } catch (e) { /* ignore */ } if (!s) UI.track("order_start"); }
@@ -4587,6 +4588,35 @@ const D6_NEW = ["HOPMAXSTOCK"];
 const d6ShopList = () => byShopRank((state.showcase || []).filter(x => !/restaurant|resto|food|cafe/i.test(x.kind || "") && !x.paused)).slice(0, 12);
 const d6NewTag = x => D6_NEW.includes(x.code) ? (I18N.lang === "he" ? "חדש" : "Nouveau") : "";
 // (patron 26/11 : « je les préférais au milieu, qu'ils comprennent qu'il y a un avant et un après ») la 2e carte centrée au départ
+// (28/11, point du jour) Une commande commencée chez un magasin et pas envoyée : à la réouverture, l'accueil la rappelle
+// tout en haut (« Votre panier chez Carrefour vous attend · 3 articles · Reprendre »). Panier gardé 7 jours sur le téléphone.
+function d6ResumeShop() {
+  if (state.shop && cartCount()) return null;
+  const c = cartStored();
+  if (c && c.shop && c.snap && c.snap.count) return { code: c.shop.code, name: String(c.snap.shop_name || c.shop.code), count: c.snap.count, lines: (c.snap.items || []).map(i => ({ n: i.n, q: i.q })) };
+  const now = Date.now();
+  return (multiList() || []).filter(m => m && m.count > 0 && now - (m.at || 0) < 7 * 864e5).sort((a, b) => (b.at || 0) - (a.at || 0))[0] || null;
+}
+function d6Resume() {
+  const sl = document.getElementById("d6Slides"); if (!sl) return;
+  let box = document.getElementById("d6Resume");
+  let m = null; try { if (sessionStorage.getItem("hop.resumeOff") !== "1") m = d6ResumeShop(); } catch (e) { m = d6ResumeShop(); }
+  if (!m) { if (box) box.remove(); return; }
+  if (!box) { box = document.createElement("section"); box.id = "d6Resume"; box.className = "d6-resume"; }
+  // juste avant la grande affiche du haut (l'accueil est rangé par le style : on prend la même place qu'elle)
+  if (box.nextElementSibling !== sl) sl.before(box);
+  box.style.order = getComputedStyle(sl).order;
+  const sc = (state.showcase || []).find(x => x.code === m.code), lg = sc && UI.safeImg(sc.logo);
+  const pics = (m.lines || []).map(l => l.ph).filter(Boolean).slice(0, 3); if (!pics.length && lg) pics.push(lg);
+  const nm = (D4_NAMES[m.code] || [])[I18N.lang === "he" ? 1 : 0] || d3Name(m.name || "");
+  box.innerHTML = `<button type="button" class="d6-res" data-resume="${UI.esc(m.code)}"><span class="d6-res-pics">${pics.length ? pics.map(ph => `<img src="${UI.esc(ph)}"${UI.imgCors(ph)} alt="" loading="lazy" />`).join("") : `<img src="img/hoppy-vit.webp" alt="" />`}</span>
+    <span class="d6-res-t"><b>${UI.esc(t("resumeT", { name: nm }))}</b><small>${UI.esc(t(m.count > 1 ? "resumeN" : "resume1", { n: m.count }))}</small></span><em>${UI.esc(t("resumeGo"))}</em></button>
+    <button type="button" class="d6-res-x" data-resume-off aria-label="${UI.esc(t("resumeOff"))}">×</button>`;
+}
+document.addEventListener("click", e => {
+  const r = e.target.closest("[data-resume]"); if (r) { UI.track("resume_cart", { shop_code: r.dataset.resume }); openStoredCart(); return; }
+  if (e.target.closest("[data-resume-off]")) { try { sessionStorage.setItem("hop.resumeOff", "1"); } catch (x) { /* ignore */ } const b = document.getElementById("d6Resume"); if (b) b.remove(); }
+});
 function d6Center(row) {
   if (!row || row.dataset.touched) return;
   const c = row.children[1] || row.children[0]; if (!c) return;
@@ -4665,6 +4695,7 @@ function d5Home() {
   ];
   let sl = document.getElementById("d6Slides");
   if (!sl) { sl = document.createElement("section"); sl.id = "d6Slides"; sl.className = "d6-slides"; top.after(sl); }
+  try { d6Resume(); } catch (e) { /* rappel du panier */ }
   const cross = `<span class="d6-cross"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/></svg></span>`;
   sl.innerHTML = `<div class="d6-track">${S.map(([c, tone, a, b, note, bubs, img, kind, go, btn], k) => `<article class="d6-slide ${tone} k-${kind}" style="--s:var(--${c})">
       <h2 class="d6-st"><span>${UI.esc(a)}</span><span>${UI.esc(b)}</span></h2><p class="d6-sn">${UI.esc(note)}</p>
@@ -8459,6 +8490,13 @@ async function hvPhoto(file) {
   hv.local = null; hv.hist.push({ r: "c", t: msg.slice(0, 300) });
   hvAsk(msg);
 }
+// (28/11) Rien compris dans l'enregistrement : Hoppy le dit dans la conversation et ouvre tout de suite le clavier,
+// le client écrit sa commande au lieu de rester sans réponse
+function hvEmpty() {
+  hvBubble("h", hvT("hvEmptyType"));
+  const mic = document.querySelector(".hv-mic, [data-hv-mic]"); if (mic) mic.classList.add("invite");
+  const tx = $("#hvText"); if (tx) { tx.placeholder = hvT("hvEmptyPh"); setTimeout(() => { try { tx.focus(); } catch (e) { /* ignore */ } }, 250); }
+}
 function hvBubble(who, text) {
   const d = document.createElement("div");
   d.className = "hv-msg " + (who === "c" ? "me" : who === "w" ? "wait" : "hop");
@@ -8660,7 +8698,7 @@ async function hvRecord() {
     catch (e) { text = ""; wait.remove(); hv.busy = false; const m = String((e && (e.message || e.status)) || "net").slice(0, 40); hvStep("err:net:" + m); toastCart(hvT("micErr", { e: m }), 6000); return; }
     wait.remove(); hv.busy = false;
     if (seq !== hv.seq) return;
-    if (text.length < 2) { hvStep("empty"); toastCart(hvT("hvRecNone"), 3500); if (mic) mic.classList.add("invite"); hvStreamDrop(); return; }
+    if (text.length < 2) { hvStep("empty"); hvEmpty(); hvStreamDrop(); return; }
     hvStep("ok");
     UI.track("voice_said", {});
     hvUser(text);
@@ -8727,7 +8765,7 @@ async function hvRecordWav() {
     catch (e) { wait.remove(); hv.busy = false; const m = String((e && (e.message || e.status)) || "net").slice(0, 40); hvStep("err:net:" + m); toastCart(hvT("micErr", { e: m }), 6000); return; }
     wait.remove(); hv.busy = false;
     if (seq !== hv.seq) return;
-    if (text.length < 2) { hvStep("empty"); toastCart(hvT("hvRecNone"), 3500); if (mic) mic.classList.add("invite"); return; }
+    if (text.length < 2) { hvStep("empty"); hvEmpty(); return; }
     hvStep("ok");
     UI.track("voice_said", {});
     hvUser(text);
